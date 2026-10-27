@@ -191,7 +191,48 @@
     async profiles(ids){ const o = {}; (ids || []).forEach(i=>o[i] = { name: "" }); return o; }
   });
 
-  /* Integrations (Outlook, Xero, Claude drafting) arrive as server functions in the next phase. */
-  const caps = { db, assets, downloads, user };
+  /* ---------- integrations: Outlook + Xero through the server function ---------- */
+  const API = SB_URL + "/functions/v1/api";
+  async function api(path, body){
+    await ready;
+    const { data } = await sb.auth.getSession(); const tok = data.session && data.session.access_token;
+    let r;
+    try{ r = await fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json", apikey: SB_KEY, Authorization: "Bearer " + tok }, body: JSON.stringify(body || {}) }); }
+    catch(_){ throw { code: navigator.onLine === false ? "offline" : "server_unavailable", message: "Couldn't reach the server." }; }
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok || j.error){ const e = j.error || {}; throw { code: e.code || (r.status >= 500 ? "upstream_error" : "tool_error"), message: e.message || ("Server error " + r.status) }; }
+    return j;
+  }
+  /* The app was written against claude.ai connector tools; map those calls onto our own server. */
+  const MS_MAP = { outlook_calendar_search: "calendar_search", outlook_create_event: "create_event", outlook_update_event: "update_event", outlook_delete_event: "delete_event", outlook_send_mail: "send_mail" };
+  const XERO_MAP = { new_sales_invoice: "create_invoice", add_or_update_stock_items: "upsert_items" };
+  const mcp = Object.freeze({
+    async callTool(server, tool, input){
+      let provider, action, payload = input || {};
+      if(server === "Microsoft 365" && MS_MAP[tool]){ provider = "ms"; action = MS_MAP[tool]; }
+      else if(server === "Zapier" && tool === "execute_zapier_write_action" && XERO_MAP[payload.action]){ provider = "xero"; action = XERO_MAP[payload.action]; payload = payload.params || {}; }
+      else if(server === "Xero"){ provider = "xero"; action = tool; }
+      else throw { code: "not_in_manifest", message: "Not available in this app." };
+      const { result } = await api("/call", { provider, action, input: payload });
+      return { structuredContent: result, content: [] };
+    },
+    async listTools(){ return []; }
+  });
+  window.studioConnections = Object.freeze({
+    status: ()=>api("/status"),
+    async connect(provider){ const { url } = await api(`/connect/${provider}/start`); location.href = url; },
+    disconnect: provider=>api("/disconnect", { provider })
+  });
+  /* Coming back from Microsoft / Xero sign-in: remember the result, tidy the address bar. */
+  try{
+    const q = new URLSearchParams(location.search);
+    if(q.get("connect")){
+      window.studioConnectResult = { provider: q.get("connect"), ok: q.get("ok") === "1", error: q.get("error") || "" };
+      history.replaceState(null, "", location.pathname + location.hash);
+    }
+  }catch(_){}
+
+  /* Claude drafting (sample) arrives in a later phase. */
+  const caps = { db, assets, downloads, user, mcp };
   window.claude = Object.freeze({ use: async name=>{ if(name === "db" || name === "assets"){ await ready; } return caps[name] || null; } });
 })();

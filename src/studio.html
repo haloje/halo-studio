@@ -702,15 +702,25 @@ function depSectionHtml(p, openAttr){
     <div class="row">${field("depAccount","Xero account code")}${field("depTax","Xero tax rate name","text",'placeholder="Leave blank unless Xero asks"')}</div>
     <div class="sys-total"><span>Invoice total</span><b id="depTotal">${money(depTotal(p), {showPence:true})}</b></div>
     <div class="adds"><button class="btn small primary" data-act="depXero" id="depXeroBtn" ${anyItem || (p.invMode||"hardware") !== "hardware" ?"":"disabled"}>Create draft invoice in Xero</button><button class="btn small" data-act="depCsv" ${anyItem || (p.invMode||"hardware") !== "hardware" ?"":"disabled"}>Download Xero import file</button></div>
-    <p class="note">Create draft sends it straight to Xero through Zapier as a draft, so nothing goes to the customer until you approve and send it. Leave Invoice number empty and Xero gives it your next INV number.</p>
+    <p class="note">Create draft sends it straight to Xero as a draft, so nothing goes to the customer until you approve and send it. Leave Invoice number empty and Xero gives it your next INV number.</p>
     <p class="note">Import file instead: in Xero go to Business › Invoices › Import, choose the file, and pick <b>No tax</b> for how amounts are entered. It arrives as a draft for you to check and approve. Leave the invoice number as it is, or type your next INV number.</p>
     ${log.length ? `<div class="deplog">${log.map(l=>l.xeroId ? `Draft created in Xero ${esc(l.at)} · ${esc(l.inv)} · ${money(l.total, {showPence:true})} · <a href="https://go.xero.com/AccountsReceivable/Edit.aspx?InvoiceID=${encodeURIComponent(l.xeroId)}" target="_blank" rel="noopener">Open in Xero</a>` : l.xero ? `Sent to Xero ${esc(l.at)} · ${esc(l.inv)} · ${money(l.total, {showPence:true})} · check Xero drafts` : `File made ${esc(l.at)} · ${esc(l.inv)} · ${money(l.total, {showPence:true})}`).join("<br>")}</div>` : ""}
   </div></details>`;
 }
 let depBusy = false;
 function invRef(p){ const r = [p.ref, p.rev].filter(Boolean).join(" "), m = p.invMode || "hardware"; return m === "stage" ? `${r} ${p.stageLabel || "stage payment"} ${num(p.depPct)}%` : m === "final" ? `${r} final balance` : `${r} hardware deposit${num(p.depPct) && num(p.depPct) < 100 ? " " + num(p.depPct) + "%" : ""}`; }
+function nativeErr(e, who){
+  const c = e && e.code, m = String((e && e.message) || "").replace(/\s+/g, " ").slice(0, 200);
+  if(c === "not_connected") return `${who} isn't connected yet. Go to Reports › Connections and press Connect.`;
+  if(c === "needs_reauth") return `${who} needs reconnecting. Go to Reports › Connections and press Reconnect.`;
+  if(c === "not_configured") return `${who} hasn't been set up on the server yet.`;
+  if(c === "offline") return "You're offline. Try again when you have signal.";
+  if(c === "tool_error") return `${who === "Xero" ? "Xero" : "Outlook"} refused it: ${m}`;
+  return null;
+}
 function xeErrText(e){
   const c = e && e.code;
+  if(window.STUDIO_NATIVE){ const n = nativeErr(e, "Xero"); if(n) return n; return "Xero didn't confirm. Check your Xero drafts before trying again."; }
   if(c === "needs_reauth") return "Zapier needs reconnecting in claude.ai Settings › Connectors.";
   if(c === "server_not_connected" || c === "server_not_found") return "Add the Zapier connector in claude.ai Settings › Connectors.";
   if(c === "not_in_manifest" || c === "approval_required" || c === "consent_required") return "Zapier isn't allowed for this page yet. Press the button again and choose Allow.";
@@ -2262,6 +2272,7 @@ try{ olOn = localStorage.getItem(LSO) === "1"; }catch(_){}
 async function olGet(){ if(olMcp === undefined){ try{ olMcp = window.claude ? await claude.use("mcp") : null; }catch(_){ olMcp = null; } } return olMcp; }
 function olErrText(e){
   const c = e && e.code;
+  if(window.STUDIO_NATIVE){ const n = nativeErr(e, "Microsoft 365"); if(n) return n; if(c === "server_unavailable" || c === "upstream_error") return "Outlook didn't answer. Try again in a moment."; return "Outlook error: " + String((e && e.message) || "unknown").slice(0, 140); }
   if(c === "needs_reauth") return "Microsoft 365 needs reconnecting in claude.ai Settings → Connectors.";
   if(c === "server_not_connected" || c === "server_not_found") return "Add the Microsoft 365 connector in claude.ai Settings → Connectors.";
   if(c === "selection_required") return "Choose which Microsoft 365 connector to use when claude.ai asks.";
@@ -2318,7 +2329,7 @@ async function olEnsure(a, b, force){
   if(olFlight[k]) return; olFlight[k] = true;
   if(!c){ olState = "loading"; olSetUi(); }
   try{ const evs = await olFetch(a, b); olCache[k] = { at: Date.now(), evs }; olState = "on"; olMsg = ""; }
-  catch(e){ olCache[k] = { at: Date.now(), evs: (c && c.evs) || [] }; olState = "err"; olMsg = olErrText(e); if(e && ["needs_reauth","server_not_connected","not_in_manifest","blocked_by_policy","not_granted","approval_required"].includes(e.code)) olCache[k].evs = []; }
+  catch(e){ olCache[k] = { at: Date.now(), evs: (c && c.evs) || [] }; olState = "err"; olMsg = olErrText(e); if(e && ["needs_reauth","server_not_connected","not_in_manifest","blocked_by_policy","not_granted","approval_required","not_connected","not_configured"].includes(e.code)) olCache[k].evs = []; }
   olFlight[k] = false; olSetUi();
   if(jbView === "week" && $("#app").dataset.tab === "jobs") jbRender();
 }
@@ -2701,6 +2712,7 @@ function rpHtml(){
   const statusCounts = JB_STATUS.map(([s,c])=>[s, c, jbList.filter(j=>j.status === s).length]).filter(x=>x[2]);
   return `<div class="rp">
     <div class="adds"><div class="pal">${[["month","This month"],["last","Last month"],["year","This year"],["all","All time"]].map(([k,l])=>`<button class="sel" data-rp="${k}" aria-pressed="${rpPeriod===k}">${l}</button>`).join("")}</div><button class="btn small" data-rpbackup="1" style="margin-left:auto">Back up everything</button>${window.STUDIO_NATIVE ? `<label class="btn small filebtn">Import from old Studio<input type="file" accept=".json,application/json" data-rpimport="1"></label><button class="btn small ghost" data-rpsignout="1">Sign out</button>` : `<button class="btn small" data-rpmigrate="1">Export for the new app</button>`}</div>
+    ${window.STUDIO_NATIVE ? rpConnHtml() : ""}
     <div class="kpis">
       <div class="kpi"><small>Invoiced · ${esc(label)}</small><b>${money(invoiced, {showPence:false})}</b><span>${jobInv.length + propInv.length} invoices from Studio</span></div>
       <div class="kpi"><small>Hours logged</small><b>${hrs.toFixed(1)}</b><span>${money(hrs*85, {showPence:false})} at £85 · ${visits} visits</span></div>
@@ -2725,6 +2737,32 @@ $("#jbScroll").addEventListener("click", async e=>{
   if(e.target.closest("[data-rpmigrate]")) mgExport(e.target.closest("[data-rpmigrate]"));
   if(e.target.closest("[data-rpsignout]") && window.studioSignOut) window.studioSignOut();
 });
+/* ---------- connections (native app) ---------- */
+let rpConn = null, rpConnBusy = false, rpConnAt = 0;
+const RP_CONN = [["ms","Microsoft 365","Outlook calendar and sending email from info@halo.je"],["xero","Xero","Draft invoices and price list updates"]];
+function rpConnHtml(){
+  if(!rpConn || Date.now() - rpConnAt > 60000) rpConnLoad();
+  return `<div class="jcard" id="rpConn"><h3>Connections <small>${rpConn ? "" : "CHECKING…"}</small></h3><table>${RP_CONN.map(([k,name,what])=>{
+    const s = rpConn && rpConn[k]; const st = !s ? "…" : s.connected ? `Connected${s.account ? " · " + esc(s.account) : ""}` : !s.configured ? "Not set up on the server yet" : "Not connected";
+    const btn = !s ? "" : s.connected ? `<button class="btn small" data-rpconn="${k}">Reconnect</button> <button class="btn small ghost" data-rpdisc="${k}">Disconnect</button>` : s.configured ? `<button class="btn small primary" data-rpconn="${k}">Connect ${esc(name)}</button>` : "";
+    return `<tr><td><b>${esc(name)}</b><br><small class="note">${esc(what)}</small></td><td>${st}</td><td class="r">${btn}</td></tr>`; }).join("")}</table></div>`;
+}
+async function rpConnLoad(){
+  if(rpConnBusy || !window.studioConnections) return; rpConnBusy = true;
+  try{ rpConn = await studioConnections.status(); rpConnAt = Date.now(); }catch(e){ rpConn = rpConn || { ms: { configured: false }, xero: { configured: false } }; rpConnAt = Date.now(); }
+  rpConnBusy = false;
+  const el = document.getElementById("rpConn"); if(el) el.outerHTML = rpConnHtml();
+}
+$("#jbScroll").addEventListener("click", async e=>{
+  const c = e.target.closest("[data-rpconn]"); if(c){ c.disabled = true; c.textContent = "Opening sign-in…"; try{ await studioConnections.connect(c.dataset.rpconn); }catch(err){ toast(nativeErr(err, c.dataset.rpconn === "ms" ? "Microsoft 365" : "Xero") || "Couldn't start the sign-in. Try again."); c.disabled = false; c.textContent = "Connect"; } return; }
+  const d = e.target.closest("[data-rpdisc]"); if(d){ const k = d.dataset.rpdisc; if(!confirm(`Disconnect ${k === "ms" ? "Microsoft 365" : "Xero"} from Studio?`)) return; try{ await studioConnections.disconnect(k); if(k === "ms"){ olOn = false; try{ localStorage.setItem(LSO, "0"); }catch(_){} } rpConn = null; jbRender(); toast("Disconnected."); }catch(_){ toast("Couldn't disconnect. Try again."); } }
+});
+(function(){
+  const r = window.studioConnectResult; if(!r) return;
+  const name = r.provider === "ms" ? "Microsoft 365" : "Xero";
+  if(r.ok && r.provider === "ms"){ olOn = true; try{ localStorage.setItem(LSO, "1"); }catch(_){} olSetUi(); }
+  setTimeout(()=>toast(r.ok ? `${name} connected.` : `${name} didn't connect: ${r.error === "expired" ? "the sign-in took too long, try again" : r.error}`), 1200);
+})();
 async function rpBackup(){
   const grab = async name=>{ if(mode !== "db") return null; try{ const sn = await db.collection(name).get(); return sn.docs.map(d=>Object.assign({ _id: d.id }, d.data())); }catch(_){ return null; } };
   const data = { app: "halo.je Studio", exported: new Date().toISOString(),
@@ -2951,7 +2989,7 @@ async function prSync(ids){
     const chunk = items.slice(k, k + 25); prSetStatus(`Updating Xero… ${done + failed} of ${items.length}`);
     try{ await prCall(m, chunk.map(prLine)); for(const it of chunk){ await prWrite(it.id, { xs: { price: num(it.price), at: jbToday() }, xdirty: false, xerr: "", xero: Object.assign({}, it.xero, { code: prLine(it).item_code, name: prLine(it).item_name }) }); done++; } }
     catch(e){
-      if(e && ["not_in_manifest","needs_reauth","server_not_connected","approval_required","not_granted","consent_required","blocked_by_policy"].includes(e.code)){ prSetStatus(xeErrText(e), true); chunk.forEach(it=>prQueue.add(it.id)); failed += chunk.length; break; }
+      if(e && ["not_in_manifest","needs_reauth","server_not_connected","approval_required","not_granted","consent_required","blocked_by_policy","not_connected","not_configured","offline"].includes(e.code)){ prSetStatus(xeErrText(e), true); chunk.forEach(it=>prQueue.add(it.id)); failed += chunk.length; break; }
       for(const it of chunk){ /* isolate the item Xero refused */
         try{ await prCall(m, [prLine(it)]); await prWrite(it.id, { xs: { price: num(it.price), at: jbToday() }, xdirty: false, xerr: "", xero: Object.assign({}, it.xero, { code: prLine(it).item_code, name: prLine(it).item_name }) }); done++; }
         catch(e2){ await prWrite(it.id, { xerr: (e2 && e2.message ? String(e2.message) : "Xero didn't accept it").slice(0, 300) }); failed++; }
