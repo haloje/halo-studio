@@ -495,6 +495,35 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .aibox .aistat{font-size:13px;color:var(--muted);min-height:18px}
 .aibox .aistat.warn{color:var(--danger)}
 
+/* knowledge base */
+.app[data-tab=knowledge] .pmode{display:none!important}
+.app:not([data-tab=knowledge]) .kmode{display:none!important}
+.kbmeta{font-size:12.5px;color:var(--muted)}
+.kbmeta a{color:var(--accent)}
+.kbbody{font-size:15px;line-height:1.6;gap:0}
+.kbbody>*{margin:0 0 10px}
+.kbbody>*:last-child{margin-bottom:0}
+.kbbody h2{font-family:var(--f-display);font-weight:400;font-size:21px;margin:14px 0 6px}
+.kbbody h3{font-size:16px;font-weight:600;margin:12px 0 4px}
+.kbbody h4{font-size:14px;font-weight:600;margin:10px 0 4px}
+.kbbody ul,.kbbody ol{padding-left:22px}
+.kbbody ul.chk{list-style:none;padding-left:2px}
+.kbbody ul.chk label{display:flex;gap:8px;align-items:flex-start;cursor:pointer}
+.kbbody ul.chk input{margin-top:5px}
+.kbbody ul.chk input:checked+span{text-decoration:line-through;color:var(--muted)}
+.kbbody code{font-family:var(--f-mono);font-size:.88em;background:var(--field);border:1px solid var(--line);border-radius:4px;padding:1px 4px}
+.kbbody pre{background:#1c1a17;color:#efe9df;border-radius:8px;padding:12px 14px;overflow:auto;font-size:12.5px;line-height:1.5}
+.kbbody pre code{background:none;border:0;padding:0;color:inherit}
+.kbbody blockquote{border-left:3px solid var(--accent);padding:2px 0 2px 12px;color:var(--muted)}
+.kbbody img{max-width:100%;border-radius:8px;display:block}
+.kbbody a{color:var(--accent);word-break:break-word}
+.kbbody hr{border:0;border-top:1px solid var(--line)}
+.kbtools{display:flex;flex-wrap:wrap;gap:6px}
+#kbBody{font-family:var(--f-mono);font-size:13.5px;line-height:1.55;min-height:320px}
+.kbfiles{display:flex;flex-wrap:wrap;gap:6px}
+.kbfile{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:var(--field);border-radius:14px;padding:3px 10px;font-size:12.5px}
+.kbfile a{color:var(--ink)}
+
 /* price file */
 .app[data-tab=prices] .pmode{display:none!important}
 .app:not([data-tab=prices]) .rmode{display:none!important}
@@ -529,11 +558,15 @@ setTimeout(function(){location.href=u;},60);document.write("<plaintext hidden>")
 <div class="app" id="app" data-tab="proposals">
   <header class="bar">
     <div class="brand"><b>halo<span>.je</span></b><small>Studio</small></div>
-    <div class="tabs" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button></div>
+    <div class="tabs" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div>
     <div class="actions rmode" style="margin-left:auto">
       <span class="prsync" id="prStatus"></span>
       <button class="btn" id="prSyncBtn">Sync to Xero</button>
       <button class="btn primary" id="prNew">New item</button>
+    </div>
+    <div class="actions kmode" style="margin-left:auto">
+      <span class="status" id="kbStatus"></span>
+      <button class="btn primary" id="kbNew">New article</button>
     </div>
     <div class="actions cmode" style="margin-left:auto">
       <span class="status" id="cuStatus"></span>
@@ -594,6 +627,10 @@ setTimeout(function(){location.href=u;},60);document.write("<plaintext hidden>")
   <main class="jwork cmode" id="cwork" data-view="edit">
     <aside class="jlist" aria-label="Customers"><div class="top"><input type="search" id="cuSearch" placeholder="Search name, email, address, phone" autocomplete="off" aria-label="Search customers"><div class="chips" id="cuChips"></div></div><div class="jrows" id="cuRows"></div></aside>
     <section class="jstage" aria-label="Customer details"><div class="jscroll" id="cuScroll"></div></section>
+  </main>
+  <main class="jwork kmode" id="kwork" data-view="edit">
+    <aside class="jlist" aria-label="Articles"><div class="top"><input type="search" id="kbSearch" placeholder="Search everything you know" autocomplete="off" aria-label="Search the knowledge base"><div class="chips" id="kbChips"></div></div><div class="jrows" id="kbRows"></div></aside>
+    <section class="jstage" aria-label="Article"><div class="jscroll" id="kbScroll"></div></section>
   </main>
 </div>
 
@@ -1534,7 +1571,7 @@ function askDel(){
   };
 }
 $("#btnDel").addEventListener("click", askDel);
-function setView(v){ $("#work").dataset.view = v; $("#dwork").dataset.view = v; $("#jwork").dataset.view = v; $("#cwork").dataset.view = v; $("#vEdit").setAttribute("aria-pressed", v==="edit"); $("#vPrev").setAttribute("aria-pressed", v==="preview"); if(v==="preview") fitZoom(); }
+function setView(v){ $("#work").dataset.view = v; $("#dwork").dataset.view = v; $("#jwork").dataset.view = v; $("#cwork").dataset.view = v; const kw = $("#kwork"); if(kw) kw.dataset.view = v; $("#vEdit").setAttribute("aria-pressed", v==="edit"); $("#vPrev").setAttribute("aria-pressed", v==="preview"); if(v==="preview") fitZoom(); }
 $("#vEdit").onclick = ()=>setView("edit"); $("#vPrev").onclick = ()=>setView("preview");
 
 /* ---------- boot ---------- */
@@ -2048,12 +2085,14 @@ $("#dwDel").addEventListener("click", async e=>{
 
 /* ---------- tabs ---------- */
 function setTab(t){
-  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices");
+  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge");
+  try{ const st = document.querySelector('.tabs [aria-selected="true"]'); st && st.scrollIntoView({ block: "nearest", inline: "nearest" }); }catch(_){}
+  if(t === "knowledge"){ if(mode !== "loading") kbStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); kbStart(); } }, 200); } }
   if(t === "prices"){ prRender(); }
-  if(t === "customers"){ const go = ()=>{ jbStart(); cuStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
+  if(t === "customers"){ const go = ()=>{ jbStart(); kbStart(); cuStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   if(t === "jobs"){ const go = ()=>{ jbStart(); jbRender(); jbRenderList(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   try{ localStorage.setItem(LS+".tab", t); }catch(_){}
-  { const lbl = { proposals: ["Edit","Preview"], drawings: ["Edit","Plan"], jobs: ["List","Details"], customers: ["List","Details"], prices: ["List","List"] }[t] || ["Edit","Preview"]; $("#vEdit").textContent = lbl[0]; $("#vPrev").textContent = lbl[1]; if(innerWidth <= 860) setView("edit"); }
+  { const lbl = { proposals: ["Edit","Preview"], drawings: ["Edit","Plan"], jobs: ["List","Details"], customers: ["List","Details"], knowledge: ["List","Article"], prices: ["List","List"] }[t] || ["Edit","Preview"]; $("#vEdit").textContent = lbl[0]; $("#vPrev").textContent = lbl[1]; if(innerWidth <= 860) setView("edit"); }
   if(t === "drawings"){ if(mode !== "loading") dwStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); dwStart(); } }, 200); } dwRender(); }
 }
 $("#tabP").addEventListener("click", ()=>setTab("proposals"));
@@ -2061,6 +2100,7 @@ $("#tabD").addEventListener("click", ()=>setTab("drawings"));
 $("#tabJ").addEventListener("click", ()=>setTab("jobs"));
 $("#tabC").addEventListener("click", ()=>setTab("customers"));
 $("#tabR").addEventListener("click", ()=>setTab("prices"));
+$("#tabK").addEventListener("click", ()=>setTab("knowledge"));
 
 </script>
 <script>
@@ -2811,7 +2851,7 @@ async function rpBackup(){
   const grab = async name=>{ if(mode !== "db") return null; try{ const sn = await db.collection(name).get(); return sn.docs.map(d=>Object.assign({ _id: d.id }, d.data())); }catch(_){ return null; } };
   const data = { app: "halo.je Studio", exported: new Date().toISOString(),
     proposals: (await grab("proposals")) || list, jobs: (await grab("jobs")) || jbList, drawings: (await grab("drawings")) || dwList,
-    customers: (await grab("clients")) || ownClients, customerCatalog: clientCat, products: (await grab("products")) || ownProducts, settings: (await grab("settings")) || [] };
+    customers: (await grab("clients")) || ownClients, customerCatalog: clientCat, products: (await grab("products")) || ownProducts, settings: (await grab("settings")) || [], knowledge: (await grab("kb")) || [] };
   offer(`halo.je Studio backup ${jbToday()}.json`, JSON.stringify(data, null, 1));
 }
 
@@ -3113,7 +3153,7 @@ $("#prImport").addEventListener("change", async e=>{
 });
 
 /* ================= Moving to the new app ================= */
-const MG_COLLECTIONS = ["proposals", "jobs", "drawings", "clients", "products", "settings", "catalog"];
+const MG_COLLECTIONS = ["proposals", "jobs", "drawings", "clients", "products", "settings", "catalog", "kb"];
 async function mgExport(btn){
   if(mode !== "db"){ toast("Open Studio in claude.ai to export."); return; }
   btn.disabled = true; const label = btn.textContent; btn.textContent = "Collecting…";
@@ -3222,6 +3262,7 @@ function cuRender(){
     <div class="jcard cukey"><h3>Key info <small>ALWAYS ON SHOW</small></h3>
       <textarea id="cf_keyInfo" data-ck="keyInfo" rows="3" placeholder="Gate code, alarm, parking, Wi-Fi name, who to call on site…">${esc(c.keyInfo||"")}</textarea>
     </div>
+    ${typeof kbClientCard === "function" ? kbClientCard(c) : ""}
     <div class="jcard"><h3>Notes <small>${notes.length}</small></h3>
       <textarea id="cuNote" rows="2" placeholder="Add a note, e.g. prefers calls after 5, happy with the Wi-Fi upgrade, asked about cameras…"></textarea>
       <div class="adds"><button class="btn small" data-ca="addNote">Add note</button></div>
@@ -3258,6 +3299,8 @@ $("#cuScroll").addEventListener("click", async e=>{
   const a = b.dataset.ca, c = cuCur;
   if(a === "addNote"){ const t = ($("#cuNote")||{}).value || ""; if(!t.trim()) return; const n = new Date(); c.notes = (c.notes || []).concat([{ at: `${jbIso(n)} ${dwPad(n.getHours())}:${dwPad(n.getMinutes())}`, by: "Ian Lamont", text: t.trim() }]); cuDirty = true; await cuFlush(); cuRender(); }
   else if(a === "openJob"){ await cuFlush(); setTab("jobs"); jbOpen(b.dataset.id); }
+  else if(a === "openKb"){ await cuFlush(); setTab("knowledge"); kbOpen(b.dataset.id, false); }
+  else if(a === "newKb"){ await cuFlush(); kbNew({ clientId: c.id, cat: "site", title: (c.name || "") + " site notes" }); }
   else if(a === "newJob"){
     await cuFlush(); setTab("jobs");
     const go = ()=>{ const j = jbBlank(); Object.assign(j, { customer: c.name, clientId: c.id, email: c.email || "", phone: c.phone || "", contact: c.contact || "", address: sitesOf(c)[0] || "" });
@@ -3284,4 +3327,204 @@ $("#cuNew").addEventListener("click", async ()=>{
 });
 
 try{ const t0 = localStorage.getItem(LS+".tab"); if(t0 === "drawings" || t0 === "jobs" || t0 === "customers" || t0 === "prices") setTab(t0); }catch(_){}
+
+/* ================= Knowledge base ================= */
+const KB_CATS = [["howto","How-to"],["fix","Troubleshooting"],["spec","Product specs"],["prog","Programming"],["network","Networking"],["supplier","Suppliers & contacts"],["site","Client sites"],["business","Business & admin"],["note","General"]];
+const kbCatName = k => (KB_CATS.find(c=>c[0]===k) || [, "General"])[1];
+let kbList = [], kbCur = null, kbSel = null, kbDirty = false, kbT = null, kbQ = "", kbCat = "all", kbEditing = false, kbStarted = false, kbLoaded = false;
+function kbSetStatus(t, warn){ const s = $("#kbStatus"); if(s){ s.textContent = t; s.classList.toggle("warn", !!warn); } }
+function kbNorm(a){ return Object.assign({ id: uid(), title: "", cat: "note", tags: "", body: "", clientId: "", files: [], pinned: false, created: Date.now(), updated: Date.now() }, a || {}); }
+function kbStart(){
+  if(!kbStarted){
+    kbStarted = true;
+    if(mode === "db"){ db.collection("kb").onSnapshot(snap=>{ kbList = snap.docs.map(d=>kbNorm(Object.assign({ id: d.id }, d.data()))).filter(a=>!a.deleted); kbLoaded = true; kbOnData(); }, ()=>{ kbSetStatus("Couldn't load", true); }); kbSetStatus("Saved"); }
+    else { try{ kbList = JSON.parse(localStorage.getItem(LS + ".kb") || "[]").map(kbNorm); }catch(_){ kbList = []; } kbLoaded = true; kbSetStatus("On this device only"); }
+  }
+  kbRenderList(); kbRender();
+}
+function kbOnData(){
+  if(kbCur && !kbDirty){ const f = kbList.find(a=>a.id === kbCur.id); if(f){ const ae = document.activeElement, inside = ae && $("#kbScroll").contains(ae) && /INPUT|TEXTAREA|SELECT/.test(ae.tagName); kbCur = clone(f); if(!inside && $("#app").dataset.tab === "knowledge") kbRender(); } }
+  if($("#app").dataset.tab === "knowledge"){ kbRenderList(); if(!kbCur) kbRender(); }
+  if($("#app").dataset.tab === "customers" && typeof cuRender === "function" && cuCur && !cuDirty) cuRender();
+}
+const kbClientName = id => { const c = id && clientById(id); return c ? c.name : ""; };
+function kbHay(a){ return [a.title, a.tags, a.body, kbCatName(a.cat), kbClientName(a.clientId), (a.files || []).map(f=>f.name).join(" ")].join(" ").toLowerCase(); }
+function kbPlain(s){ return String(s || "").replace(/```[\s\S]*?```/g, " ").replace(/!\[[^\]]*\]\([^)]*\)/g, " ").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/^[#>\-*\s\d.\[\]x]+/gm, "").replace(/[*`_]/g, "").replace(/\s+/g, " ").trim(); }
+function kbWhen(ms){ try{ return new Date(ms).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); }catch(_){ return ""; } }
+function kbSnippet(a, toks){
+  const t = kbPlain(a.body); if(!toks.length) return t.slice(0, 110);
+  const low = t.toLowerCase(), hit = toks.map(k=>low.indexOf(k)).find(x=>x >= 0), i = hit == null ? 0 : hit;
+  const s = Math.max(0, i - 30); return (s ? "…" : "") + t.slice(s, s + 110);
+}
+function kbRenderList(){
+  const box = $("#kbRows"), chips = $("#kbChips"); if(!box) return;
+  const counts = {}; kbList.forEach(a=>counts[a.cat] = (counts[a.cat] || 0) + 1);
+  chips.innerHTML = [["all", `All ${kbList.length}`], ["pinned", `Pinned ${kbList.filter(a=>a.pinned).length}`]].concat(KB_CATS.filter(([k])=>counts[k]).map(([k,l])=>[k, `${l} ${counts[k]}`])).map(([k,l])=>`<button data-kf="${k}" aria-pressed="${kbCat===k}">${esc(l)}</button>`).join("");
+  const toks = kbQ.toLowerCase().split(/\s+/).filter(Boolean);
+  let rows = kbList.filter(a=>kbCat === "all" || (kbCat === "pinned" ? a.pinned : a.cat === kbCat));
+  if(toks.length) rows = rows.filter(a=>{ const h = kbHay(a); return toks.every(t=>h.includes(t)); });
+  rows.sort((p,q)=>(q.pinned - p.pinned) || (q.updated - p.updated));
+  box.innerHTML = rows.length ? rows.slice(0, 400).map(a=>`<button class="jrow ${kbSel===a.id?"on":""}" data-kb="${esc(a.id)}" style="--js:${a.pinned ? "var(--accent)" : "var(--line)"}"><span class="jbar"></span><span class="jm"><span class="n">${esc(kbCatName(a.cat).toUpperCase())}${a.clientId ? " · " + esc(kbClientName(a.clientId).toUpperCase()) : ""}</span><span class="c">${a.pinned ? "★ " : ""}${esc(a.title || "Untitled")}</span><small>${esc(kbSnippet(a, toks) || a.tags || "")}</small></span><span class="when">${esc(kbWhen(a.updated))}</span></button>`).join("")
+    : `<p class="note" style="padding:16px">${kbList.length ? "Nothing matches." : kbLoaded ? "No articles yet. Press New article to start." : "Loading…"}</p>`;
+}
+/* Small, safe markdown: headings, lists, checklists, quotes, code, links, images, bold/italic. */
+function kbInline(t){
+  return t.replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/!\[([^\]]*)\]\((https?:[^)\s]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
+    .replace(/\[([^\]]+)\]\(((?:https?:|mailto:|tel:)[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>')
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<i>$2</i>");
+}
+function kbMd(src){
+  const L = String(src || "").replace(/\r/g, "").split("\n"), out = []; let i = 0, list = null;
+  const close = ()=>{ if(list){ out.push(`</${list}>`); list = null; } };
+  while(i < L.length){
+    const raw = L[i], ln = esc(raw);
+    if(/^```/.test(raw)){ close(); const buf = []; i++; while(i < L.length && !/^```/.test(L[i])){ buf.push(esc(L[i])); i++; } out.push(`<pre><code>${buf.join("\n")}</code></pre>`); i++; continue; }
+    let m;
+    if((m = raw.match(/^(#{1,3})\s+(.*)/))){ close(); const n = m[1].length + 1; out.push(`<h${n}>${kbInline(esc(m[2]))}</h${n}>`); }
+    else if((m = raw.match(/^\s*[-*]\s+\[( |x|X)\]\s+(.*)/))){ if(list !== "ul class=\"chk\""){ close(); out.push('<ul class="chk">'); list = 'ul class="chk"'; } out.push(`<li><label><input type="checkbox" data-kbchk="${i}" ${m[1] !== " " ? "checked" : ""}> <span>${kbInline(esc(m[2]))}</span></label></li>`); }
+    else if((m = raw.match(/^\s*[-*]\s+(.*)/))){ if(list !== "ul"){ close(); out.push("<ul>"); list = "ul"; } out.push(`<li>${kbInline(esc(m[1]))}</li>`); }
+    else if((m = raw.match(/^\s*\d+[.)]\s+(.*)/))){ if(list !== "ol"){ close(); out.push("<ol>"); list = "ol"; } out.push(`<li>${kbInline(esc(m[1]))}</li>`); }
+    else if((m = raw.match(/^>\s?(.*)/))){ close(); out.push(`<blockquote>${kbInline(esc(m[1]))}</blockquote>`); }
+    else if(/^\s*(---|\*\*\*)\s*$/.test(raw)){ close(); out.push("<hr>"); }
+    else if(!raw.trim()){ close(); }
+    else { close(); const buf = [kbInline(ln)]; while(i + 1 < L.length && L[i+1].trim() && !/^(#{1,3}\s|\s*[-*]\s|\s*\d+[.)]\s|>|```|\s*---\s*$)/.test(L[i+1])){ i++; buf.push(kbInline(esc(L[i]))); } out.push(`<p>${buf.join("<br>")}</p>`); }
+    i++;
+  }
+  close(); return out.join("");
+}
+const kbF = (k, label, extra="") => `<label class="f"><span>${label}</span><input id="kf_${k}" data-kk="${k}" value="${esc(kbCur[k] || "")}" ${extra}></label>`;
+function kbRender(){
+  const sc = $("#kbScroll"); if(!sc) return;
+  if(!kbCur){
+    const recent = kbList.slice().sort((p,q)=>q.updated - p.updated).slice(0, 6);
+    sc.innerHTML = `<div class="planempty"><h2>Your knowledge base.</h2><p>Everything you need to know in one place: how-tos, fixes you've found, product notes, programming tips, supplier contacts and notes on client sites. Search finds words anywhere in an article.</p>
+      <p class="note">Write in plain text. A line starting with # is a heading, - makes a list, - [ ] makes a tick list, and \`\`\` above and below keeps code exactly as typed. Photos go straight into the article.</p>
+      <div class="adds"><button class="btn small primary" data-kact="new">New article</button></div>
+      ${recent.length ? `<div class="culink">${recent.map(a=>`<button data-kact="open" data-id="${esc(a.id)}"><span class="n">${esc(kbCatName(a.cat))}</span><span>${esc(a.title || "Untitled")}<small>${esc(kbWhen(a.updated))}</small></span></button>`).join("")}</div>` : ""}</div>`;
+    return;
+  }
+  const a = kbCur, files = a.files || [];
+  const filesHtml = files.length ? `<div class="kbfiles">${files.map((f,i)=>`<span class="kbfile"><a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.name)}</a>${kbEditing ? ` <button class="icon" data-kact="rmFile" data-i="${i}" title="Remove">×</button>` : ""}</span>`).join("")}</div>` : "";
+  if(!kbEditing){
+    sc.innerHTML = `<div class="jdetail kbread">
+      <div class="jhead"><span class="num">${esc(kbCatName(a.cat).toUpperCase())}</span><h2>${esc(a.title || "Untitled")}</h2>
+        <button class="btn small ghost" data-kact="pin">${a.pinned ? "★ Pinned" : "☆ Pin"}</button><button class="btn small primary" data-kact="edit">Edit</button></div>
+      <div class="kbmeta">${[a.clientId ? `Customer: <a href="#" data-kact="client">${esc(kbClientName(a.clientId))}</a>` : "", a.tags ? "Tags: " + esc(a.tags) : "", "Updated " + esc(kbWhen(a.updated))].filter(Boolean).join(" · ")}</div>
+      <div class="jcard kbbody">${a.body.trim() ? kbMd(a.body) : `<p class="note">Nothing written yet. Press Edit.</p>`}</div>
+      ${filesHtml ? `<div class="jcard"><h3>Files <small>${files.length}</small></h3>${filesHtml}</div>` : ""}
+    </div>`;
+    return;
+  }
+  const cs = clients.slice().sort((p,q)=>String(p.name).localeCompare(String(q.name)));
+  sc.innerHTML = `<div class="jdetail">
+    <div class="jhead"><span class="num">EDITING</span><h2>${esc(a.title || "New article")}</h2><button class="btn small primary" data-kact="done">Done</button></div>
+    <div class="jcard">
+      ${kbF("title", "Title", 'placeholder="e.g. Resetting a Lutron RA2 main repeater"')}
+      <div class="row3"><label class="f"><span>Category</span><select class="in" data-kk="cat">${KB_CATS.map(([k,l])=>`<option value="${k}" ${a.cat===k?"selected":""}>${esc(l)}</option>`).join("")}</select></label>
+        ${kbF("tags", "Tags", 'placeholder="Crestron, CP4, firmware"')}
+        <label class="f"><span>Customer (optional)</span><select class="in" data-kk="clientId"><option value="">None</option>${cs.map(c=>`<option value="${esc(c.id)}" ${a.clientId===c.id?"selected":""}>${esc(c.name)}</option>`).join("")}</select></label></div>
+    </div>
+    <div class="jcard">
+      <div class="kbtools"><button class="btn small" data-kfmt="h">Heading</button><button class="btn small" data-kfmt="b"><b>B</b></button><button class="btn small" data-kfmt="ul">List</button><button class="btn small" data-kfmt="chk">Tick list</button><button class="btn small" data-kfmt="ol">1. 2. 3.</button><button class="btn small" data-kfmt="code">Code</button><button class="btn small" data-kfmt="link">Link</button>
+        <label class="btn small filebtn">Photo or file<input type="file" multiple data-kfile="1" accept="image/*,application/pdf,.txt,.csv,.zip,.lpz,.lsz,.cpz,.smw,.json,.xml,.docx,.xlsx"></label></div>
+      <textarea id="kbBody" data-kk="body" rows="18" placeholder="Write it down while it's fresh…">${esc(a.body)}</textarea>
+      ${filesHtml}
+    </div>
+    <div class="adds"><button class="btn small ghost danger" data-kact="remove">Delete article</button></div>
+  </div>`;
+}
+function kbOpen(id, edit){ const a = kbList.find(x=>x.id === id); if(!a) return; kbSel = id; kbCur = clone(a); kbEditing = !!edit; kbRenderList(); kbRender(); if(innerWidth <= 860) setView("preview"); $("#kbScroll").scrollTop = 0; }
+async function kbWrite(a){
+  if(mode === "db"){ try{ await db.collection("kb").doc(a.id).set(a); return true; }catch(_){ toast("Couldn't save the article."); return false; } }
+  const i = kbList.findIndex(x=>x.id === a.id); if(i >= 0) kbList[i] = a; else kbList.push(a);
+  try{ localStorage.setItem(LS + ".kb", JSON.stringify(kbList)); }catch(_){} return true;
+}
+async function kbNew(extra){
+  await kbFlush();
+  const a = kbNorm(Object.assign({ title: "" }, extra || {}));
+  kbList.unshift(a); kbSel = a.id; kbCur = clone(a); kbEditing = true; kbDirty = true;
+  if($("#app").dataset.tab !== "knowledge") setTab("knowledge");
+  kbRenderList(); kbRender(); if(innerWidth <= 860) setView("preview");
+  const t = $("#kf_title"); t && t.focus();
+}
+function kbSchedule(){ kbDirty = true; kbSetStatus("Unsaved"); clearTimeout(kbT); kbT = setTimeout(kbFlush, 800); }
+async function kbFlush(){
+  clearTimeout(kbT); if(!kbCur || !kbDirty) return;
+  kbDirty = false; kbSetStatus("Saving"); kbCur.updated = Date.now();
+  const a = clone(kbCur), i = kbList.findIndex(x=>x.id === a.id); if(i >= 0) kbList[i] = a; else kbList.unshift(a);
+  const ok = await kbWrite(a); kbSetStatus(ok ? (mode === "db" ? "Saved" : "Saved on this device") : "Not saved", !ok); kbRenderList();
+}
+function kbWrap(fmt){
+  const ta = $("#kbBody"); if(!ta) return; const s = ta.selectionStart, e = ta.selectionEnd, v = ta.value, sel = v.slice(s, e);
+  const ls = v.lastIndexOf("\n", s - 1) + 1; let ins, a2 = s, b2 = e;
+  const prefix = p => { const block = v.slice(ls, e) || ""; const lines = (block || "").split("\n").map(x=>p(x)); ins = lines.join("\n"); ta.setRangeText(ins, ls, e, "end"); };
+  if(fmt === "h") prefix(x=>"## " + x.replace(/^#+\s*/, ""));
+  else if(fmt === "ul") prefix(x=>"- " + x);
+  else if(fmt === "chk") prefix(x=>"- [ ] " + x);
+  else if(fmt === "ol") { let n = 0; prefix(x=>`${++n}. ` + x); }
+  else if(fmt === "b"){ ta.setRangeText(`**${sel || "bold"}**`, s, e, "select"); }
+  else if(fmt === "code"){ ta.setRangeText(sel.includes("\n") || !sel ? "\n```\n" + (sel || "paste code here") + "\n```\n" : "`" + sel + "`", s, e, "select"); }
+  else if(fmt === "link"){ const u = prompt("Web address", "https://"); if(!u) return; ta.setRangeText(`[${sel || "link"}](${u.trim()})`, s, e, "end"); }
+  ta.focus(); kbCur.body = ta.value; kbSchedule();
+}
+async function kbAddFiles(files){
+  const a = await getAssets(); if(!a){ toast("Files can't be added here."); return; }
+  kbSetStatus("Uploading…");
+  for(const f of files){
+    try{
+      if(/^image\//.test(f.type) && !/svg/.test(f.type)){
+        const { blob } = await shrink(f, 2000, "image/jpeg", 0.86); const url = (await a.upload(blob)).url;
+        const ta = $("#kbBody"), md = `\n![${f.name.replace(/\.[^.]+$/, "").replace(/[\[\]]/g, "")}](${url})\n`;
+        if(ta){ ta.setRangeText(md, ta.selectionStart, ta.selectionEnd, "end"); kbCur.body = ta.value; } else kbCur.body += md;
+      } else {
+        const url = (await a.upload(f)).url; kbCur.files = (kbCur.files || []).concat([{ name: f.name, url, type: f.type || "" }]);
+      }
+    }catch(e){ toast(`Couldn't upload ${f.name}.`); }
+  }
+  kbSchedule(); await kbFlush(); kbRender();
+}
+$("#kbChips").addEventListener("click", e=>{ const b = e.target.closest("[data-kf]"); if(b){ kbCat = b.dataset.kf; kbRenderList(); } });
+$("#kbSearch").addEventListener("input", e=>{ kbQ = e.target.value; kbRenderList(); });
+$("#kbRows").addEventListener("click", async e=>{ const b = e.target.closest("[data-kb]"); if(b){ await kbFlush(); kbOpen(b.dataset.kb, false); } });
+$("#kbNew").addEventListener("click", ()=>kbNew());
+$("#kbScroll").addEventListener("input", e=>{
+  const k = e.target.dataset.kk; if(!k || !kbCur) return;
+  kbCur[k] = e.target.value; if(k === "title"){ const h = $("#kbScroll .jhead h2"); if(h) h.textContent = e.target.value || "New article"; }
+  kbSchedule();
+});
+$("#kbScroll").addEventListener("change", e=>{
+  if(e.target.dataset.kfile){ const fs = [...e.target.files]; e.target.value = ""; if(fs.length) kbAddFiles(fs); return; }
+  if(e.target.dataset.kk && e.target.tagName === "SELECT"){ kbCur[e.target.dataset.kk] = e.target.value; kbSchedule(); }
+  const c = e.target.dataset.kbchk; if(c != null && kbCur){ const L = kbCur.body.split("\n"), n = +c; if(L[n] != null){ L[n] = L[n].replace(/\[( |x|X)\]/, e.target.checked ? "[x]" : "[ ]"); kbCur.body = L.join("\n"); kbSchedule(); } }
+});
+$("#kbScroll").addEventListener("click", async e=>{
+  const f = e.target.closest("[data-kfmt]"); if(f){ e.preventDefault(); kbWrap(f.dataset.kfmt); return; }
+  const b = e.target.closest("[data-kact]"); if(!b) return; e.preventDefault();
+  const act = b.dataset.kact;
+  if(act === "new") return kbNew();
+  if(act === "open") return kbOpen(b.dataset.id, false);
+  if(!kbCur) return;
+  if(act === "edit"){ kbEditing = true; kbRender(); }
+  else if(act === "done"){ if(!String(kbCur.title || "").trim()){ kbCur.title = kbPlain(kbCur.body).slice(0, 60) || "Untitled"; kbDirty = true; } await kbFlush(); kbEditing = false; kbRender(); }
+  else if(act === "pin"){ kbCur.pinned = !kbCur.pinned; kbDirty = true; await kbFlush(); kbRender(); }
+  else if(act === "client"){ await kbFlush(); setTab("customers"); cuOpen(kbCur.clientId); }
+  else if(act === "rmFile"){ kbCur.files.splice(+b.dataset.i, 1); kbSchedule(); kbRender(); }
+  else if(act === "remove"){
+    const gone = clone(kbCur); clearTimeout(kbT); kbDirty = false;
+    kbList = kbList.filter(x=>x.id !== gone.id); kbCur = null; kbSel = null; kbEditing = false; kbRenderList(); kbRender(); if(innerWidth <= 860) setView("edit");
+    if(mode === "db"){ try{ await db.collection("kb").doc(gone.id).delete(); }catch(_){ toast("Couldn't delete it."); } } else { try{ localStorage.setItem(LS + ".kb", JSON.stringify(kbList)); }catch(_){} }
+    undoToast(`"${gone.title || "Untitled"}" deleted.`, async ()=>{ kbList.unshift(gone); await kbWrite(gone); kbRenderList(); kbOpen(gone.id, false); }, null);
+  }
+});
+/* Customer page: articles linked to this customer. */
+function kbClientCard(c){
+  if(!c || !c.id) return "";
+  const arts = kbList.filter(a=>a.clientId === c.id).sort((p,q)=>q.updated - p.updated);
+  return `<div class="jcard"><h3>Site knowledge <small>${arts.length}</small></h3>
+    ${arts.length ? `<div class="culink">${arts.map(a=>`<button data-ca="openKb" data-id="${esc(a.id)}"><span class="n">${esc(kbCatName(a.cat))}</span><span>${esc(a.title || "Untitled")}<small>${esc(kbSnippet(a, []).slice(0, 70))}</small></span></button>`).join("")}</div>` : `<p class="note">Nothing yet. Keep network details, equipment lists, programming notes and quirks for this site here.</p>`}
+    <div class="adds"><button class="btn small" data-ca="newKb">New article for ${esc(c.name || "this customer")}</button></div></div>`;
+}
+
 </script>
