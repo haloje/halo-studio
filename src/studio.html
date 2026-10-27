@@ -245,7 +245,12 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .insp select,.insp input{height:32px;padding:0 8px}
 .floorcard{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:10px;background:var(--bg)}
 .floorcard .thumb{width:100%;height:120px;border-radius:7px;border:1px solid var(--line);background:#fff center/contain no-repeat}
-.typeRow{display:grid;grid-template-columns:30px 62px 1fr 28px;gap:6px;align-items:center}
+.typeRow{display:grid;grid-template-columns:30px 30px 62px 1fr 28px;gap:6px;align-items:center}
+.icbadge{width:30px;height:30px;border-radius:50%;background:var(--mc);border:0;color:#fff;font:600 8.5px/1 var(--f-body);display:grid;place-items:center;padding:0;cursor:pointer}
+.icbadge svg,.pal button svg,.icgrid button svg{width:68%;height:68%}
+.icgrid{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.icgrid button{width:32px;height:32px;border-radius:50%;background:var(--mc);border:2px solid transparent;color:#fff;font:600 8.5px/1 var(--f-body);display:grid;place-items:center;padding:0;cursor:pointer}
+.icgrid button[aria-pressed=true]{border-color:var(--ink);box-shadow:0 0 0 2px var(--panel) inset}
 .typeRow .dot{width:26px;height:26px;border-radius:50%;color:#fff;font:600 8px/1 var(--f-body);display:grid;place-items:center}
 .typeRow input[type=color]{width:28px;height:28px;border:1px solid var(--line);border-radius:6px;padding:0;background:none}
 .typeMore{grid-column:1 / -1;display:grid;gap:6px;padding:8px;border-radius:8px;background:var(--panel);border:1px solid var(--line)}
@@ -255,6 +260,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 
 /* ---------- markers (shared by editor and printed sheets) ---------- */
 .mk{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:calc(var(--u,1px)*3);white-space:nowrap;pointer-events:auto}
+.mk .c svg{width:70%;height:70%;display:block}
 .mk .c{width:calc(var(--u,1px)*15);height:calc(var(--u,1px)*15);border-radius:50%;background:var(--mc);border:calc(var(--u,1px)*1.4) solid #fff;box-shadow:0 0 0 calc(var(--u,1px)*.4) rgba(0,0,0,.15);color:#fff;font:700 calc(var(--u,1px)*4.4)/1 "Hanken Grotesk",sans-serif;display:grid;place-items:center;flex:none;letter-spacing:-.02em}
 .mk .t{display:grid;line-height:1.1;transform:translateX(calc(var(--u,1px)*.5))}
 .mk .t b{font:700 calc(var(--u,1px)*4.6)/1.1 "Geist Mono",monospace;color:var(--mc);letter-spacing:.02em;text-shadow:0 0 2px #fff,0 0 2px #fff}
@@ -293,7 +299,8 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .a3 .legend{position:absolute;right:30px;top:30px;width:258px;background:#f4efe6;border-radius:10px;padding:16px 18px;display:grid;gap:7px;z-index:2}
 .a3 .legend .mono{color:var(--d-brown);margin-bottom:4px}
 .a3 .legend .li{display:flex;gap:10px;align-items:center;font-size:11px;color:var(--d-ink)}
-.a3 .legend .li i{width:18px;height:18px;border-radius:50%;background:var(--mc);color:#fff;font:700 5.5px/18px "Hanken Grotesk",sans-serif;text-align:center;font-style:normal;flex:none}
+.a3 .legend .li i{width:18px;height:18px;border-radius:50%;background:var(--mc);color:#fff;font:700 5.5px/18px "Hanken Grotesk",sans-serif;text-align:center;font-style:normal;flex:none;display:grid;place-items:center}
+.a3 .legend .li i svg{width:72%;height:72%;display:block}
 .a3 .legend p{margin:4px 0 0;font-size:10px;color:#6a645c;line-height:1.45}
 .a3 .tb{position:absolute;left:21px;right:21px;bottom:21px;height:150px;background:var(--d-dark);color:#ece7df;display:grid;grid-template-columns:300px 1.05fr 1.5fr 1.05fr 1fr}
 .a3 .tb>div{padding:16px 18px;border-left:1px solid #2e2b28;min-width:0}
@@ -1578,6 +1585,42 @@ const DW_TYPES = [
   { tag:"WAP", name:"Wireless access point",     system:"Network",          color:"#4c7a5a", mount:"W",   height:450,  cables:" | Cat6A | Orange | AV rack, PoE switch" },
   { tag:"IF",  name:"AC interface (Mitsubishi)", system:"HVAC",             color:"#b0443a", mount:"At unit", height:"", cables:" | Belden 9841 eq. | White | Room thermostat" }
 ];
+/* Device symbols: white line icons drawn inside the coloured badge. "text" shows the tag letters instead. */
+const DW_ICONS = {
+  keypad:   ["Keypad", '<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M10 7h4M10 10.5h4M10 14h4M10 17.5h4"/>'],
+  sensor:   ["Ceiling sensor", '<path d="M4 6h16"/><path d="M7 6a5 5 0 0 0 10 0"/><path d="M8 16.5a6 6 0 0 0 8 0M6 19.5a9 9 0 0 0 12 0"/>'],
+  contact:  ["Door / window contact", '<rect x="4" y="5" width="7" height="14" rx="1.5"/><rect x="14" y="7" width="5" height="10" rx="1.2"/>'],
+  blind:    ["Blind / curtain", '<path d="M4 4h16"/><path d="M6 4v12h12V4"/><path d="M6 8h12M6 12h12"/><path d="M12 16v4"/>'],
+  thermostat:["Thermostat", '<circle cx="12" cy="12" r="8"/><path d="M12 8v5"/><circle cx="12" cy="14.5" r="1.6"/>'],
+  probe:    ["Temperature probe", '<path d="M10 14V5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0z"/><path d="M12 9v6"/>'],
+  speaker:  ["Ceiling speaker", '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".9" fill="#fff"/>'],
+  sub:      ["Subwoofer", '<rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>'],
+  amp:      ["Amplifier / streamer", '<rect x="2.5" y="7" width="19" height="10" rx="1.5"/><circle cx="16.5" cy="12" r="2.2"/><path d="M6 10.5h5M6 13.5h5"/>'],
+  tv:       ["TV", '<rect x="3" y="5" width="18" height="11" rx="1.5"/><path d="M9 20h6M12 16v4"/>'],
+  projector:["Projector", '<rect x="3" y="7" width="18" height="10" rx="2"/><circle cx="15.5" cy="12" r="2.6"/><path d="M6 10.5h4M6 17v2M18 17v2"/>'],
+  screen:   ["Projector screen", '<path d="M3 4h18"/><path d="M4.5 4v11h15V4"/><path d="M12 15v3M9 21l3-3 3 3"/>'],
+  touchpanel:["Touch panel", '<rect x="3.5" y="6" width="17" height="12" rx="2"/><rect x="6.5" y="9" width="7" height="6" rx=".8"/><path d="M16 10h1.5M16 14h1.5"/>'],
+  wap:      ["Wi-Fi access point", '<path d="M5 9.5a10 10 0 0 1 14 0M7.8 12.6a6 6 0 0 1 8.4 0M10.5 15.6a2.2 2.2 0 0 1 3 0"/><circle cx="12" cy="18.5" r="1" fill="#fff"/>'],
+  switch:   ["Network switch", '<rect x="2.5" y="8" width="19" height="8" rx="1.5"/><path d="M6 12h1M9 12h1M12 12h1M15 12h1"/><circle cx="18.5" cy="12" r=".8" fill="#fff"/>'],
+  data:     ["Data point", '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 10h6v5H9zM11 10V8.5h2V10"/>'],
+  rack:     ["Rack / cabinet", '<rect x="5" y="2.5" width="14" height="19" rx="1.5"/><path d="M8 7h8M8 11h8M8 15h8"/>'],
+  module:   ["Interface / module", '<rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8 18v2M12 18v2M16 18v2M8 10h8"/>'],
+  camera:   ["Bullet camera", '<path d="M3 8h13l3 2.5V13l-3 2H3z"/><path d="M8 15v4H5"/><circle cx="15.5" cy="11.5" r="1"/>'],
+  dome:     ["Dome / turret camera", '<path d="M4 9h16"/><path d="M6 9a6 6 0 0 0 12 0"/><circle cx="12" cy="11.5" r="2"/>'],
+  reader:   ["Door reader", '<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M10 8.5a3 3 0 0 1 4 0M9 6.5a5 5 0 0 1 6 0"/><circle cx="12" cy="16" r="1.4"/>'],
+  intercom: ["Intercom / door station", '<rect x="6" y="2.5" width="12" height="19" rx="2"/><circle cx="12" cy="7" r="1.8"/><path d="M9.5 13h5M9.5 15.5h5M9.5 18h5"/>'],
+  lock:     ["Lock / door release", '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4M12 15v2"/>'],
+  button:   ["Button / exit switch", '<rect x="5" y="5" width="14" height="14" rx="3"/><circle cx="12" cy="12" r="3.2"/>'],
+  gate:     ["Gate / garage", '<path d="M3 21V9l9-5 9 5v12"/><path d="M6 21v-9h12v9M6 15h12M6 18h12"/>'],
+  light:    ["Light / lamp", '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>'],
+  downlight:["Downlight", '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>'],
+  socket:   ["Power socket", '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9v3M15 9v3M12 14.5v2"/>'],
+  power:    ["Power supply", '<path d="M13 2 5 13.5h6L10 22l8-11.5h-6z"/>'],
+  text:     ["Letters (tag)", ""]
+};
+const DW_ICON_GUESS = { KP:"keypad", MS:"sensor", PIR:"sensor", WIN:"blind", BL:"blind", TH:"thermostat", AP:"probe", SPK:"speaker", SUB:"sub", AMP:"amp", TV:"tv", PROJ:"projector", PJ:"projector", SCR:"screen", TP:"touchpanel", WAP:"wap", AP6:"wap", SW:"switch", D:"data", DATA:"data", RACK:"rack", IF:"module", CAM:"camera", BUL:"camera", DOME:"dome", TUR:"dome", RDR:"reader", AR:"reader", RD:"reader", INT:"intercom", DS:"intercom", ICM:"intercom", LOCK:"lock", MAG:"lock", REX:"button", BTN:"button", GATE:"gate", LT:"light", DL:"downlight", SKT:"socket", PSU:"power", DC:"contact" };
+const dwIconKey = t => (t && t.icon && DW_ICONS[t.icon]) ? t.icon : (t && DW_ICON_GUESS[String(t.tag || "").toUpperCase()]) || "text";
+function dwBadge(t){ const k = dwIconKey(t); return k === "text" ? esc(t.tag) : `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DW_ICONS[k][1]}</svg>`; }
 const DW_MOUNTS = [["W","Wall"],["C","Ceiling"],["REC","Recessed"],["F","Floor"],["At unit","At unit"]];
 const DW_STAGES = [["prelim","Preliminary"],["quotation","For quotation"],["construction","For construction"],["asbuilt","As built"]];
 const dwPad = (n, l=2) => String(n).padStart(l, "0");
@@ -1652,7 +1695,7 @@ function dwTitleBlock(p, sh, i, total){
 }
 function dwMarkerHtml(p, d, extraClass){
   const t = dwType(p, d.type);
-  return `<div class="mk ${extraClass||""}" data-dev="${esc(d.id)}" style="left:${(d.x*100).toFixed(3)}%;top:${(d.y*100).toFixed(3)}%;--mc:${esc(t.color)}"><span class="c">${esc(d.type)}</span><span class="t"><b>${esc(dwTag(d))}</b><span>${esc(dwMountStr(d))}</span></span></div>`;
+  return `<div class="mk ${extraClass||""}" data-dev="${esc(d.id)}" style="left:${(d.x*100).toFixed(3)}%;top:${(d.y*100).toFixed(3)}%;--mc:${esc(t.color)}"><span class="c" title="${esc(t.name)}">${dwBadge(t)}</span><span class="t"><b>${esc(dwTag(d))}</b><span>${esc(dwMountStr(d))}</span></span></div>`;
 }
 function dwDocSheets(p){
   const sheets = dwSheetList(p), total = sheets.length, upper = esc(String(p.name).toUpperCase());
@@ -1679,7 +1722,7 @@ function dwDocSheets(p){
         pw = `<div class="pw" style="width:${w.toFixed(0)}px;height:${h.toFixed(0)}px;--u:${(w/1000).toFixed(3)}px"><img src="${esc(f.img)}" alt="" style="opacity:${f.fade ?? .55}" crossorigin="anonymous">${f.devices.map(d=>dwMarkerHtml(p,d)).join("")}</div>`;
       } else pw = `<p style="color:#9a948c;font-size:14px">No plan uploaded for this floor yet.</p>`;
       const used = p.types.filter(t=>f.devices.some(d=>d.type===t.tag));
-      body = `<div class="plan">${pw}</div>${used.length?`<div class="legend"><div class="mono">Legend</div>${used.map(t=>`<div class="li"><i style="--mc:${esc(t.color)}">${esc(t.tag)}</i>${esc(t.name)}</div>`).join("")}<p>Tag: room-type-number<br>Mount: W wall · C ceiling · REC recessed · height mm to centre</p></div>`:""}`;
+      body = `<div class="plan">${pw}</div>${used.length?`<div class="legend"><div class="mono">Legend</div>${used.map(t=>`<div class="li"><i style="--mc:${esc(t.color)}">${dwBadge(t)}</i>${esc(t.tag)} · ${esc(t.name)}</div>`).join("")}<p>Tag: room-type-number<br>Mount: W wall · C ceiling · REC recessed · height mm to centre</p></div>`:""}`;
     } else {
       body = `<div class="content"><div class="mono kick">${upper}</div><h2>Cable <em>schedule</em></h2>
         <table><tr><th>Cable ID</th><th>Device</th><th>Room</th><th>Floor</th><th>Mount</th><th>Cable</th><th>Colour</th><th>To</th><th>Notes</th><th>QC ✓</th></tr>
@@ -1780,8 +1823,8 @@ function dwBuildEditor(){
 
   <details class="sec" data-s="types" ${isOpen("types",false)}><summary><span class="t">Device types</span><span class="hint">${p.types.length} in legend</span></summary><div class="body">
     <p class="note">Each type has its own colour, default mounting and cables. A TV point with four cables gets four schedule lines, each with its own suffix.</p>
-    ${p.types.map((t,i)=>`<div class="typeRow"><input type="color" value="${esc(t.color)}" data-dk="types.${i}.color" aria-label="Colour"><input type="text" value="${esc(t.tag)}" data-dk="types.${i}.tag" data-retag="1" aria-label="Tag" style="padding:6px 8px;font-family:var(--f-mono)"><input type="text" value="${esc(t.name)}" data-dk="types.${i}.name" aria-label="Device name" style="padding:6px 8px"><button class="icon" data-dact="moreType" data-i="${i}" title="Cables and mounting">${dwOpenTypes.has(i)?"–":"…"}</button>
-      ${dwOpenTypes.has(i)?`<div class="typeMore"><div class="row3">${dwField(`types.${i}.system`,"System")}<label class="f"><span>Default mount</span><select class="in" data-dk="types.${i}.mount">${DW_MOUNTS.map(([v,l])=>`<option value="${v}" ${t.mount===v?"selected":""}>${l}</option>`).join("")}</select></label>${dwField(`types.${i}.height`,"Height mm","number")}</div>
+    ${p.types.map((t,i)=>`<div class="typeRow"><input type="color" value="${esc(t.color)}" data-dk="types.${i}.color" aria-label="Colour"><button class="icbadge" data-dact="moreType" data-i="${i}" title="Change symbol" style="--mc:${esc(t.color)}">${dwBadge(t)}</button><input type="text" value="${esc(t.tag)}" data-dk="types.${i}.tag" data-retag="1" aria-label="Tag" style="padding:6px 8px;font-family:var(--f-mono)"><input type="text" value="${esc(t.name)}" data-dk="types.${i}.name" aria-label="Device name" style="padding:6px 8px"><button class="icon" data-dact="moreType" data-i="${i}" title="Cables and mounting">${dwOpenTypes.has(i)?"–":"…"}</button>
+      ${dwOpenTypes.has(i)?`<div class="typeMore"><div class="f"><span>Symbol</span><div class="icgrid" style="--mc:${esc(t.color)}">${Object.entries(DW_ICONS).map(([k,[nm]])=>`<button data-dact="setIcon" data-i="${i}" data-ic="${k}" title="${esc(nm)}" aria-label="${esc(nm)}" aria-pressed="${dwIconKey(t)===k}">${dwBadge(Object.assign({}, t, { icon: k }))}</button>`).join("")}</div></div><div class="row3">${dwField(`types.${i}.system`,"System")}<label class="f"><span>Default mount</span><select class="in" data-dk="types.${i}.mount">${DW_MOUNTS.map(([v,l])=>`<option value="${v}" ${t.mount===v?"selected":""}>${l}</option>`).join("")}</select></label>${dwField(`types.${i}.height`,"Height mm","number")}</div>
         <label class="f"><span>Cables, one per line: suffix | cable | colour | to</span><textarea data-dk="types.${i}.cables" rows="3" style="font-family:var(--f-mono);font-size:12px">${esc(t.cables)}</textarea></label>
         <div class="adds"><button class="btn small ghost danger" data-dact="rmType" data-i="${i}">Remove type</button></div></div>`:""}</div>`).join("")}
     <button class="btn add" data-dact="addType">Add device type</button>
@@ -1820,6 +1863,7 @@ $("#dwEditor").addEventListener("click", async e=>{
   else if(a === "rmFloor"){ if(b.dataset.sure !== "1"){ b.dataset.sure = "1"; b.textContent = "Remove floor and its devices?"; return; } const f = dwCur.floors[i]; dwCur.rooms = dwCur.rooms.filter(r=>r.floor!==f.id); dwCur.floors.splice(i,1); dwFloor = 0; }
   else if(a === "editFloor"){ dwFloor = i; dwView = "plan"; if(innerWidth <= 860) setView("preview"); dwRender(); return; }
   else if(a === "moreType"){ dwOpenTypes.has(i) ? dwOpenTypes.delete(i) : dwOpenTypes.add(i); dwBuildEditor(); return; }
+  else if(a === "setIcon"){ dwCur.types[i].icon = b.dataset.ic; }
   else if(a === "addType"){ dwCur.types.push({ tag: "NEW", name: "New device", system: "", color: "#5a6b7a", mount: "W", height: 1200, cables: " | Cat6 | Blue | AV rack" }); dwOpenTypes.add(dwCur.types.length-1); }
   else if(a === "rmType"){ const t = dwCur.types[i]; const used = dwCur.floors.some(f=>f.devices.some(d=>d.type===t.tag)); if(used && b.dataset.sure !== "1"){ b.dataset.sure = "1"; b.textContent = "Devices use this type. Remove them too?"; return; } dwCur.floors.forEach(f=>f.devices = f.devices.filter(d=>d.type!==t.tag)); dwCur.types.splice(i,1); dwOpenTypes.clear(); }
   else if(a === "usePdf"){ dwUsePdf(); return; }
@@ -1884,7 +1928,7 @@ function dwRender(){
   tools.innerHTML = `<div class="pal" role="group" aria-label="View"><button class="sel" data-dview="plan" aria-pressed="${dwView==="plan"}">Place devices</button><button class="sel" data-dview="doc" aria-pressed="${dwView==="doc"}">Drawing set</button></div>
     ${dwView==="plan" ? `
     <select id="dwFloorSel" aria-label="Floor">${p.floors.map((x,i)=>`<option value="${i}" ${i===dwFloor?"selected":""}>${esc(x.name)} floor</option>`).join("")}</select>
-    <div class="pal" role="group" aria-label="Device type"><button class="sel" data-dtool="" aria-pressed="${!dwTool.type}" title="Select and move">Select</button>${p.types.map(t=>`<button data-dtool="${esc(t.tag)}" aria-pressed="${dwTool.type===t.tag}" title="Place ${esc(t.name)}" style="background:${esc(t.color)}">${esc(t.tag)}</button>`).join("")}</div>
+    <div class="pal" role="group" aria-label="Device type"><button class="sel" data-dtool="" aria-pressed="${!dwTool.type}" title="Select and move">Select</button>${p.types.map(t=>`<button data-dtool="${esc(t.tag)}" aria-pressed="${dwTool.type===t.tag}" title="Place ${esc(t.name)} (${esc(t.tag)})" aria-label="Place ${esc(t.name)}" style="background:${esc(t.color)}">${dwBadge(t)}</button>`).join("")}</div>
     <div class="grp"><span class="lbl">Room</span><select id="dwRoomSel" aria-label="Room for new devices">${rooms.length ? rooms.map(r=>`<option value="${esc(r.no)}" ${r.no===dwTool.room?"selected":""}>${esc(r.no)} ${esc(r.name)}</option>`).join("") : `<option value="">Add rooms first</option>`}</select></div>
     <div class="grp"><label class="check"><input type="checkbox" id="dwLabels" ${dwLabels?"checked":""}> Labels</label><button class="icon" data-dzoom="-1" title="Zoom out">−</button><button class="icon" data-dzoom="1" title="Zoom in">+</button></div>` : `<span class="note">${dwSheetList(p).length} sheets, A3 landscape.</span>`}`;
   if(dwView === "doc"){
