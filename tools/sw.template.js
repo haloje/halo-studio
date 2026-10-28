@@ -2,7 +2,7 @@
 const CACHE = "studio-__VERSION__";
 const SHELL = ["./", "index.html", "backend.js", "manifest.webmanifest",
   "vendor/supabase-2.45.4.js", "vendor/html2canvas.min.js", "vendor/jspdf.umd.min.js", "vendor/pdf.min.js", "vendor/pdf.worker.min.js",
-  "icons/logo-light.png", "icons/icon-192.png", "icons/apple-touch-icon.png",
+  "icons/logo-full.png", "icons/emblem-96.png", "icons/icon-192.png", "icons/apple-touch-icon.png",
   "fonts/outfit-latin-300-normal.woff2", "fonts/outfit-latin-400-normal.woff2", "fonts/hanken-grotesk-latin-400-normal.woff2", "fonts/hanken-grotesk-latin-500-normal.woff2",
   "fonts/hanken-grotesk-latin-600-normal.woff2", "fonts/hanken-grotesk-latin-700-normal.woff2", "fonts/geist-mono-latin-400-normal.woff2", "fonts/geist-mono-latin-700-normal.woff2"];
 self.addEventListener("install", e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())); });

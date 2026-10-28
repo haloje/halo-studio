@@ -23,7 +23,7 @@
     if(document.getElementById("authCss")) return;
     const st = document.createElement("style"); st.id = "authCss";
     st.textContent = `.authwrap{position:fixed;inset:0;z-index:200;background:#121110;color:#f3efe9;display:grid;place-items:center;padding:24px;font-family:"Hanken Grotesk",system-ui,sans-serif}
-.authbox{width:min(380px,100%);display:grid;gap:14px}.authbox img{height:54px;justify-self:start}.authbox h1{font-family:"Outfit",sans-serif;font-weight:300;font-size:30px;margin:6px 0 0}
+.authbox{width:min(380px,100%);display:grid;gap:14px}.authbox img{height:72px;justify-self:start;margin-left:-14px}.authbox h1{font-family:"Outfit",sans-serif;font-weight:300;font-size:30px;margin:6px 0 0}
 .authbox p{margin:0;color:#b5aea5;font-size:14px;line-height:1.5}.authbox input{height:46px;border-radius:10px;border:1px solid #3a3632;background:#1c1a18;color:#f3efe9;padding:0 14px;font-size:16px}
 .authbox button{height:46px;border-radius:23px;border:0;background:#e8b878;color:#2a1d0e;font-weight:600;font-size:15px;cursor:pointer}.authbox button.ghost{background:none;color:#e8b878;height:auto;padding:4px 0;font-weight:500;justify-self:start}
 .authbox .msg{font-size:13px;color:#e8b878;min-height:18px}.authbox .msg.err{color:#e58a76}`;
@@ -35,7 +35,7 @@
     w = document.createElement("div"); w.className = "authwrap"; w.id = "authWrap";
     let signUp = false;
     const draw = ()=>{ w.innerHTML = `<form class="authbox" id="authForm" autocomplete="on">
-      <img src="icons/logo-light.png" alt="halo.je">
+      <img src="icons/logo-full.png" alt="halo.je">
       <h1>${signUp ? "Create your login" : "Studio"}</h1>
       <p>${signUp ? "Use info@halo.je and choose a password. You'll get one email to confirm it." : "Sign in to your proposals, jobs, customers and prices."}</p>
       <input type="email" id="authEmail" placeholder="Email" autocomplete="username" required value="info@halo.je">

@@ -29,6 +29,7 @@ button,input,select,textarea{font:inherit;color:inherit}
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   border-bottom:1px solid var(--line);background:var(--panel)}
 .brand{display:flex;align-items:baseline;gap:8px;font-family:var(--f-display);font-weight:300;font-size:20px;white-space:nowrap}
+.brand .bmark{width:28px;height:28px;border-radius:50%;align-self:center;flex:none}
 .brand b{font-weight:400}.brand b span{color:var(--accent)}
 .brand small{font-family:var(--f-mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
 .picker{display:flex;gap:8px;align-items:center;flex:1 1 260px;min-width:0}
@@ -557,7 +558,7 @@ document.write('<div style="font:16px -apple-system,system-ui,sans-serif;padding
 setTimeout(function(){location.href=u;},60);document.write("<plaintext hidden>");})();</script>
 <div class="app" id="app" data-tab="proposals">
   <header class="bar">
-    <div class="brand"><b>halo<span>.je</span></b><small>Studio</small></div>
+    <div class="brand"><img class="bmark" src="icons/emblem-96.png" alt="" onerror="this.remove()"><b>halo<span>.je</span></b><small>Studio</small></div>
     <div class="tabs" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div>
     <div class="actions rmode" style="margin-left:auto">
       <span class="prsync" id="prStatus"></span>
