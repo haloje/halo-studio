@@ -66,7 +66,7 @@ details[open]>summary:after{content:"–"}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 label.f{display:grid;gap:5px;min-width:0}
 label.f>span{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-input[type=text],input[type=number],input[type=date],select.in,textarea{width:100%;border:1px solid var(--line);background:var(--field);border-radius:7px;padding:8px 10px;min-width:0}
+input[type=text],input[type=number],input[type=date],input[type=time],input[type=email],input[type=search],select.in,textarea{width:100%;border:1px solid var(--line);background:var(--field);border-radius:7px;padding:8px 10px;min-width:0}
 textarea{resize:vertical;min-height:70px;line-height:1.45}
 .check{display:flex;gap:8px;align-items:center;font-size:13px}
 .note{font-size:12px;color:var(--muted);line-height:1.45;margin:0}
@@ -515,6 +515,35 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .aibox .aistat{font-size:13px;color:var(--muted);min-height:18px}
 .aibox .aistat.warn{color:var(--danger)}
 
+/* to-do */
+.app[data-tab=todo] .pmode{display:none!important}
+.app:not([data-tab=todo]) .tmode{display:none!important}
+.tdbadge{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--danger,#b0443a);color:#fff;font-size:10.5px;font-weight:600;margin-left:3px;vertical-align:1px}
+#tdAdd{height:42px!important;font-size:15px}
+.tdsearch{height:30px!important;font-size:13px}
+.tdrow{display:grid;grid-template-columns:30px 1fr;gap:8px;align-items:start;padding:10px 14px 10px max(12px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line);cursor:pointer}
+.tdrow:hover,.tdrow.on{background:var(--accent-soft)}
+.tdrow .tdm{display:grid;min-width:0;gap:2px}
+.tdrow .c{font-size:14.5px;line-height:1.35;word-break:break-word}
+.tdrow small{color:var(--muted);font-size:12px}
+.tdrow small .over{color:var(--danger,#b0443a);font-weight:600}
+.tdrow.done .c{text-decoration:line-through;color:var(--muted)}
+.tdck{display:grid;place-items:center;width:26px;height:26px;cursor:pointer;margin-top:-2px}
+.tdck input{position:absolute;opacity:0;pointer-events:none}
+.tdck span{width:20px;height:20px;border-radius:50%;border:1.6px solid var(--muted);display:grid;place-items:center;transition:background .15s}
+.tdck input:checked+span{background:var(--accent);border-color:var(--accent)}
+.tdck input:checked+span::after{content:"";width:9px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.tdck input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.tdflag{color:var(--accent)}
+.tdlinks{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.tdchip{font-size:11px;border:1px solid var(--line);background:var(--field);border-radius:10px;padding:1px 8px;color:var(--ink);cursor:pointer}
+.tdchip:hover{border-color:var(--accent)}
+.tdmini{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tdmini .tdrow:last-child{border-bottom:0}
+.tdinline{width:100%;height:38px;border:1px dashed var(--line);background:var(--field);border-radius:8px;padding:0 10px}
+.tdquick{margin-top:-4px}
+.note.warn{color:var(--danger,#b0443a)}
+
 /* knowledge base */
 .app[data-tab=knowledge] .pmode{display:none!important}
 .app:not([data-tab=knowledge]) .kmode{display:none!important}
@@ -578,11 +607,15 @@ setTimeout(function(){location.href=u;},60);document.write("<plaintext hidden>")
 <div class="app" id="app" data-tab="proposals">
   <header class="bar">
     <div class="brand"><img class="bmark" src="icons/emblem-96.png" alt="" onerror="this.remove()"><b>halo<span>.je</span></b><small>Studio</small></div>
-    <div class="tabs" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div>
+    <div class="tabs" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div>
     <div class="actions rmode" style="margin-left:auto">
       <span class="prsync" id="prStatus"></span>
       <button class="btn" id="prSyncBtn">Sync to Xero</button>
       <button class="btn primary" id="prNew">New item</button>
+    </div>
+    <div class="actions tmode" style="margin-left:auto">
+      <span class="status" id="tdStatus"></span>
+      <button class="btn primary" id="tdNew">New to-do</button>
     </div>
     <div class="actions kmode" style="margin-left:auto">
       <span class="status" id="kbStatus"></span>
@@ -647,6 +680,10 @@ setTimeout(function(){location.href=u;},60);document.write("<plaintext hidden>")
   <main class="jwork cmode" id="cwork" data-view="edit">
     <aside class="jlist" aria-label="Customers"><div class="top"><input type="search" id="cuSearch" placeholder="Search name, email, address, phone" autocomplete="off" aria-label="Search customers"><div class="chips" id="cuChips"></div></div><div class="jrows" id="cuRows"></div></aside>
     <section class="jstage" aria-label="Customer details"><div class="jscroll" id="cuScroll"></div></section>
+  </main>
+  <main class="jwork tmode" id="twork" data-view="edit">
+    <aside class="jlist" aria-label="To-dos"><div class="top"><input type="text" id="tdAdd" placeholder="Add a to-do… e.g. chase deposit fri 10am" autocomplete="off" enterkeyhint="done" aria-label="Add a to-do"><div class="chips" id="tdChips"></div><input type="search" id="tdSearch" placeholder="Search to-dos" autocomplete="off" aria-label="Search to-dos" class="tdsearch"></div><div class="jrows" id="tdRows"></div></aside>
+    <section class="jstage" aria-label="To-do details"><div class="jscroll" id="tdScroll"></div></section>
   </main>
   <main class="jwork kmode" id="kwork" data-view="edit">
     <aside class="jlist" aria-label="Articles"><div class="top"><input type="search" id="kbSearch" placeholder="Search everything you know" autocomplete="off" aria-label="Search the knowledge base"><div class="chips" id="kbChips"></div></div><div class="jrows" id="kbRows"></div></aside>
@@ -1726,7 +1763,7 @@ function askDel(){
   };
 }
 $("#btnDel").addEventListener("click", askDel);
-function setView(v){ $("#work").dataset.view = v; $("#dwork").dataset.view = v; $("#jwork").dataset.view = v; $("#cwork").dataset.view = v; const kw = $("#kwork"); if(kw) kw.dataset.view = v; $("#vEdit").setAttribute("aria-pressed", v==="edit"); $("#vPrev").setAttribute("aria-pressed", v==="preview"); if(v==="preview") fitZoom(); }
+function setView(v){ $("#work").dataset.view = v; $("#dwork").dataset.view = v; $("#jwork").dataset.view = v; $("#cwork").dataset.view = v; const kw = $("#kwork"); if(kw) kw.dataset.view = v; const tw = $("#twork"); if(tw) tw.dataset.view = v; $("#vEdit").setAttribute("aria-pressed", v==="edit"); $("#vPrev").setAttribute("aria-pressed", v==="preview"); if(v==="preview") fitZoom(); }
 $("#vEdit").onclick = ()=>setView("edit"); $("#vPrev").onclick = ()=>setView("preview");
 
 /* ---------- boot ---------- */
@@ -2240,14 +2277,15 @@ $("#dwDel").addEventListener("click", async e=>{
 
 /* ---------- tabs ---------- */
 function setTab(t){
-  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge");
+  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge"); $("#tabT").setAttribute("aria-selected", t==="todo");
+  if(t === "todo"){ if(mode !== "loading") tdStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); tdStart(); } }, 200); } }
   try{ const st = document.querySelector('.tabs [aria-selected="true"]'); st && st.scrollIntoView({ block: "nearest", inline: "nearest" }); }catch(_){}
   if(t === "knowledge"){ if(mode !== "loading") kbStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); kbStart(); } }, 200); } }
   if(t === "prices"){ prRender(); }
   if(t === "customers"){ const go = ()=>{ jbStart(); kbStart(); cuStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   if(t === "jobs"){ const go = ()=>{ jbStart(); jbRender(); jbRenderList(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   try{ localStorage.setItem(LS+".tab", t); }catch(_){}
-  { const lbl = { proposals: ["Edit","Preview"], drawings: ["Edit","Plan"], jobs: ["List","Details"], customers: ["List","Details"], knowledge: ["List","Article"], prices: ["List","List"] }[t] || ["Edit","Preview"]; $("#vEdit").textContent = lbl[0]; $("#vPrev").textContent = lbl[1]; if(innerWidth <= 860) setView("edit"); }
+  { const lbl = { proposals: ["Edit","Preview"], drawings: ["Edit","Plan"], jobs: ["List","Details"], customers: ["List","Details"], knowledge: ["List","Article"], todo: ["List","Details"], prices: ["List","List"] }[t] || ["Edit","Preview"]; $("#vEdit").textContent = lbl[0]; $("#vPrev").textContent = lbl[1]; if(innerWidth <= 860) setView("edit"); }
   if(t === "drawings"){ if(mode !== "loading") dwStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); dwStart(); } }, 200); } dwRender(); }
 }
 $("#tabP").addEventListener("click", ()=>setTab("proposals"));
@@ -2256,6 +2294,7 @@ $("#tabJ").addEventListener("click", ()=>setTab("jobs"));
 $("#tabC").addEventListener("click", ()=>setTab("customers"));
 $("#tabR").addEventListener("click", ()=>setTab("prices"));
 $("#tabK").addEventListener("click", ()=>setTab("knowledge"));
+$("#tabT").addEventListener("click", ()=>setTab("todo"));
 
 </script>
 <script>
@@ -2410,6 +2449,7 @@ function jbDetailHtml(j){
         <button class="icon" title="Remove visit" data-ja="rmVisit" data-id="${esc(v.id)}">×</button><div class="olchip ${v.olErr?"err":v.outlookId?"ok":""}" id="olc_${esc(v.id)}">${olChip(v)}</div><div class="emchip ${emChanged(v)?"warn":""}" id="emc_${esc(v.id)}">${emChip(j, v)}</div>${emOpen === v.id ? emPanel(j, v) : ""}</div>`).join("") : `<p class="note">No visits booked. Add one here, or click a time on the schedule.</p>`}
       <div class="adds"><button class="btn small" data-ja="addVisit">Add visit</button><button class="btn small ghost" data-ja="toWeek">Show on schedule</button></div>
     </div>
+    ${typeof tdCardHtml === "function" ? tdCardHtml({ jobId: j.id }) : ""}
     <div class="jcard"><h3>Time <small>${hrs.toFixed(2)} hrs · ${money(hrs*jxRate(j), {showPence:false})} at £${jxRate(j)}</small></h3>
       <div class="clock">${j.clock ? `<span class="run">On the clock since ${esc(j.clock.slice(11,16))}</span><button class="btn small primary" data-ja="clockOff">Clock off</button>` : `<button class="btn small" data-ja="clockOn">Clock on</button>`}</div>
       ${j.time.slice().sort((a,b)=>(b.date+b.start).localeCompare(a.date+a.start)).map(t=>`<div class="trow">
@@ -3010,7 +3050,7 @@ async function rpBackup(){
   const grab = async name=>{ if(mode !== "db") return null; try{ const sn = await db.collection(name).get(); return sn.docs.map(d=>Object.assign({ _id: d.id }, d.data())); }catch(_){ return null; } };
   const data = { app: "halo.je Studio", exported: new Date().toISOString(),
     proposals: (await grab("proposals")) || list, jobs: (await grab("jobs")) || jbList, drawings: (await grab("drawings")) || dwList,
-    customers: (await grab("clients")) || ownClients, customerCatalog: clientCat, products: (await grab("products")) || ownProducts, settings: (await grab("settings")) || [], knowledge: (await grab("kb")) || [] };
+    customers: (await grab("clients")) || ownClients, customerCatalog: clientCat, products: (await grab("products")) || ownProducts, settings: (await grab("settings")) || [], knowledge: (await grab("kb")) || [], todos: (await grab("tasks")) || [] };
   offer(`halo.je Studio backup ${jbToday()}.json`, JSON.stringify(data, null, 1));
 }
 
@@ -3312,7 +3352,7 @@ $("#prImport").addEventListener("change", async e=>{
 });
 
 /* ================= Moving to the new app ================= */
-const MG_COLLECTIONS = ["proposals", "jobs", "drawings", "clients", "products", "settings", "catalog", "kb"];
+const MG_COLLECTIONS = ["proposals", "jobs", "drawings", "clients", "products", "settings", "catalog", "kb", "tasks"];
 async function mgExport(btn){
   if(mode !== "db"){ toast("Open Studio in claude.ai to export."); return; }
   btn.disabled = true; const label = btn.textContent; btn.textContent = "Collecting…";
@@ -3421,6 +3461,7 @@ function cuRender(){
     <div class="jcard cukey"><h3>Key info <small>ALWAYS ON SHOW</small></h3>
       <textarea id="cf_keyInfo" data-ck="keyInfo" rows="3" placeholder="Gate code, alarm, parking, Wi-Fi name, who to call on site…">${esc(c.keyInfo||"")}</textarea>
     </div>
+    ${typeof tdCardHtml === "function" ? tdCardHtml({ clientId: c.id }) : ""}
     ${typeof kbClientCard === "function" ? kbClientCard(c) : ""}
     <div class="jcard"><h3>Notes <small>${notes.length}</small></h3>
       <textarea id="cuNote" rows="2" placeholder="Add a note, e.g. prefers calls after 5, happy with the Wi-Fi upgrade, asked about cameras…"></textarea>
@@ -3553,7 +3594,7 @@ function kbMd(src){
   }
   close(); return out.join("");
 }
-const kbF = (k, label, extra="") => `<label class="f"><span>${label}</span><input id="kf_${k}" data-kk="${k}" value="${esc(kbCur[k] || "")}" ${extra}></label>`;
+const kbF = (k, label, extra="") => `<label class="f"><span>${label}</span><input type="text" id="kf_${k}" data-kk="${k}" value="${esc(kbCur[k] || "")}" ${extra}></label>`;
 function kbRender(){
   const sc = $("#kbScroll"); if(!sc) return;
   if(!kbCur){
@@ -3685,5 +3726,230 @@ function kbClientCard(c){
     ${arts.length ? `<div class="culink">${arts.map(a=>`<button data-ca="openKb" data-id="${esc(a.id)}"><span class="n">${esc(kbCatName(a.cat))}</span><span>${esc(a.title || "Untitled")}<small>${esc(kbSnippet(a, []).slice(0, 70))}</small></span></button>`).join("")}</div>` : `<p class="note">Nothing yet. Keep network details, equipment lists, programming notes and quirks for this site here.</p>`}
     <div class="adds"><button class="btn small" data-ca="newKb">New article for ${esc(c.name || "this customer")}</button></div></div>`;
 }
+
+
+/* ================= To-do list & reminders ================= */
+let tdList = [], tdCur = null, tdSel = null, tdDirty = false, tdT = null, tdFilter = "today", tdQ = "", tdStarted = false, tdLoaded = false;
+const tdToday = () => jbIso(new Date());
+function tdSetStatus(t, warn){ const s = $("#tdStatus"); if(s){ s.textContent = t; s.classList.toggle("warn", !!warn); } }
+function tdNorm(t){ return Object.assign({ id: uid(), title: "", notes: "", due: "", time: "", done: false, doneAt: "", flag: false, clientId: "", jobId: "", proposalId: "", outlook: false, outlookId: "", created: Date.now(), updated: Date.now() }, t || {}); }
+function tdStart(){
+  if(!tdStarted){
+    tdStarted = true;
+    if(mode === "db"){ db.collection("tasks").onSnapshot(snap=>{ tdList = snap.docs.map(d=>tdNorm(Object.assign({ id: d.id }, d.data()))); tdLoaded = true; tdOnData(); }, ()=>tdSetStatus("Couldn't load", true)); tdSetStatus("Saved"); }
+    else { try{ tdList = JSON.parse(localStorage.getItem(LS + ".tasks") || "[]").map(tdNorm); }catch(_){ tdList = []; } tdLoaded = true; tdSetStatus("On this device only"); tdOnData(); }
+  }
+  if($("#app").dataset.tab === "todo"){ tdRenderList(); tdRender(); }
+}
+let tdNagged = false;
+function tdOnData(){
+  if(tdCur && !tdDirty){ const f = tdList.find(t=>t.id === tdCur.id); if(f){ const ae = document.activeElement, inside = ae && $("#tdScroll").contains(ae) && /INPUT|TEXTAREA|SELECT/.test(ae.tagName); tdCur = clone(f); if(!inside && $("#app").dataset.tab === "todo") tdRender(); } }
+  tdBadge();
+  if($("#app").dataset.tab === "todo"){ tdRenderList(); if(!tdCur) tdRender(); }
+  if($("#app").dataset.tab === "customers" && typeof cuRender === "function" && cuCur && !cuDirty){ const ae = document.activeElement; if(!(ae && $("#cuScroll").contains(ae) && /INPUT|TEXTAREA/.test(ae.tagName))) cuRender(); }
+  if(!tdNagged && tdLoaded){ tdNagged = true; const n = tdDueCount(); let seen = ""; try{ seen = localStorage.getItem(LS + ".tdnag") || ""; }catch(_){}
+    if(n && seen !== tdToday()){ try{ localStorage.setItem(LS + ".tdnag", tdToday()); }catch(_){} setTimeout(()=>toast(`${n} to-do${n > 1 ? "s" : ""} due today or overdue.`), 1800); } }
+}
+const tdDueCount = () => tdList.filter(t=>!t.done && t.due && t.due <= tdToday()).length;
+function tdBadge(){ const b = $("#tabT"); if(!b) return; const n = tdDueCount(); b.innerHTML = `To-do${n ? ` <span class="tdbadge">${n}</span>` : ""}`; }
+function tdWhen(t){
+  if(!t.due) return ""; const today = tdToday(), tm = new Date(Date.now() + 864e5), tom = jbIso(tm);
+  const d = new Date(t.due + "T12:00:00"), lab = t.due === today ? "Today" : t.due === tom ? "Tomorrow" : t.due < today ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : (d - new Date()) < 6 * 864e5 ? d.toLocaleDateString("en-GB", { weekday: "long" }) : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: d.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined });
+  return lab + (t.time ? " " + t.time : "");
+}
+const tdJob = id => id && typeof jbList !== "undefined" ? jbList.find(j=>j.id === id) : null;
+const tdProp = id => id ? list.find(p=>p.id === id) : null;
+function tdLinks(t){
+  const out = [];
+  if(t.clientId && clientById(t.clientId)) out.push(`<span class="tdchip" data-tdgo="client" data-id="${esc(t.clientId)}">${esc(clientById(t.clientId).name)}</span>`);
+  const j = tdJob(t.jobId); if(j) out.push(`<span class="tdchip" data-tdgo="job" data-id="${esc(j.id)}">${esc(j.number)}</span>`);
+  const p = tdProp(t.proposalId); if(p) out.push(`<span class="tdchip" data-tdgo="prop" data-id="${esc(p.id)}">${esc(p.ref || "Proposal")}</span>`);
+  return out.join("");
+}
+function tdSorted(arr){ return arr.slice().sort((a,b)=>(a.done - b.done) || ((a.due || "9999") + (a.time || "99")).localeCompare((b.due || "9999") + (b.time || "99")) || (b.flag - a.flag) || (a.created - b.created)); }
+function tdFiltered(){
+  const today = tdToday(), toks = tdQ.toLowerCase().split(/\s+/).filter(Boolean);
+  let r = tdList.filter(t=>{
+    if(tdFilter === "today") return !t.done && t.due && t.due <= today;
+    if(tdFilter === "upcoming") return !t.done && t.due && t.due > today;
+    if(tdFilter === "anytime") return !t.done && !t.due;
+    if(tdFilter === "flag") return !t.done && t.flag;
+    if(tdFilter === "done") return t.done;
+    return !t.done;
+  });
+  if(toks.length) r = r.filter(t=>{ const h = [t.title, t.notes, t.clientId && clientById(t.clientId) && clientById(t.clientId).name, (tdJob(t.jobId) || {}).number].join(" ").toLowerCase(); return toks.every(k=>h.includes(k)); });
+  return tdFilter === "done" ? r.sort((a,b)=>String(b.doneAt).localeCompare(String(a.doneAt))) : tdSorted(r);
+}
+function tdRowHtml(t){
+  const over = !t.done && t.due && t.due < tdToday();
+  return `<div class="tdrow ${tdSel===t.id?"on":""} ${t.done?"done":""}" data-td="${esc(t.id)}"><label class="tdck" title="${t.done?"Mark not done":"Mark done"}"><input type="checkbox" data-tddone="${esc(t.id)}" ${t.done?"checked":""}><span></span></label>
+    <span class="tdm"><span class="c">${t.flag ? '<span class="tdflag">★</span> ' : ""}${esc(t.title || "Untitled")}</span><small>${t.due ? `<span class="${over?"over":""}">${esc(tdWhen(t))}</span>` : ""}${t.outlook && t.outlookId ? " · in Outlook" : ""}${t.notes ? " · " + esc(t.notes.split("\n")[0].slice(0, 60)) : ""}</small>${tdLinks(t) ? `<span class="tdlinks">${tdLinks(t)}</span>` : ""}</span></div>`;
+}
+function tdRenderList(){
+  const box = $("#tdRows"), chips = $("#tdChips"); if(!box) return;
+  const today = tdToday(), open = tdList.filter(t=>!t.done);
+  const cnt = { today: open.filter(t=>t.due && t.due <= today).length, upcoming: open.filter(t=>t.due && t.due > today).length, anytime: open.filter(t=>!t.due).length, flag: open.filter(t=>t.flag).length, all: open.length, done: tdList.length - open.length };
+  chips.innerHTML = [["today","Today"],["upcoming","Upcoming"],["anytime","No date"],["flag","★"],["all","All open"],["done","Done"]].map(([k,l])=>`<button data-tf="${k}" aria-pressed="${tdFilter===k}">${l} ${cnt[k]}</button>`).join("");
+  const rows = tdFiltered();
+  box.innerHTML = rows.length ? rows.slice(0, 400).map(tdRowHtml).join("") : `<p class="note" style="padding:16px">${!tdLoaded ? "Loading…" : tdFilter === "today" ? "Nothing due today. Nice." : tdFilter === "done" ? "Nothing ticked off yet." : "Nothing here."}</p>`;
+}
+/* Quick add: "Order Sonos amp for Geddes tomorrow 3pm", "Chase deposit fri", "Call Prav 12/11 at 9:30" */
+function tdParse(raw){
+  let s = " " + raw.trim() + " ", due = "", time = "";
+  const now = new Date(), set = d => { due = jbIso(d); };
+  const tm = s.match(/\s(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\s/i) || s.match(/\s(?:at\s+)?(\d{1,2}):(\d{2})()\s/);
+  if(tm){ let h = +tm[1], m = +(tm[2] || 0); const ap = (tm[3] || "").toLowerCase(); if(ap === "pm" && h < 12) h += 12; if(ap === "am" && h === 12) h = 0; if(h < 24 && m < 60){ time = dwPad(h) + ":" + dwPad(m); s = s.replace(tm[0], " "); } }
+  let m;
+  if((m = s.match(/\s(today|tonight)\s/i))){ set(now); s = s.replace(m[0], " "); }
+  else if((m = s.match(/\s(tomorrow|tmrw|tmw)\s/i))){ set(new Date(Date.now() + 864e5)); s = s.replace(m[0], " "); }
+  else if((m = s.match(/\sin\s+(\d{1,3})\s+(day|days|week|weeks)\s/i))){ set(new Date(Date.now() + (+m[1]) * (/week/i.test(m[2]) ? 7 : 1) * 864e5)); s = s.replace(m[0], " "); }
+  else if((m = s.match(/\s(next\s+)?(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)(day|nesday|sday|urday)?\s/i))){
+    const idx = ["sun","mon","tue","wed","thu","fri","sat"].indexOf(m[2].slice(0, 3).toLowerCase()); let add = (idx - now.getDay() + 7) % 7 || 7; if(m[1]) add += add < 7 ? 7 : 0; set(new Date(Date.now() + add * 864e5)); s = s.replace(m[0], " "); }
+  else if((m = s.match(/\s(?:on\s+)?(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?\s/))){ let y = m[3] ? +m[3] : now.getFullYear(); if(y < 100) y += 2000; const d = new Date(y, +m[2] - 1, +m[1], 12); if(!m[3] && d < new Date(now.getFullYear(), now.getMonth(), now.getDate())) d.setFullYear(y + 1); if(!isNaN(d)) { set(d); s = s.replace(m[0], " "); } }
+  if(time && !due) set(now);
+  s = s.replace(/\s+(on|by|at|due)\s*$/i, " ").replace(/\s+/g, " ").trim();
+  let flag = false; if(/(^|\s)!$|(^|\s)!(\s|$)/.test(s)){ flag = true; s = s.replace(/(^|\s)!(?=\s|$)/g, " ").trim(); }
+  return { title: s.charAt(0).toUpperCase() + s.slice(1), due, time, flag };
+}
+async function tdWrite(t){
+  if(mode === "db"){ try{ await db.collection("tasks").doc(t.id).set(t); return true; }catch(_){ toast("Couldn't save the to-do."); return false; } }
+  const i = tdList.findIndex(x=>x.id === t.id); if(i >= 0) tdList[i] = t; else tdList.push(t);
+  try{ localStorage.setItem(LS + ".tasks", JSON.stringify(tdList)); }catch(_){} tdOnData(); return true;
+}
+async function tdAdd(raw, extra){
+  const p = tdParse(raw); if(!p.title) return null;
+  const t = tdNorm(Object.assign(p, extra || {}));
+  tdList.push(t); await tdWrite(t); tdBadge(); tdRenderList();
+  return t;
+}
+function tdOpen(id){ const t = tdList.find(x=>x.id === id); if(!t) return; tdSel = id; tdCur = clone(t); tdRenderList(); tdRender(); if(innerWidth <= 860) setView("preview"); }
+function tdRender(){
+  const sc = $("#tdScroll"); if(!sc) return;
+  if(!tdCur){
+    sc.innerHTML = `<div class="planempty"><h2>Your to-do list.</h2><p>Type in the box on the left and press Enter. Dates and times are picked up as you type:</p>
+      <p class="note">"Order Sonos amp for Geddes <b>tomorrow</b>" · "Chase deposit <b>fri</b>" · "Call Prav <b>12/11 at 9:30</b>" · "Send drawings <b>in 3 days</b>" · end with <b>!</b> to star it.</p>
+      <p class="note">Open a to-do to add notes, link it to a customer or job, or have Outlook remind you on your phone.</p></div>`;
+    return;
+  }
+  const t = tdCur, cs = clients.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  const js = (typeof jbList !== "undefined" ? jbList : []).filter(j=>j.status !== "Completed" || j.id === t.jobId).slice().sort((a,b)=>String(b.number).localeCompare(String(a.number)));
+  const ps = list.filter(p=>p.qStatus !== "Declined" || p.id === t.proposalId).slice().sort((a,b)=>b.updated - a.updated).slice(0, 200);
+  sc.innerHTML = `<div class="jdetail">
+    <div class="jhead"><span class="num">${t.done ? "DONE " + esc(String(t.doneAt).slice(0, 10)) : t.due ? esc(tdWhen(t).toUpperCase()) : "TO-DO"}</span><h2>${esc(t.title || "New to-do")}</h2>
+      <button class="btn small ${t.done ? "" : "primary"}" data-tda="toggle">${t.done ? "Mark not done" : "Mark done"}</button></div>
+    <div class="jcard">
+      <label class="f"><span>To-do</span><input type="text" id="tdf_title" data-tdk="title" value="${esc(t.title)}"></label>
+      <div class="row3"><label class="f"><span>Due date</span><input type="date" data-tdk="due" value="${esc(t.due)}"></label><label class="f"><span>Time (optional)</span><input type="time" data-tdk="time" value="${esc(t.time)}"></label>
+        <label class="check" style="align-self:end"><input type="checkbox" data-tdk="flag" ${t.flag ? "checked" : ""}> ★ Important</label></div>
+      <div class="adds tdquick">${[["Today",0],["Tomorrow",1],["Next week",7]].map(([l,d])=>`<button class="btn small ghost" data-tdday="${d}">${l}</button>`).join("")}${t.due ? `<button class="btn small ghost" data-tdday="clear">No date</button>` : ""}</div>
+      ${window.STUDIO_NATIVE ? `<label class="check"><input type="checkbox" data-tdk="outlook" ${t.outlook ? "checked" : ""} ${t.due && t.time ? "" : "disabled"}> Remind me in Outlook ${t.due && t.time ? "(alerts your phone 15 minutes before)" : "(add a date and time first)"}</label>${t.olErr ? `<p class="note warn">${esc(t.olErr)}</p>` : ""}` : ""}
+      <label class="f"><span>Notes</span><textarea data-tdk="notes" rows="4" placeholder="Details, part numbers, who to call…">${esc(t.notes)}</textarea></label>
+    </div>
+    <div class="jcard"><h3>Linked to</h3>
+      <div class="row3"><label class="f"><span>Customer</span><select class="in" data-tdk="clientId"><option value="">None</option>${cs.map(c=>`<option value="${esc(c.id)}" ${t.clientId===c.id?"selected":""}>${esc(c.name)}</option>`).join("")}</select></label>
+        <label class="f"><span>Job</span><select class="in" data-tdk="jobId"><option value="">None</option>${js.map(j=>`<option value="${esc(j.id)}" ${t.jobId===j.id?"selected":""}>${esc(j.number)} · ${esc(j.customer || "")}</option>`).join("")}</select></label>
+        <label class="f"><span>Proposal</span><select class="in" data-tdk="proposalId"><option value="">None</option>${ps.map(p=>`<option value="${esc(p.id)}" ${t.proposalId===p.id?"selected":""}>${esc(p.ref || "No ref")} · ${esc(p.titleA || "")}</option>`).join("")}</select></label></div>
+      ${tdLinks(t) ? `<div class="tdlinks">${tdLinks(t)}</div>` : ""}
+    </div>
+    <div class="adds"><button class="btn small ghost danger" data-tda="remove">Delete to-do</button></div>
+  </div>`;
+}
+function tdSchedule(){ tdDirty = true; tdSetStatus("Unsaved"); clearTimeout(tdT); tdT = setTimeout(tdFlush, 700); }
+async function tdFlush(){
+  clearTimeout(tdT); if(!tdCur || !tdDirty) return;
+  tdDirty = false; tdSetStatus("Saving"); tdCur.updated = Date.now();
+  const t = clone(tdCur), i = tdList.findIndex(x=>x.id === t.id); if(i >= 0) tdList[i] = t; else tdList.push(t);
+  const ok = await tdWrite(t); tdSetStatus(ok ? (mode === "db" ? "Saved" : "Saved on this device") : "Not saved", !ok); tdRenderList(); tdBadge();
+  tdOutlookSync(t);
+}
+/* Outlook reminder: a short "free" event at the due time; Outlook alerts 15 minutes before. */
+async function tdOutlookSync(t){
+  if(!window.STUDIO_NATIVE) return;
+  const want = t.outlook && t.due && t.time && !t.done, sig = [t.title, t.due, t.time, t.notes].join("|");
+  if(!want && !t.outlookId) return;
+  if(want && t.outlookId && t.olSig === sig) return;
+  const m = await olGet(); if(!m) return;
+  const patch = {};
+  try{
+    if(!want){ await m.callTool(OL_SRV, "outlook_delete_event", { eventId: t.outlookId }, { cache: false }); Object.assign(patch, { outlookId: "", olSig: "", olErr: "" }); }
+    else {
+      const end = jbHM(Math.min(jbMins(t.time) + 15, 23*60 + 59));
+      const p = { subject: "To-do: " + t.title, start: { dateTime: `${t.due}T${t.time}`, timeZone: OL_TZ }, end: { dateTime: `${t.due}T${end}`, timeZone: OL_TZ }, body: (t.notes || "") + "\n\nFrom halo.je Studio", bodyType: "text", showAs: "free" };
+      if(t.outlookId){ await m.callTool(OL_SRV, "outlook_update_event", Object.assign({ eventId: t.outlookId }, p), { cache: false }); Object.assign(patch, { olSig: sig, olErr: "" }); }
+      else { const r = await m.callTool(OL_SRV, "outlook_create_event", p, { cache: false }); const o = olObjs(r).find(x=>x.id || x.eventId) || {}; Object.assign(patch, { outlookId: String(o.id || o.eventId || ""), olSig: sig, olErr: "" }); }
+    }
+  }catch(e){ patch.olErr = "Outlook: " + olErrText(e); if(!want) Object.assign(patch, { outlookId: "" }); }
+  const cur = tdList.find(x=>x.id === t.id); if(!cur) return;
+  Object.assign(cur, patch); if(tdCur && tdCur.id === t.id && !tdDirty){ Object.assign(tdCur, patch); }
+  await tdWrite(clone(cur)); if(tdCur && tdCur.id === t.id && $("#app").dataset.tab === "todo" && !tdDirty) tdRender(); tdRenderList();
+}
+async function tdToggle(id){
+  const t = tdList.find(x=>x.id === id); if(!t) return;
+  t.done = !t.done; t.doneAt = t.done ? new Date().toISOString().slice(0, 16).replace("T", " ") : ""; t.updated = Date.now();
+  if(tdCur && tdCur.id === id){ tdCur.done = t.done; tdCur.doneAt = t.doneAt; }
+  await tdWrite(clone(t)); tdRenderList(); tdBadge(); if(tdCur && tdCur.id === id) tdRender();
+  if(t.outlookId) tdOutlookSync(t);
+  if(t.done) undoToast(`Done: ${t.title}`, ()=>tdToggle(id), null, 5000);
+}
+$("#tdAdd").addEventListener("keydown", async e=>{
+  if(e.key !== "Enter") return; e.preventDefault(); const v = e.target.value; if(!v.trim()) return;
+  const t = await tdAdd(v); if(!t) return; e.target.value = "";
+  if(t.due && t.due > tdToday() && tdFilter === "today") toast(`Added for ${tdWhen(t)}. It's under Upcoming.`); else if(!t.due && tdFilter === "today") toast("Added under No date.");
+});
+$("#tdSearch").addEventListener("input", e=>{ tdQ = e.target.value; tdRenderList(); });
+$("#tdChips").addEventListener("click", e=>{ const b = e.target.closest("[data-tf]"); if(b){ tdFilter = b.dataset.tf; tdRenderList(); } });
+async function tdGo(kind, id){
+  await tdFlush();
+  if(kind === "client"){ setTab("customers"); cuOpen(id); }
+  else if(kind === "job"){ setTab("jobs"); jbOpen(id); }
+  else if(kind === "prop"){ setTab("proposals"); open(id); if(innerWidth <= 860) setView("edit"); }
+}
+$("#tdRows").addEventListener("click", async e=>{
+  const g = e.target.closest("[data-tdgo]"); if(g){ e.preventDefault(); tdGo(g.dataset.tdgo, g.dataset.id); return; }
+  if(e.target.closest(".tdck")) return;
+  const r = e.target.closest("[data-td]"); if(r){ await tdFlush(); tdOpen(r.dataset.td); }
+});
+$("#tdRows").addEventListener("change", e=>{ const id = e.target.dataset.tddone; if(id) tdToggle(id); });
+$("#tdNew").addEventListener("click", ()=>{ setView("edit"); const a = $("#tdAdd"); a && a.focus(); });
+$("#tdScroll").addEventListener("input", e=>{
+  const k = e.target.dataset.tdk; if(!k || !tdCur) return;
+  tdCur[k] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+  if(k === "title"){ const h = $("#tdScroll .jhead h2"); if(h) h.textContent = e.target.value || "New to-do"; }
+  tdSchedule();
+  if(["due","time","clientId","jobId","proposalId","flag","outlook"].includes(k)){ tdFlush().then(()=>tdRender()); }
+});
+$("#tdScroll").addEventListener("click", async e=>{
+  const g = e.target.closest("[data-tdgo]"); if(g){ e.preventDefault(); tdGo(g.dataset.tdgo, g.dataset.id); return; }
+  const d = e.target.closest("[data-tdday]"); if(d && tdCur){ tdCur.due = d.dataset.tdday === "clear" ? "" : jbIso(new Date(Date.now() + (+d.dataset.tdday) * 864e5)); if(!tdCur.due){ tdCur.time = ""; tdCur.outlook = false; } tdDirty = true; await tdFlush(); tdRender(); return; }
+  const b = e.target.closest("[data-tda]"); if(!b || !tdCur) return;
+  if(b.dataset.tda === "toggle"){ await tdFlush(); tdToggle(tdCur.id); }
+  else if(b.dataset.tda === "remove"){
+    const gone = clone(tdCur); clearTimeout(tdT); tdDirty = false;
+    tdList = tdList.filter(x=>x.id !== gone.id); tdCur = null; tdSel = null; tdRenderList(); tdRender(); tdBadge(); if(innerWidth <= 860) setView("edit");
+    if(gone.outlookId) tdOutlookSync(Object.assign({}, gone, { outlook: false }));
+    if(mode === "db"){ try{ await db.collection("tasks").doc(gone.id).delete(); }catch(_){ toast("Couldn't delete it."); } } else { try{ localStorage.setItem(LS + ".tasks", JSON.stringify(tdList)); }catch(_){} }
+    undoToast(`Deleted: ${gone.title || "to-do"}`, async ()=>{ gone.outlookId = ""; tdList.push(gone); await tdWrite(gone); tdOpen(gone.id); if(gone.outlook) tdOutlookSync(gone); }, null);
+  }
+});
+/* Customer and job pages: their open to-dos, with a quick add box. */
+function tdCardHtml(link){
+  const k = link.clientId ? "clientId" : "jobId", id = link[k];
+  const items = tdSorted(tdList.filter(t=>t[k] === id && !t.done));
+  return `<div class="jcard tdcard"><h3>To-do <small>${items.length}</small></h3>
+    ${items.length ? `<div class="tdmini">${items.map(t=>`<div class="tdrow" data-tdopen="${esc(t.id)}"><label class="tdck"><input type="checkbox" data-tddone="${esc(t.id)}"><span></span></label><span class="tdm"><span class="c">${t.flag ? '<span class="tdflag">★</span> ' : ""}${esc(t.title)}</span>${t.due ? `<small><span class="${t.due < tdToday() ? "over" : ""}">${esc(tdWhen(t))}</span></small>` : ""}</span></div>`).join("")}</div>` : ""}
+    <input type="text" class="tdinline" data-tdinline="${k}:${esc(id)}" placeholder="Add a to-do, e.g. order cable tomorrow" aria-label="Add a to-do"></div>`;
+}
+document.addEventListener("keydown", async e=>{
+  const el = e.target; if(!el.dataset || !el.dataset.tdinline || e.key !== "Enter") return; e.preventDefault();
+  const [k, id] = el.dataset.tdinline.split(":"); if(!el.value.trim()) return;
+  if(!tdStarted) tdStart();
+  const t = await tdAdd(el.value, { [k]: id, clientId: k === "jobId" ? ((tdJob(id) || {}).clientId || "") : id }); if(!t) return;
+  el.value = ""; toast(`Added${t.due ? " for " + tdWhen(t) : ""}.`);
+  const host = el.closest(".tdcard"); if(host){ const tmp = document.createElement("div"); tmp.innerHTML = tdCardHtml({ [k]: id }); host.replaceWith(tmp.firstElementChild); }
+});
+document.addEventListener("change", e=>{ const id = e.target.dataset && e.target.dataset.tddone; if(!id || !e.target.closest(".tdcard")) return; tdToggle(id).then(()=>{ const host = e.target.closest(".tdcard"); const inp = host && host.querySelector("[data-tdinline]"); if(inp){ const [k, v] = inp.dataset.tdinline.split(":"); const tmp = document.createElement("div"); tmp.innerHTML = tdCardHtml({ [k]: v }); host.replaceWith(tmp.firstElementChild); } }); });
+document.addEventListener("click", e=>{ const r = e.target.closest(".tdcard [data-tdopen]"); if(!r || e.target.closest(".tdck")) return; setTab("todo"); tdFilter = "all"; tdOpen(r.dataset.tdopen); });
+/* start in the background so the badge shows */
+(function(){ const w = setInterval(()=>{ if(mode === "loading") return; clearInterval(w); tdStart(); }, 400); })();
 
 </script>
