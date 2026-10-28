@@ -638,7 +638,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
       <span class="status" id="status">Loading</span>
       <span id="delWrap"><button class="btn ghost danger" id="btnDel">Delete</button></span>
       <button class="btn" id="btnHtml" title="A web page you can open in Chrome and print to PDF with sharp, selectable text">Download HTML</button>
-      <button class="btn" id="btnSend" title="Send the PDF by email, WhatsApp or Messages">Send</button>
+      <button class="btn" id="btnSend" title="Email the PDF from info@halo.je">Send</button>
       <button class="btn primary" id="btnPdf">Download PDF</button>
     </div>
     <div class="seg" role="group" aria-label="View">
@@ -1650,6 +1650,7 @@ $("#btnSend").addEventListener("click", async ()=>{
   const c = current.clientId && clientById(current.clientId), first = String(current.client || (c && (c.contact || c.name)) || current.preparedFor || "").trim().split(/\s+/)[0] || "there";
   const text = `Hi ${first},\n\nPlease find attached ${String(current.docType || "quotation").toLowerCase()} ${[current.ref, current.rev].filter(Boolean).join(" ")}${current.titleA ? " for " + current.titleA : ""}. Any questions, just reply.\n\nThanks,\nIan Lamont\nhalo.je`;
   const markSent = ()=>{ if(current && (!current.qStatus || current.qStatus === "Draft")){ current.qStatus = "Sent"; buildEditor(); fillPickerLabel(); scheduleSave(); } };
+  if(window.STUDIO_NATIVE){ sendMailPanel({ blob, file, fname, text, to: (c && c.email) || String(current.clientEmail || "").split(/[;,\s]+/)[0] || "", markSent }); return; }
   let shared = false;
   try{ if(navigator.canShare && navigator.canShare({ files: [file] })){ await navigator.share({ files: [file], title: fname, text }); shared = true; } }
   catch(e){ if(e && e.name === "AbortError") return; }
@@ -1665,6 +1666,43 @@ $("#btnSend").addEventListener("click", async ()=>{
   m.querySelector("#sendClose").onclick = ()=>m.remove(); m.addEventListener("click", e=>{ if(e.target === m) m.remove(); });
   m.querySelector("#sendDone").onclick = ()=>{ markSent(); m.remove(); toast("Status set to Sent."); };
 });
+/* Email the PDF straight from info@halo.je through the Microsoft 365 connection. */
+function sendMailPanel({ blob, file, fname, text, to, markSent }){
+  const kb = Math.round(blob.size / 1024), subj = `${[current.ref, current.rev].filter(Boolean).join(" ")}${current.titleA ? " – " + current.titleA : ""} · halo.je`;
+  const m = document.createElement("div"); m.className = "aimodal";
+  m.innerHTML = `<div class="aibox" role="dialog" aria-modal="true" aria-label="Email the PDF"><h2>Email from info@halo.je</h2>
+    <label class="f"><span>To</span><input type="text" inputmode="email" id="smTo" value="${esc(to)}" placeholder="customer@example.com" autocomplete="email"></label>
+    <label class="f"><span>Cc (optional)</span><input type="text" id="smCc" placeholder="Separate addresses with commas"></label>
+    <label class="f"><span>Subject</span><input type="text" id="smSubj" value="${esc(subj)}"></label>
+    <label class="f"><span>Message</span><textarea id="smBody" style="min-height:170px">${esc(text)}</textarea></label>
+    <p class="note" style="margin:0">📎 ${esc(fname)} · ${kb >= 1024 ? (kb/1024).toFixed(1) + " MB" : kb + " KB"}. It goes from your Outlook and a copy is kept in Sent Items.</p>
+    <div class="adds"><button class="btn small primary" id="smSend">Send</button><button class="btn small" id="smShare">Share another way</button><button class="btn small" id="smSave">Download PDF</button><button class="btn small ghost" id="smClose">Cancel</button></div></div>`;
+  document.body.appendChild(m);
+  const close = ()=>m.remove();
+  m.querySelector("#smClose").onclick = close; m.addEventListener("click", e=>{ if(e.target === m) close(); });
+  m.querySelector("#smSave").onclick = ()=>offer(fname, blob);
+  m.querySelector("#smShare").onclick = async ()=>{ try{ if(navigator.canShare && navigator.canShare({ files: [file] })){ await navigator.share({ files: [file], title: fname, text }); close(); markSent(); toast("Shared. Status set to Sent."); } else toast("This device has no share sheet here. Use Send or Download PDF."); }catch(e){} };
+  const sendBtn = m.querySelector("#smSend");
+  sendBtn.onclick = async ()=>{
+    const list = v => v.split(/[;,\s]+/).map(x=>x.trim()).filter(Boolean), tos = list(m.querySelector("#smTo").value), ccs = list(m.querySelector("#smCc").value);
+    const bad = tos.concat(ccs).find(a=>!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a));
+    if(!tos.length){ toast("Add who it's going to."); return; } if(bad){ toast(`Check the address ${bad}.`); return; }
+    const mcp = await olGet(); if(!mcp){ toast("Email isn't available here. Use Download PDF."); return; }
+    sendBtn.disabled = true; sendBtn.textContent = "Sending…";
+    try{
+      const b64 = await new Promise((res, rej)=>{ const fr = new FileReader(); fr.onload = ()=>res(String(fr.result).split(",")[1]); fr.onerror = rej; fr.readAsDataURL(blob); });
+      const body = m.querySelector("#smBody").value.trim().split(/\n\s*\n/).map(x=>`<p>${esc(x).replace(/\n/g, "<br>")}</p>`).join("");
+      await mcp.callTool(OL_SRV, "outlook_send_mail", { to: tos, cc: ccs, subject: m.querySelector("#smSubj").value.trim(), body, bodyType: "html", attachments: [{ name: fname, contentType: "application/pdf", contentBytes: b64 }] }, { cache: false });
+      current.sendLog = (current.sendLog || []).concat([{ at: new Date().toISOString().slice(0, 16).replace("T", " "), to: tos.join(", ") }]).slice(-20);
+      markSent(); scheduleSave(); close(); toast(`Sent to ${tos.join(", ")}.`);
+    }catch(e){
+      sendBtn.disabled = false; sendBtn.textContent = "Send";
+      const unsure = e && (e.code === "server_unavailable" || e.code === "upstream_error");
+      toast(unsure ? "Outlook didn't confirm. Check Sent Items before sending again." : olErrText(e));
+    }
+  };
+  setTimeout(()=>{ const t = m.querySelector(to ? "#smBody" : "#smTo"); t && t.focus(); }, 50);
+}
 $("#btnPdf").addEventListener("click", async ()=>{
   if(!current) return;
   const busy = document.createElement("div"); busy.className = "busy"; busy.innerHTML = "<div>Building PDF</div>"; document.body.appendChild(busy);
