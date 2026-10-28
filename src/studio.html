@@ -679,6 +679,11 @@ function tokens(s, p){ return String(s||"").replace(/\{valid\}/g, longDate(p.val
 
 /* ---------- defaults ---------- */
 function newItem(){ return {qty:1,item:"",model:"",price:0,tag:"",desc:"",img:""}; }
+/* Default labour rate: used for new proposals and jobs, and for report figures. Set in Reports. */
+let defRate = 85;
+try{ defRate = num(localStorage.getItem("halojeProposals.v1.rate")) || 85; }catch(_){}
+function setDefRate(v, fromDb){ const r = num(v); if(!r) return; defRate = r; try{ localStorage.setItem("halojeProposals.v1.rate", String(r)); }catch(_){} if(!fromDb && mode === "db" && db){ db.doc("settings/defaults").set({ rate: r, updated: Date.now() }).catch(()=>{}); } }
+(function(){ const w = setInterval(()=>{ if(mode === "loading") return; clearInterval(w); if(mode === "db" && db) db.doc("settings/defaults").onSnapshot(d=>{ const b = d.exists ? d.data() : null; if(b && num(b.rate)) setDefRate(b.rate, true); }, ()=>{}); }, 300); })();
 function blankProposal(){
   const today = new Date(), valid = new Date(Date.now() + 29*864e5);
   return {
@@ -691,7 +696,7 @@ function blankProposal(){
     intro: "Thank you for the opportunity to price the systems at this property.\n\nThe price covers supply, termination, programming, commissioning and handover. Where the design isn't fixed, I've shown the item as an allowance or a provisional sum so you can see exactly where the price may move.",
     scopeIntro: "", scopeStages: "",
     contractorTitle: "Contractor labour", contractorNote: "", contractors: [],
-    pricedTo: "", rate: 85, split: true, showPence: false, gst: false,
+    pricedTo: "", rate: defRate, split: true, showPence: false, gst: false,
     allowanceLabel: "Allowance for design development on provisional items", allowance: 0,
     afterTotal: "Items marked Allowance or Provisional depend on information still to come. I'll confirm them as soon as that information is issued.",
     systems: [{ name: "Lighting & shading", desc: "", hours: 0, work: "", items: [newItem()] }],
@@ -2232,7 +2237,7 @@ const LSJ = LS + ".jobs";
 const jbPendingDel = new Set();
 function jbBlank(){
   const max = jbList.reduce((a,j)=>Math.max(a, parseInt(String(j.number||"").replace(/\D/g,""))||0), 0);
-  return { id: uid(), number: "JB" + dwPad(max+1, 5), customer: "", clientId: "", email: "", site: "", reference: "", address: "", contact: "", phone: "", status: "Scheduled", description: "", staff: "Ian Lamont", visits: [], time: [], notes: [], materials: [], proposalId: "", clock: null, created: new Date().toISOString().slice(0,16).replace("T"," "), updated: Date.now() };
+  return { id: uid(), number: "JB" + dwPad(max+1, 5), customer: "", clientId: "", email: "", site: "", reference: "", address: "", contact: "", phone: "", rate: defRate, status: "Scheduled", description: "", staff: "Ian Lamont", visits: [], time: [], notes: [], materials: [], proposalId: "", clock: null, created: new Date().toISOString().slice(0,16).replace("T"," "), updated: Date.now() };
 }
 function jbNorm(j){ const o = Object.assign(jbBlank(), j || {}); ["visits","time","notes","materials","files","sheets","invoices"].forEach(k=>o[k] = Array.isArray(o[k]) ? o[k] : []); return o; }
 function jbSetStatus(t, warn){ const s = $("#jbStatus"); if(s){ s.textContent = t; s.classList.toggle("warn", !!warn); } }
@@ -2367,7 +2372,7 @@ function jbDetailHtml(j){
         <button class="icon" title="Remove visit" data-ja="rmVisit" data-id="${esc(v.id)}">×</button><div class="olchip ${v.olErr?"err":v.outlookId?"ok":""}" id="olc_${esc(v.id)}">${olChip(v)}</div><div class="emchip ${emChanged(v)?"warn":""}" id="emc_${esc(v.id)}">${emChip(j, v)}</div>${emOpen === v.id ? emPanel(j, v) : ""}</div>`).join("") : `<p class="note">No visits booked. Add one here, or click a time on the schedule.</p>`}
       <div class="adds"><button class="btn small" data-ja="addVisit">Add visit</button><button class="btn small ghost" data-ja="toWeek">Show on schedule</button></div>
     </div>
-    <div class="jcard"><h3>Time <small>${hrs.toFixed(2)} hrs · ${money(hrs*85, {showPence:false})} at £85</small></h3>
+    <div class="jcard"><h3>Time <small>${hrs.toFixed(2)} hrs · ${money(hrs*jxRate(j), {showPence:false})} at £${jxRate(j)}</small></h3>
       <div class="clock">${j.clock ? `<span class="run">On the clock since ${esc(j.clock.slice(11,16))}</span><button class="btn small primary" data-ja="clockOff">Clock off</button>` : `<button class="btn small" data-ja="clockOn">Clock on</button>`}</div>
       ${j.time.slice().sort((a,b)=>(b.date+b.start).localeCompare(a.date+a.start)).map(t=>`<div class="trow">
         <label class="f"><span>Date</span><input type="date" data-jt-id="${esc(t.id)}" data-jt-k="date" value="${esc(t.date)}"></label>
@@ -2681,7 +2686,7 @@ async function emSend(btn, vid){
 }
 
 /* ================= Job extras: materials, invoicing, files, job sheets, repeats ================= */
-const jxRate = j => num(j.rate) || 85;
+const jxRate = j => num(j.rate) || defRate;
 function jxUninv(j){
   const t = j.time.filter(x=>!x.inv && num(x.hours) > 0), m = j.materials.filter(x=>!x.inv && (x.item || num(x.price)));
   const th = t.reduce((a,x)=>a + num(x.hours), 0);
@@ -2899,6 +2904,7 @@ function rpHtml(){
   const propInv = list.flatMap(p=>(p.depLog || []).map(x=>({ ...x, who: p.preparedFor, src: p.ref }))).filter(x=>inR(x.at));
   const invoiced = jobInv.concat(propInv).reduce((s,x)=>s + num(x.total), 0);
   const hrs = jbList.reduce((s,j)=>s + j.time.filter(t=>inR(t.date)).reduce((q,t)=>q + num(t.hours), 0), 0);
+  const hrsVal = jbList.reduce((s,j)=>s + j.time.filter(t=>inR(t.date)).reduce((q,t)=>q + num(t.hours), 0) * jxRate(j), 0);
   const visits = jbList.reduce((s,j)=>s + j.visits.filter(v=>inR(v.date)).length, 0);
   const props = list.filter(p=>inR(p.date)), acc = props.filter(p=>p.qStatus === "Accepted"), sent = props.filter(p=>["Sent","Accepted","Declined"].includes(p.qStatus));
   const accVal = acc.reduce((s,p)=>s + totals(p).grand, 0);
@@ -2909,9 +2915,11 @@ function rpHtml(){
   return `<div class="rp">
     <div class="adds"><div class="pal">${[["month","This month"],["last","Last month"],["year","This year"],["all","All time"]].map(([k,l])=>`<button class="sel" data-rp="${k}" aria-pressed="${rpPeriod===k}">${l}</button>`).join("")}</div><button class="btn small" data-rpbackup="1" style="margin-left:auto">Back up everything</button>${window.STUDIO_NATIVE ? `<label class="btn small filebtn">Import from old Studio<input type="file" accept=".json,application/json" data-rpimport="1"></label><button class="btn small ghost" data-rpsignout="1">Sign out</button>` : `<button class="btn small" data-rpmigrate="1">Export for the new app</button>`}</div>
     ${window.STUDIO_NATIVE ? rpConnHtml() : ""}
+    <div class="jcard"><h3>Labour rate</h3><div class="row"><label class="f"><span>Default rate £ per hour</span><input type="number" id="rpRate" value="${esc(defRate)}" step="1" min="0"></label><div></div></div>
+      <p class="note">Used for new proposals and new jobs. Existing ones keep their own rate: change it in a proposal under Summary &amp; pricing, or on a job beside the time to invoice.</p></div>
     <div class="kpis">
       <div class="kpi"><small>Invoiced · ${esc(label)}</small><b>${money(invoiced, {showPence:false})}</b><span>${jobInv.length + propInv.length} invoices from Studio</span></div>
-      <div class="kpi"><small>Hours logged</small><b>${hrs.toFixed(1)}</b><span>${money(hrs*85, {showPence:false})} at £85 · ${visits} visits</span></div>
+      <div class="kpi"><small>Hours logged</small><b>${hrs.toFixed(1)}</b><span>${money(hrsVal, {showPence:false})} at your rates · ${visits} visits</span></div>
       <div class="kpi"><small>Quotes accepted</small><b>${money(accVal, {showPence:false})}</b><span>${acc.length} of ${sent.length || props.length} sent${sent.length ? ` · ${Math.round(acc.length / sent.length * 100)}%` : ""}</span></div>
       <div class="kpi"><small>Work not yet invoiced</small><b>${money(wipVal, {showPence:false})}</b><span>${wip.length} job${wip.length===1?"":"s"}, all time</span></div>
     </div>
@@ -2926,6 +2934,7 @@ function rpHtml(){
     </div>
   </div>`;
 }
+$("#jbScroll").addEventListener("change", e=>{ if(e.target.id === "rpRate"){ setDefRate(e.target.value); toast(`Default labour rate set to £${defRate} an hour.`); } });
 $("#jbScroll").addEventListener("click", async e=>{
   const p = e.target.closest("[data-rp]"); if(p){ rpPeriod = p.dataset.rp; jbRender(); return; }
   const r = e.target.closest("[data-rpjob]"); if(r){ jbOpen(r.dataset.rpjob); return; }
