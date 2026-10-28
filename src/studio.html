@@ -168,6 +168,25 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .sheet .swrow h4{font-family:var(--f-display);font-weight:400;font-size:15.5px;color:var(--d-ink);margin:0 0 4px}
 .sheet .swrow p{margin:0;font-size:12.2px}
 .sheet .prods{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+.sheet .sysgap{height:26px}
+.sheet hr.pbm{border:0;border-top:1px dashed #d8b98f;margin:10px 0;position:relative}
+.sheet hr.pbm::after{content:"new page";position:absolute;right:0;top:-8px;background:#fff;padding:0 6px;font:7px/1 var(--f-mono);letter-spacing:.2em;text-transform:uppercase;color:#b48a52}
+.sheet.compact{padding:56px 60px 84px;font-size:12px;line-height:1.45}
+.sheet.compact h2{font-size:30px;margin:8px 0 14px}
+.sheet.compact h3{font-size:18.5px;margin:18px 0 6px}
+.sheet.compact h3:first-child{margin-top:0}
+.sheet.compact p{margin:0 0 8px}
+.sheet.compact table{margin:10px 0 2px}
+.sheet.compact th,.sheet.compact td{padding:6.5px 9px}
+.sheet.compact li{padding:2px 0 2px 16px}
+.sheet.compact li:before{top:8.5px}
+.sheet.compact .prods{gap:10px;margin-top:14px}
+.sheet.compact .prod .pic{height:104px;padding:10px}
+.sheet.compact .prod .txt{padding:10px 12px 12px}
+.sheet.compact .swrow{padding:9px 0}
+.sheet.compact .grand{padding:10px 9px;font-size:20px}
+.sheet.compact .sysgap{height:16px}
+.sheet.compact .foot{left:60px;right:60px}
 .sheet .prod{border:1px solid var(--d-line);border-radius:10px;overflow:hidden;break-inside:avoid}
 .sheet .prod .pic{height:150px;background:#f6f3ee;display:flex;align-items:center;justify-content:center;padding:14px}
 .sheet .prod .pic img{max-width:100%;max-height:100%;object-fit:contain;display:block}
@@ -936,17 +955,18 @@ function renderDoc(p){
   // scope, one page per system
   p.systems.forEach((s,i)=>{
     const items = s.items.filter(it => it.item || it.model || num(it.price));
-    const body = items.map(it=>`<tr><td class="q">${esc(it.qty)}</td><td class="it">${esc(it.item)}${it.tag?`<span class="tag">${esc(it.tag)}</span>`:""}</td><td class="mm">${esc(it.model)}</td><td class="r pr">${money(num(it.qty)*num(it.price),p)}</td></tr>`).join("")
+    const body = items.map(it=>`<tr${it.pb?' class="pb"':''}><td class="q">${esc(it.qty)}</td><td class="it">${esc(it.item)}${it.tag?`<span class="tag">${esc(it.tag)}</span>`:""}</td><td class="mm">${esc(it.model)}</td><td class="r pr">${money(num(it.qty)*num(it.price),p)}</td></tr>`).join("")
       + (num(s.hours) ? `<tr><td class="q"></td><td class="it">Installation, programming and commissioning</td><td class="mm">${esc(s.hours)} hours</td><td class="r pr">${money(t.sys[i].inst,p)}</td></tr>` : "")
       + `<tr class="sub"><td></td><td colspan="2">${esc(s.name)} total</td><td class="r">${money(t.sys[i].total,p)}</td></tr>`;
     const work = lines(s.work);
     const feat = items.filter(it => (it.desc && it.desc.trim()) || it.img);
     const cards = feat.length ? `<div class="prods">${feat.map(it=>`<div class="prod${feat.length===1?" solo":""}">${it.img?`<div class="pic"><img src="${esc(it.img)}" alt="${esc(it.item)}" crossorigin="anonymous"></div>`:""}<div class="txt">${it.model?`<div class="mono">${esc(it.model)}</div>`:""}<h4>${esc(it.item)}</h4>${paras(it.desc).map(x=>`<p>${inline(x)}</p>`).join("")}</div></div>`).join("")}</div>` : "";
-    pages.push(`<article class="sheet">${i===0?`<div class="mono kick">Scope</div><h2>What's <em>included.</em></h2>`:""}
+    const sysHtml = `${i===0?`<div class="mono kick">Scope</div><h2>What's <em>included.</em></h2>`:""}
       <h3>${esc(s.name)}</h3>${s.desc?paras(s.desc).map(x=>`<p>${inline(x)}</p>`).join(""):""}
       <table><tr><th>Qty</th><th>Item</th><th>Item description</th><th class="r">Price</th></tr>${body}</table>${cards}
-      ${work.length?`<h3>The work</h3><ul>${work.map(w=>`<li>${inline(w)}</li>`).join("")}</ul>`:""}
-    </article>`);
+      ${work.length?`<h3>The work</h3><ul>${work.map(w=>`<li>${inline(w)}</li>`).join("")}</ul>`:""}`;
+    if(i > 0 && s.joinPrev && /^<article class="sheet sysp">/.test(pages[pages.length-1])) pages[pages.length-1] = pages[pages.length-1].replace(/<\/article>$/, `<div class="sysgap"></div>${sysHtml}</article>`);
+    else pages.push(`<article class="sheet sysp">${sysHtml}</article>`);
   });
 
   // contractor labour
@@ -978,7 +998,84 @@ function renderDoc(p){
     <div class="signoff">${lines(p.signoff).map((l,i)=>i===0?`<b>${esc(l)}</b>`:esc(l)).join("<br>")}</div>
   </article>`);
 
-  return pages.map((h,i)=> i===0 ? h : h.replace(/<\/article>$/, foot(i+1)+"</article>")).join("");
+  const tight = p.spacing === "compact";
+  return pages.map((h,i)=> i===0 ? h : (tight ? h.replace(/^<article class="sheet/, '<article class="sheet compact') : h).replace(/<\/article>$/, foot(i+1)+"</article>")).join("")
+    .replace(/<(p|li|h4)>\s*\[new page\]\s*<\/\1>/gi, '<hr class="pbm">');
+}
+
+/* ---------- page layout: nothing is cut in half; long pages flow onto continuation pages ---------- */
+function pgTop(el, sheet){ let y = 0; while(el && el !== sheet){ y += el.offsetTop; el = el.offsetParent; } return y; }
+function pgItems(c){
+  if(c.tagName === "TABLE") return [...c.querySelectorAll("tr")].filter(r=>!r.querySelector("th"));
+  if(c.tagName === "UL" || c.tagName === "OL") return [...c.children];
+  if(c.classList && (c.classList.contains("swlist") || c.classList.contains("prods"))) return [...c.children];
+  return null;
+}
+function pgLabel(sh, before){
+  let lab = "", k = sh.querySelector(".kick"); if(k) lab = k.textContent.replace(/\s*·\s*continued$/i, "");
+  let first = "";
+  [...sh.children].forEach(c=>{ if(c.tagName === "H3" && (!before || (c.compareDocumentPosition(before) & Node.DOCUMENT_POSITION_FOLLOWING))){ if(!first) first = c.textContent; lab = c.textContent; } });
+  const kl = k ? k.textContent.replace(/\s*·\s*continued$/i, "") : "";
+  if(/^the work$/i.test(lab)) lab = (first && !/^the work$/i.test(first) ? first : kl.replace(/\s*·\s*the work$/i, "")) + " · the work";
+  return lab;
+}
+function pgMove(sh, els, label){
+  const n = document.createElement("article"); n.className = sh.className.replace(/\bcover\b/, "").trim() + " cont";
+  const first = els[0];
+  if(label && first && !(first.classList && first.classList.contains("kick")) && first.tagName !== "H2" && first.tagName !== "H3"){ const k = document.createElement("div"); k.className = "mono kick"; k.textContent = label + " · continued"; n.appendChild(k); }
+  els.forEach(e=>n.appendChild(e));
+  while(n.firstElementChild && n.firstElementChild.classList.contains("pbm")) n.firstElementChild.remove();
+  return n;
+}
+function pgBreak(sh){
+  const kids = [...sh.children].filter(c=>!c.classList.contains("foot") && !c.classList.contains("overflow-flag"));
+  const limit = A4H - (parseFloat(getComputedStyle(sh).paddingBottom) || 90) + 4;
+  for(let idx = 0; idx < kids.length; idx++){
+    const c = kids[idx];
+    if(c.classList.contains("pbm") || c.classList.contains("pb")){ if(idx === 0){ if(c.classList.contains("pbm")) c.remove(); continue; } return pgMove(sh, kids.slice(idx), pgLabel(sh, c)); }
+    const items = pgItems(c);
+    let manual = items ? items.findIndex((it,ii)=>ii > 0 && (it.classList.contains("pb") || it.classList.contains("pbm"))) : -1;
+    if(items && items.length && items[0].classList.contains("pbm")){ items[0].remove(); items.shift(); manual = manual > 0 ? manual - 1 : manual; }
+    const over = pgTop(c, sh) + c.offsetHeight > limit;
+    if(!over && manual < 0) continue;
+    if(items && items.length){
+      let cut = over ? items.findIndex(it=>pgTop(it, sh) + it.offsetHeight > limit) : -1;
+      if(manual > 0 && (cut < 0 || manual < cut)) cut = manual;
+      if(cut > 0 && c.classList.contains("prods")) while(cut > 0 && items[cut].offsetTop === items[cut-1].offsetTop) cut--;
+      if(cut > 0 && c.tagName === "TABLE"){ const sub = items[cut].classList.contains("sub"); if(sub && cut > 1) cut--; }
+      if(cut > 0){
+        const clone = c.cloneNode(false);
+        if(c.tagName === "TABLE"){ const hr = c.querySelector("tr th") && c.querySelector("tr th").parentNode; const tb = document.createElement("tbody"); if(hr) tb.appendChild(hr.cloneNode(true)); items.slice(cut).forEach(r=>tb.appendChild(r)); clone.appendChild(tb); }
+        else items.slice(cut).forEach(it=>clone.appendChild(it));
+        if(clone.firstElementChild && clone.firstElementChild.classList.contains("pbm")) clone.firstElementChild.remove();
+        return pgMove(sh, [clone].concat(kids.slice(idx + 1)), pgLabel(sh, c));
+      }
+      if(cut < 0 && manual < 0) continue;
+    }
+    let start = idx;
+    while(start > 0 && (/^H[234]$/.test(kids[start-1].tagName) || kids[start-1].classList.contains("kick"))) start--;
+    if(start === 0) continue;
+    return pgMove(sh, kids.slice(start), pgLabel(sh, kids[start]));
+  }
+  return null;
+}
+function paginate(host){
+  const sheets = [...host.querySelectorAll(".sheet")]; if(!sheets.length) return;
+  const footTpl = (host.querySelector(".sheet .foot") || {}).outerHTML || "";
+  for(let k = 0; k < sheets.length && sheets.length < 80; k++){
+    const sh = sheets[k]; if(sh.classList.contains("cover")) continue;
+    const n = pgBreak(sh); if(n){ sh.after(n); sheets.splice(k + 1, 0, n); }
+  }
+  host.querySelectorAll(".sheet .pbm").forEach(x=>x.remove());
+  if(footTpl) sheets.forEach((sh, k)=>{ if(sh.classList.contains("cover")) return; const f = sh.querySelector(":scope > .foot"); if(f) f.remove(); sh.insertAdjacentHTML("beforeend", footTpl.replace(/Page \d+/, "Page " + (k + 1))); });
+}
+/* Render offscreen at full size, lay out the pages, return the HTML. */
+function layoutDoc(p){
+  const host = document.createElement("div");
+  host.style.cssText = "position:absolute;left:-12000px;top:0;width:794px;visibility:hidden;pointer-events:none";
+  host.innerHTML = renderDoc(p); document.body.appendChild(host);
+  try{ paginate(host); }catch(e){ console.warn("layout", e); }
+  const h = host.innerHTML; host.remove(); return h;
 }
 
 /* ---------- state + persistence ---------- */
@@ -1061,6 +1158,8 @@ function buildEditor(){
     <label class="check"><input type="checkbox" id="f_split" data-k="split" ${p.split?"checked":""}> Split equipment and installation in the summary</label>
     <label class="check"><input type="checkbox" id="f_gst" data-k="gst" ${p.gst?"checked":""}> Add GST at 5%</label>
     <label class="check"><input type="checkbox" id="f_pence" data-k="showPence" ${p.showPence?"checked":""}> Show pence</label>
+    <label class="f"><span>Page spacing</span><select class="in" id="f_spacing" data-k="spacing"><option value="normal" ${p.spacing!=="compact"?"selected":""}>Normal</option><option value="compact" ${p.spacing==="compact"?"selected":""}>Compact (fits more on each page)</option></select></label>
+    <p class="note">Pages lay themselves out so nothing is cut in half: anything that doesn't fit moves to a continuation page. To force a break, tick "Start a new page from this line" on an item, or type <b>[new page]</b> on its own line in any text box.</p>
     ${field("afterTotal","Note under the total","area",'rows="3"')}
   </div></details>
 
@@ -1134,6 +1233,7 @@ function sysBlock(s,i){
       <button class="icon" title="Move up" data-act="up" data-i="${i}" ${i===0?"disabled":""}>↑</button>
       <button class="icon" title="Move down" data-act="down" data-i="${i}" ${i===current.systems.length-1?"disabled":""}>↓</button>
       <button class="icon" title="Remove system" data-act="rmSys" data-i="${i}">×</button></div>
+    ${i > 0 ? `<label class="check"><input type="checkbox" id="s${i}_join" data-k="systems.${i}.joinPrev" ${s.joinPrev?"checked":""}> Share a page with the system above (when it fits)</label>` : ""}
     <label class="f"><span>Description</span><textarea id="s${i}_desc" data-k="systems.${i}.desc" rows="2">${esc(s.desc)}</textarea></label>
     <div class="items-head"><span>Qty</span><span>Item / description / tag</span><span>Unit £</span><span></span></div>
     <div class="items">${s.items.map((it,j)=>`<div class="item">
@@ -1143,9 +1243,10 @@ function sysBlock(s,i){
       <button class="icon" title="Remove line" data-act="rmItem" data-i="${i}" data-j="${j}">×</button>
       <span></span><span class="wide"><input type="text" id="s${i}i${j}m" data-k="systems.${i}.items.${j}.model" value="${esc(it.model)}" placeholder="Item description" aria-label="Item description">
       <select class="in" id="s${i}i${j}t" data-k="systems.${i}.items.${j}.tag" aria-label="Tag">${["","Allowance","Provisional"].map(o=>`<option value="${o}" ${it.tag===o?"selected":""}>${o||"Fixed price"}</option>`).join("")}</select></span>
-      <button class="more" data-act="more" data-i="${i}" data-j="${j}">${openDetails.has(i+"-"+j)?"Hide":(it.desc||it.img?"Edit":"Add")} photo &amp; description${it.desc||it.img?" ✓":""}</button>
+      <button class="more" data-act="more" data-i="${i}" data-j="${j}">${openDetails.has(i+"-"+j)?"Hide":(it.desc||it.img?"Edit":"Add")} photo, description &amp; page break${it.desc||it.img?" ✓":""}${it.pb?" · new page":""}</button>
       ${openDetails.has(i+"-"+j)?`<div class="details">
         <textarea id="s${i}i${j}d" data-k="systems.${i}.items.${j}.desc" placeholder="What it is and why it's worth having, in a sentence or two" aria-label="Product description">${esc(it.desc)}</textarea>
+        <label class="check"><input type="checkbox" id="s${i}i${j}pb" data-k="systems.${i}.items.${j}.pb" ${it.pb?"checked":""}> Start a new page from this line</label>
         <div class="imgrow"><span class="thumb" style="${it.img?`background-image:url('${esc(it.img)}')`:""}"></span>
           <span class="btn small filebtn">${it.img?"Replace photo":"Add photo"}<input type="file" accept="image/*" data-img="${i}-${j}" aria-label="Upload a product photo"></span>
           ${it.img?`<button class="btn small ghost" data-act="rmImg" data-i="${i}" data-j="${j}">Remove</button>`:""}
@@ -1452,7 +1553,7 @@ function renderPreview(){
     const b = $("#emptyNew"); b && b.addEventListener("click", ()=>createNew()); return;
   }
   const y = st.scrollTop;
-  st.innerHTML = `<div class="sheets" id="sheets">${renderDoc(current)}</div>`;
+  st.innerHTML = `<div class="sheets" id="sheets">${layoutDoc(current)}</div>`;
   fitZoom(); st.scrollTop = y;
   st.querySelectorAll(".sheet").forEach(s=>{ if(s.scrollHeight > A4H + 2){ s.insertAdjacentHTML("beforeend", `<span class="overflow-flag">Runs onto ${Math.ceil(s.scrollHeight/A4H)} pages</span>`); }});
 }
@@ -1487,6 +1588,7 @@ async function buildPdf(){
   host.innerHTML = renderDoc(current); document.body.appendChild(host);
   await document.fonts.ready;
   await Promise.all([...host.querySelectorAll("img")].map(im => im.complete ? 0 : new Promise(r=>{ im.onload = im.onerror = r; })));
+  try{ paginate(host); }catch(e){ console.warn("layout", e); }
   const { jsPDF } = window.jspdf; const pdf = new jsPDF({ unit:"mm", format:"a4", compress:true });
   let first = true;
   for(const sheet of host.querySelectorAll(".sheet")){
@@ -1550,7 +1652,7 @@ $("#btnHtml").addEventListener("click", async ()=>{
 ${css}
 .sheet{height:1123px;overflow:hidden}
 @media print{html,body{background:none}body{display:block;padding:0}.sheet{box-shadow:none;page-break-after:always;break-after:page}.sheet:last-child{page-break-after:auto}}
-*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>${await inlineImages(renderDoc(current))}</body></html>`;
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>${await inlineImages(layoutDoc(current))}</body></html>`;
   offer(fileBase() + ".html", html);
 });
 
