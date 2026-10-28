@@ -1451,7 +1451,11 @@ function applyClient(id){
   current.signedFor = c.name;
   buildEditor(); renderPreview(); scheduleSave(); toast(`Filled in ${c.name}`);
 }
-function proposalsFor(c){ return list.filter(p=>p.clientId===c.id || (!p.clientId && p.preparedFor && (p.preparedFor===c.company || p.preparedFor===c.name))); }
+function proposalsFor(c){
+  const k = v => String(v || "").toLowerCase().replace(/^jsy-?\d+\s*-?\s*/, "").replace(/[^a-z0-9]/g, "");
+  const names = [c.name, c.company, c.xeroName].map(k).filter(Boolean), em = String(c.email || "").toLowerCase();
+  return list.filter(p=>p.clientId===c.id || (!p.clientId && ((p.preparedFor && names.includes(k(p.preparedFor))) || (em && String(p.clientEmail || "").toLowerCase().split(/[;,\s]+/).includes(em)))));
+}
 function clientsListHtml(q){
   const rows = q ? searchClients(q, 60) : clients.slice(0, 40);
   const more = q ? "" : (clients.length > 40 ? `<p class="note">Showing 40 of ${clients.length}. Type above to find the rest.</p>` : "");
