@@ -1043,6 +1043,11 @@ function pgBreak(sh){
       if(manual > 0 && (cut < 0 || manual < cut)) cut = manual;
       if(cut > 0 && c.classList.contains("prods")) while(cut > 0 && items[cut].offsetTop === items[cut-1].offsetTop) cut--;
       if(cut > 0 && c.tagName === "TABLE"){ const sub = items[cut].classList.contains("sub"); if(sub && cut > 1) cut--; }
+      /* keep short blocks whole, and never leave a lone line at the bottom or top of a page */
+      if(cut > 0 && cut !== manual){
+        if(c.offsetHeight < 240 || cut < 2) cut = 0;
+        else if(items.length - cut < 2 && cut - 1 >= 2) cut--;
+      }
       if(cut > 0){
         const clone = c.cloneNode(false);
         if(c.tagName === "TABLE"){ const hr = c.querySelector("tr th") && c.querySelector("tr th").parentNode; const tb = document.createElement("tbody"); if(hr) tb.appendChild(hr.cloneNode(true)); items.slice(cut).forEach(r=>tb.appendChild(r)); clone.appendChild(tb); }
