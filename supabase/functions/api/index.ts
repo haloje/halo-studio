@@ -21,7 +21,7 @@ const MS_SCOPES_V1 = "offline_access openid email User.Read Calendars.ReadWrite 
 const XERO_SCOPES = "openid profile email offline_access accounting.invoices accounting.contacts accounting.settings";
 
 const admin = createClient(SB_URL, SERVICE, { auth: { persistSession: false } });
-const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-key", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 const fail = (code: string, message: string, status = 400) => json({ error: { code, message } }, status);
 class ApiError extends Error { constructor(public code: string, message: string, public status = 400) { super(message); } }
@@ -278,6 +278,43 @@ async function planningRegister(i: any) {
   return { added, updated, requests, more, at: isoDay(cur) };
 }
 
+/* ---------- iPhone app: automatic clock on/off at job sites ---------- */
+async function sha256(t: string) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join(""); }
+async function deviceEmail(req: Request) {
+  const key = req.headers.get("X-Device-Key") || ""; if (key.length < 32) throw new ApiError("not_signed_in", "This phone isn't linked to Studio.", 401);
+  const { data } = await admin.from("devices").select("email").eq("key_hash", await sha256(key)).maybeSingle();
+  if (!data) throw new ApiError("not_signed_in", "This phone isn't linked to Studio any more. Open Studio to link it again.", 401);
+  await admin.from("devices").update({ last_seen: new Date().toISOString() }).eq("key_hash", await sha256(key));
+  return data.email as string;
+}
+const hm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const mins = (t: string) => { const [h, m] = String(t || "").split(":").map(Number); return isFinite(h) ? h * 60 + (m || 0) : 0; };
+async function clockJob(i: any, who: string) {
+  const at = String(i.at || ""); if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(at)) throw new ApiError("bad_request", "Missing time.");
+  const { data: row } = await admin.from("docs").select("data").eq("collection", "jobs").eq("id", i.jobId).maybeSingle();
+  if (!row) throw new ApiError("not_found", "That job isn't in Studio any more.", 404);
+  const doc: any = row.data, j: any = doc.data || {}; j.time = j.time || []; j.notes = j.notes || [];
+  const name = (j.address || j.site || j.customer || "the site").split(/\n|,/)[0];
+  let message = "", changed = false;
+  if (i.action === "on") {
+    if (j.clock) message = `Already on the clock at ${name} (${j.number}).`;
+    else { j.clock = at; j.clockAuto = true; if (j.status === "Scheduled" || j.status === "To Book") doc.status = j.status = "In Progress"; changed = true; message = `Clocked on at ${name} (${j.number}) at ${at.slice(11)}.`; }
+  } else if (i.action === "off") {
+    if (!j.clock) message = `Left ${name}. You weren't on the clock for ${j.number}.`;
+    else {
+      const s = String(j.clock), sameDay = s.slice(0, 10) === at.slice(0, 10), m = sameDay ? Math.max(0, mins(at.slice(11)) - mins(s.slice(11))) : 0;
+      if (sameDay && m < 5 && j.clockAuto) { j.clock = null; delete j.clockAuto; changed = true; message = `Left ${name} after under 5 minutes, so no time was logged.`; }
+      else {
+        j.time.push({ id: "t" + Date.now().toString(36), date: s.slice(0, 10), start: s.slice(11, 16), end: sameDay ? at.slice(11) : "", hours: Math.round(m / 60 * 100) / 100, staff: j.staff || "Ian Lamont", note: "Automatic: arrived and left site" + (sameDay ? "" : " (check the end time)") });
+        j.clock = null; delete j.clockAuto; changed = true;
+        message = sameDay ? `Clocked off at ${name} (${j.number}): ${(m / 60).toFixed(2)} hours logged.` : `Clocked off at ${name}. The clock ran past midnight, so check the end time.`;
+      }
+    }
+  } else throw new ApiError("bad_request", "Unknown clock action.");
+  if (changed) { j.updated = Date.now(); doc.data = j; doc.updated = j.updated; await admin.from("docs").update({ data: doc, updated_at: new Date().toISOString(), updated_by: who + " (iPhone)" }).eq("collection", "jobs").eq("id", i.jobId); }
+  return { ok: true, changed, message, jobNumber: j.number || "" };
+}
+
 /* ---------- Xero ---------- */
 async function xero(method: string, path: string, body?: unknown) {
   const { token, conn } = await accessToken("xero");
@@ -354,6 +391,16 @@ Deno.serve(async (req) => {
       }
       await setConn(provider, conn);
       return back(`connect=${provider}&ok=1`);
+    }
+    if (path === "/device/register" && req.method === "POST") {
+      const email = await member(req), { name } = await req.json().catch(() => ({}));
+      const key = [...crypto.getRandomValues(new Uint8Array(32))].map((x) => x.toString(16).padStart(2, "0")).join("");
+      await admin.from("devices").insert({ key_hash: await sha256(key), email, name: String(name || "iPhone").slice(0, 80) });
+      return json({ key });
+    }
+    if (path === "/clock" && req.method === "POST") {
+      const who = await deviceEmail(req);
+      return json(await clockJob(await req.json(), who));
     }
     if (path === "/status" && req.method === "POST") {
       await member(req);

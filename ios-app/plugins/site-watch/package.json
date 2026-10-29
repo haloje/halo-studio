@@ -1,0 +1,9 @@
+{
+  "name": "halo-site-watch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Watches today's job sites and clocks halo.je Studio on and off automatically.",
+  "main": "index.js",
+  "files": ["ios/Sources", "Package.swift", "index.js"],
+  "capacitor": { "ios": { "src": "ios" } }
+}

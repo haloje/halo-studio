@@ -1,0 +1,11 @@
+{
+  "appId": "je.halo.studio",
+  "appName": "halo.je Studio",
+  "webDir": "www",
+  "server": {
+    "url": "https://haloje.github.io/halo-studio/",
+    "errorPath": "index.html",
+    "allowNavigation": ["haloje.github.io", "*.supabase.co", "login.microsoftonline.com", "login.live.com", "login.xero.com", "identity.xero.com"]
+  },
+  "ios": { "contentInset": "never", "backgroundColor": "#121110", "scheme": "halo.je Studio" }
+}

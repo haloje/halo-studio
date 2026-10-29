@@ -2387,6 +2387,7 @@ async function jbStart(){
       if(first){ first = false; jbLoaded = true; jbSetStatus(jbList.length ? "Saved" : "Ready"); }
       if(jbCur){ const r = jbList.find(x=>x.id===jbCur.id); if(r && !jbDirty && !jbSaving && r.updated > jbCur.updated){ jbCur = jbNorm(clone(r)); if(jbView === "job") jbRender(); } }
       jbRenderList(); if(jbView === "week") jbRender();
+      swQueue();
     }, ()=>jbSetStatus("Offline", true));
   } else {
     try{ jbList = JSON.parse(localStorage.getItem(LSJ) || "[]").map(jbNorm); }catch(e){ jbList = []; } jbLoaded = true;
@@ -3040,6 +3041,7 @@ function rpHtml(){
   return `<div class="rp">
     <div class="adds"><div class="pal">${[["month","This month"],["last","Last month"],["year","This year"],["all","All time"]].map(([k,l])=>`<button class="sel" data-rp="${k}" aria-pressed="${rpPeriod===k}">${l}</button>`).join("")}</div><button class="btn small" data-rpbackup="1" style="margin-left:auto">Back up everything</button>${window.STUDIO_NATIVE ? `<label class="btn small filebtn">Import from old Studio<input type="file" accept=".json,application/json" data-rpimport="1"></label><button class="btn small ghost" data-rpsignout="1">Sign out</button>` : `<button class="btn small" data-rpmigrate="1">Export for the new app</button>`}</div>
     ${window.STUDIO_NATIVE ? rpConnHtml() : ""}
+    ${window.studioSiteWatch && studioSiteWatch.available ? swCardHtml() : ""}
     <div class="jcard"><h3>Labour rate</h3><div class="row"><label class="f"><span>Default rate £ per hour</span><input type="number" id="rpRate" value="${esc(defRate)}" step="1" min="0"></label><div></div></div>
       <p class="note">Used for new proposals and new jobs. Existing ones keep their own rate: change it in a proposal under Summary &amp; pricing, or on a job beside the time to invoice.</p></div>
     <div class="kpis">
@@ -3067,6 +3069,33 @@ $("#jbScroll").addEventListener("click", async e=>{
   if(e.target.closest("[data-rpmigrate]")) mgExport(e.target.closest("[data-rpmigrate]"));
   if(e.target.closest("[data-rpsignout]") && window.studioSignOut) window.studioSignOut();
 });
+/* ---------- iPhone app: automatic clock on/off ---------- */
+let swT = null, swInfo = null;
+function swSites(){
+  const days = [jbToday(), jbIso(new Date(Date.now() + 864e5))];
+  return jbList.filter(j=>j.status !== "Completed").flatMap(j=>j.visits.filter(v=>days.includes(v.date)).map(v=>({ id: j.id + "|" + v.id, jobId: j.id, jobNumber: j.number, name: String(j.address || j.site || j.customer || "").split(/\n|,/)[0].trim() || j.number, address: String(j.address || j.site || "").replace(/\s*\n\s*/g, ", "), date: v.date, start: v.start || "", end: v.end || "" }))).filter(s=>s.address);
+}
+function swQueue(){ if(!(window.studioSiteWatch && studioSiteWatch.available && studioSiteWatch.enabled())) return; clearTimeout(swT); swT = setTimeout(async ()=>{ try{ swInfo = await studioSiteWatch.sync(swSites()); }catch(e){ console.warn(e); } }, 1500); }
+function swCardHtml(){
+  const on = studioSiteWatch.enabled(), st = swInfo || {};
+  const perm = { always: "Allowed all the time ✓", whenInUse: "Only while using the app. Set it to Always in Settings › Studio › Location.", denied: "Turned off. Allow it in Settings › Studio › Location.", restricted: "Restricted on this phone.", notDetermined: "Not asked yet." }[st.permission] || "";
+  return `<div class="jcard" id="swCard"><h3>Automatic clock on and off <small>THIS IPHONE</small></h3>
+    <p class="note" style="margin:0">When you arrive at a job booked for today, Studio clocks you on, and clocks you off when you leave, even with the app closed. You get a notification each time, and you can correct the time on the job. Stays under 5 minutes aren't logged.</p>
+    <label class="check"><input type="checkbox" id="swOn" ${on ? "checked" : ""}> Clock me on and off automatically</label>
+    ${on ? `<p class="note" style="margin:0">Location: ${esc(perm)}${st.sites != null ? ` · Watching ${st.watching || 0} site${st.watching === 1 ? "" : "s"} for today and tomorrow${st.sites > (st.located || 0) ? ` (${st.sites - (st.located || 0)} address${st.sites - (st.located || 0) === 1 ? "" : "es"} still being found on the map)` : ""}` : ""}</p>` : ""}
+  </div>`;
+}
+document.addEventListener("change", async e=>{
+  if(e.target.id !== "swOn") return;
+  const on = e.target.checked; e.target.disabled = true;
+  try{ swInfo = await studioSiteWatch.enable(on); if(on){ swQueue(); toast("Automatic clock on and off is on. Choose “Always Allow” for location so it works with the app closed."); } else toast("Automatic clock on and off is off."); }
+  catch(err){ e.target.checked = !on; toast(nativeErr(err, "Studio") || "Couldn't turn it on: " + ((err && err.message) || "")); }
+  e.target.disabled = false; const c = $("#swCard"); if(c) c.outerHTML = swCardHtml();
+});
+if(window.studioSiteWatch && studioSiteWatch.available){
+  studioSiteWatch.on(ev=>{ toast(ev.message || "Clock updated."); });
+  (async ()=>{ try{ swInfo = await studioSiteWatch.status(); }catch(_){} })();
+}
 /* ---------- connections (native app) ---------- */
 let rpConn = null, rpConnBusy = false, rpConnAt = 0;
 const RP_CONN = [["ms","Microsoft 365","Outlook calendar and sending email from info@halo.je"],["xero","Xero","Draft invoices and price list updates"]];

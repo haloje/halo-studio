@@ -233,6 +233,32 @@
     }
   }catch(_){}
 
+  /* ---------- iPhone app: automatic clock on/off at job sites ---------- */
+  const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  const SW = NATIVE ? ((window.Capacitor.Plugins && window.Capacitor.Plugins.SiteWatch) || (window.Capacitor.registerPlugin && window.Capacitor.registerPlugin("SiteWatch"))) : null;
+  const DK = "halo-studio-devkey", SWON = "halo-studio-sitewatch";
+  async function swLink(){
+    let key = null; try{ key = localStorage.getItem(DK); }catch(_){}
+    if(!key){ const r = await api("/device/register", { name: (navigator.userAgent.match(/iPad/) ? "iPad" : "iPhone") }); key = r.key; try{ localStorage.setItem(DK, key); }catch(_){} }
+    return key;
+  }
+  window.studioSiteWatch = Object.freeze({
+    available: !!SW,
+    enabled(){ try{ return localStorage.getItem(SWON) === "1"; }catch(_){ return false; } },
+    async status(){ return SW ? await SW.status() : null; },
+    async enable(on){
+      if(!SW) return null;
+      try{ localStorage.setItem(SWON, on ? "1" : "0"); }catch(_){}
+      if(!on) return await SW.configure({ enabled: false });
+      const deviceKey = await swLink();
+      await SW.configure({ apiUrl: API, deviceKey, enabled: true, radius: 150 });
+      return await SW.askPermission();
+    },
+    async sync(sites){ if(!SW) return null; return await SW.setSites({ sites }); },
+    on(fn){ if(SW && SW.addListener) SW.addListener("clock", fn); }
+  });
+  if(SW){ ready.then(async ()=>{ try{ if(localStorage.getItem(SWON) === "1"){ const deviceKey = await swLink(); await SW.configure({ apiUrl: API, deviceKey, enabled: true }); } }catch(e){ console.warn("site watch", e); } }); }
+
   /* Claude drafting (sample) arrives in a later phase. */
   const caps = { db, assets, downloads, user, mcp };
   window.claude = Object.freeze({ use: async name=>{ if(name === "db" || name === "assets"){ await ready; } return caps[name] || null; } });

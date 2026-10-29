@@ -2,3 +2,5 @@ tests/pack.json
 tests/*.png
 node_modules/
 .DS_Store
+ios-app/node_modules/
+ios-app/ios/App/App/public/
