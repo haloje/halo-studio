@@ -543,7 +543,11 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 /* planning leads */
 .app[data-tab=leads] .pmode{display:none!important}
 .app:not([data-tab=leads]) .lmode{display:none!important}
-#ldParish{height:32px;padding:4px 8px;font-size:13px}
+.ldbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+.ldbar span{margin-right:auto}
+.ldrow{cursor:pointer}
+.ldrow .tdck{align-self:center}
+.ldwhy{color:#9a6a3a!important;font-style:italic}
 a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .ldmeta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
 .ldmeta b{font-weight:500;color:var(--ink);margin-right:4px}
@@ -719,7 +723,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
     <section class="jstage" aria-label="Customer details"><div class="jscroll" id="cuScroll"></div></section>
   </main>
   <main class="jwork lmode" id="lwork" data-view="edit">
-    <aside class="jlist" aria-label="Planning leads"><div class="top"><input type="search" id="ldSearch" placeholder="Search address, description, architect" autocomplete="off" aria-label="Search leads"><div class="chips" id="ldChips"></div><select class="in" id="ldParish" aria-label="Parish"></select></div><div class="jrows" id="ldRows"></div></aside>
+    <aside class="jlist" aria-label="Planning leads"><div class="top"><input type="search" id="ldSearch" placeholder="Search address, description, architect" autocomplete="off" aria-label="Search leads"><div class="chips" id="ldChips"></div><div class="ldbar" id="ldBar"></div></div><div class="jrows" id="ldRows"></div></aside>
     <section class="jstage" aria-label="Lead details"><div class="jscroll" id="ldScroll"></div></section>
   </main>
   <main class="jwork tmode" id="twork" data-view="edit">
@@ -3999,49 +4003,64 @@ document.addEventListener("click", e=>{ const r = e.target.closest(".tdcard [dat
 /* ================= Planning leads ================= */
 const LD_STATUS = [["new","New","#8a8178"],["interested","Interested","#c9853a"],["contacted","Contacted","#6e5a90"],["quoting","Quoting","#4c6e9a"],["won","Won","#4c7a5a"],["lost","Lost","#9a4a3a"],["no","Not relevant","#b5ada3"]];
 const ldStatus = k => LD_STATUS.find(s=>s[0]===k) || LD_STATUS[0];
-const LD_FIT = /\b(new (?:build|dwelling|house|home)|dwelling|construct|demolish|replacement|refurbish|renovat|extension|extend|convert|conversion|basement|cinema|annex|apartment|flats?|hotel|office|restaurant|garage|swimming pool|pool house|outbuilding|alterations? to|redevelop|change of use)\w*/i;
-let ldList = [], ldCur = null, ldSel = null, ldDirty = false, ldT = null, ldFilter = "open", ldQ = "", ldParish = "", ldStarted = false, ldLoaded = false, ldSyncing = false;
+const LD_DEF_RULES = {
+  want: "new dwelling, dwelling, dwellings, house, new build, construct new, demolish, replacement dwelling, extension, extend, refurbish, refurbishment, renovate, renovation, convert, conversion, basement, cinema, annex, apartment, apartments, flats, hotel, office, offices, restaurant, bar, pub, swimming pool, pool house, outbuilding, redevelop, redevelopment, change of use, internal alterations, garage",
+  avoid: "window, windows, door, doors, roof, re-roof, cladding, render, solar, porch, conservatory, wall, driveway, vehicular access, parking, dropped kerb, tree, trees, fell, prune, pruning, sign, signage, advert, advertisement, mural, fence, fencing, shed, flagpole, telecommunications, mast, satellite dish, bin store, retrospective, temporary",
+  wantOnly: false, sizes: { Major: true, Minor: true, other: true }, hideTypes: ["A", "TPA"], parishes: [], hideClosed: true
+};
+let ldRules = clone(LD_DEF_RULES);
+let ldList = [], ldCur = null, ldSel = null, ldDirty = false, ldT = null, ldFilter = "mine", ldQ = "", ldStarted = false, ldLoaded = false, ldSyncing = false, ldPicking = false, ldPicked = new Set(), ldShowRules = false;
 function ldSetStatus(t, warn){ const s = $("#ldStatus"); if(s){ s.textContent = t; s.classList.toggle("warn", !!warn); } }
-const ldFit = l => LD_FIT.test(l.description || "");
+const ldWords = s => String(s || "").split(/[,\n]/).map(w=>w.trim().toLowerCase()).filter(Boolean);
+const ldHas = (text, words) => { const t = " " + String(text || "").toLowerCase().replace(/[^a-z0-9]+/g, " ") + " "; return words.find(w=>t.includes(" " + w.replace(/[^a-z0-9]+/g, " ").trim() + " ")) || ""; };
+function ldWhy(l){ /* "" when the lead passes your filters, otherwise the reason it's hidden */
+  const r = ldRules, size = /major/i.test(l.appType || "") ? "Major" : /minor/i.test(l.appType || "") ? "Minor" : "other";
+  if((r.hideTypes || []).includes(l.type)) return `${l.type} applications hidden`;
+  if(r.sizes && r.sizes[size] === false) return `${size === "other" ? "Other" : size} applications hidden`;
+  if((r.parishes || []).length && l.parish && !r.parishes.includes(l.parish)) return `${l.parish} not in your parishes`;
+  if(r.hideClosed && ["refused","withdrawn"].includes(l.stage)) return `${l.stage === "refused" ? "Refused" : "Withdrawn"}`;
+  const want = ldHas(l.description, ldWords(r.want)), avoid = ldHas(l.description, ldWords(r.avoid));
+  if(avoid && !want) return `mentions "${avoid}"`;
+  if(r.wantOnly && !want) return l.description ? "doesn't mention any of your words" : "no description yet";
+  return "";
+}
+const ldMatch = l => !ldWhy(l);
+const ldWant = l => ldHas(l.description, ldWords(ldRules.want));
 function ldStart(){
   if(!ldStarted){
     ldStarted = true;
-    if(mode === "db"){ db.collection("leads").onSnapshot(snap=>{ ldList = snap.docs.map(d=>Object.assign({ id: d.id, status: "new", notes: "", events: [] }, d.data())); ldLoaded = true; ldOnData(); }, ()=>ldSetStatus("Couldn't load", true)); }
-    else { ldLoaded = true; }
-    if(window.studioConnections){ db.doc("settings/planning").get().then(d=>{ const b = d.exists ? d.data() : {}; const age = b.lastRun ? Date.now() - new Date(b.lastRun).getTime() : Infinity; ldSetStatus(b.lastRun ? "Checked " + kbWhen(new Date(b.lastRun).getTime()) : ""); if(age > 6 * 36e5) ldSync(true); }).catch(()=>{}); }
+    if(mode === "db"){
+      db.collection("leads").onSnapshot(snap=>{ ldList = snap.docs.map(d=>Object.assign({ id: d.id, status: "new", notes: "", events: [] }, d.data())).filter(l=>!l.deleted); ldLoaded = true; ldOnData(); }, ()=>ldSetStatus("Couldn't load", true));
+      db.doc("settings/leadfilters").onSnapshot(d=>{ const b = d.exists ? d.data() : null; if(b && b.rules){ ldRules = Object.assign(clone(LD_DEF_RULES), b.rules); ldOnData(); } }, ()=>{});
+    } else ldLoaded = true;
+    if(window.studioConnections){ db.doc("settings/planning").get().then(d=>{ const b = d.exists ? d.data() : {}; const last = b.regRun || b.lastRun; const age = last ? Date.now() - new Date(last).getTime() : Infinity; ldSetStatus(last ? "Checked " + kbWhen(new Date(last).getTime()) : ""); if(age > 6 * 36e5) ldSync(true); }).catch(()=>{}); }
   }
   ldRenderList(); ldRender();
 }
 function ldOnData(){
   if(ldCur && !ldDirty){ const f = ldList.find(l=>l.id === ldCur.id); if(f){ const ae = document.activeElement, inside = ae && $("#ldScroll").contains(ae) && /INPUT|TEXTAREA|SELECT/.test(ae.tagName); ldCur = clone(f); if(!inside && $("#app").dataset.tab === "leads") ldRender(); } }
-  if($("#app").dataset.tab === "leads"){ ldRenderList(); if(!ldCur) ldRender(); }
-  const b = $("#tabL"); if(b){ const n = ldList.filter(l=>l.status === "new" && l.lastSeen >= jbIso(new Date(Date.now() - 2 * 864e5)) && l.type !== "A").length; b.innerHTML = `Leads${n ? ` <span class="tdbadge" style="background:var(--accent)">${n}</span>` : ""}`; }
+  if($("#app").dataset.tab === "leads"){ ldRenderList(); if(!ldCur && !(document.activeElement && $("#ldScroll").contains(document.activeElement))) ldRender(); }
+  const b = $("#tabL"); if(b){ const since = jbIso(new Date(Date.now() - 2 * 864e5)); const n = ldList.filter(l=>l.status === "new" && (l.lastSeen || "") >= since && ldMatch(l)).length; b.innerHTML = `Leads${n ? ` <span class="tdbadge" style="background:var(--accent)">${n}</span>` : ""}`; }
 }
 async function ldSync(quiet){
   if(ldSyncing || !window.studioConnections) return; ldSyncing = true;
   const btn = $("#ldSync"); if(btn){ btn.disabled = true; btn.textContent = "Checking…"; }
-  let added = 0, upd = 0, rounds = 0, err = null;
-  try{
-    while(rounds++ < 40){
-      ldSetStatus(rounds > 1 ? `Reading planning emails… ${added} new so far` : "Reading planning emails…");
-      const r = await studioConnections.call("ms", "planning_sync", {});
-      added += r.added || 0; upd += r.updated || 0;
-      if(!r.more || (!r.messages && !r.enriched)) break;
-    }
-  }catch(e){ err = e; }
+  let added = 0, upd = 0, errs = [];
+  try{ for(let k = 0; k < 40; k++){ ldSetStatus("Reading planning emails…"); const r = await studioConnections.call("ms", "planning_sync", {}); added += r.added || 0; upd += r.updated || 0; if(!r.more || !r.messages) break; } }catch(e){ errs.push(e); }
+  try{ for(let k = 0; k < 15; k++){ ldSetStatus(`Checking the planning register…${added ? ` ${added} new so far` : ""}`); const r = await studioConnections.call("ms", "planning_register", {}); added += r.added || 0; upd += r.updated || 0; if(!r.more) break; } }catch(e){ errs.push(e); }
   ldSyncing = false; if(btn){ btn.disabled = false; btn.textContent = "Check for new leads"; }
-  if(err){ ldSetStatus("Not checked", true); if(!quiet) toast(nativeErr(err, "Microsoft 365") || "Couldn't read the planning emails: " + ((err && err.message) || "")); return; }
-  ldSetStatus("Checked just now");
-  if(!quiet || added) toast(added ? `${added} new planning lead${added > 1 ? "s" : ""}${upd ? `, ${upd} updated` : ""}.` : upd ? `${upd} leads updated.` : "No new planning applications.");
+  if(errs.length){ ldSetStatus(errs.length > 1 ? "Not checked" : "Partly checked", true); if(!quiet){ const e = errs[0]; toast(nativeErr(e, "Microsoft 365") || "Couldn't finish checking: " + ((e && e.message) || "")); } if(errs.length > 1) return; }
+  else ldSetStatus("Checked just now");
+  if(!quiet || added) toast(added ? `${added} new planning application${added > 1 ? "s" : ""} found${upd ? `, ${upd} updated` : ""}.` : "No new planning applications.");
 }
 function ldWhen(d){ if(!d) return ""; try{ return new Date(d + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }); }catch(_){ return d; } }
+const ldClosed = l => ["no","lost","won"].includes(l.status);
 function ldFiltered(){
   const toks = ldQ.toLowerCase().split(/\s+/).filter(Boolean);
   let r = ldList.filter(l=>{
-    if(ldParish && l.parish !== ldParish) return false;
-    if(ldFilter === "open") return !["no","lost","won"].includes(l.status) && l.type !== "A";
-    if(ldFilter === "fit") return ldFit(l) && !["no","lost"].includes(l.status);
-    if(ldFilter === "approved") return l.stage === "approved" && !["no","lost","won"].includes(l.status);
+    if(ldFilter === "mine") return !ldClosed(l) && ldMatch(l);
+    if(ldFilter === "approved") return l.stage === "approved" && !ldClosed(l) && ldMatch(l);
+    if(ldFilter === "hidden") return !ldClosed(l) && !ldMatch(l);
     if(ldFilter === "all") return true;
     return l.status === ldFilter;
   });
@@ -4049,36 +4068,63 @@ function ldFiltered(){
   return r.sort((a,b)=>String(b.lastSeen || "").localeCompare(String(a.lastSeen || "")) || String(b.ref).localeCompare(String(a.ref)));
 }
 function ldRenderList(){
-  const box = $("#ldRows"), chips = $("#ldChips"), ps = $("#ldParish"); if(!box) return;
-  const live = ldList.filter(l=>!["no","lost","won"].includes(l.status));
-  const cnt = { open: live.filter(l=>l.type !== "A").length, fit: ldList.filter(l=>ldFit(l) && !["no","lost"].includes(l.status)).length, approved: live.filter(l=>l.stage === "approved").length };
-  chips.innerHTML = [["open","Open",cnt.open],["fit","Good fit",cnt.fit],["approved","Approved",cnt.approved]].concat(LD_STATUS.slice(1).map(([k,l])=>[k, l, ldList.filter(x=>x.status === k).length]).filter(x=>x[2])).concat([["all","All",ldList.length]]).map(([k,l,n])=>`<button data-lf="${k}" aria-pressed="${ldFilter===k}">${l} ${n}</button>`).join("");
-  const parishes = [...new Set(ldList.map(l=>l.parish).filter(Boolean))].sort();
-  ps.innerHTML = `<option value="">All parishes</option>` + parishes.map(p=>`<option ${ldParish===p?"selected":""}>${esc(p)}</option>`).join("");
+  const box = $("#ldRows"), chips = $("#ldChips"), bar = $("#ldBar"); if(!box) return;
+  const open = ldList.filter(l=>!ldClosed(l)), mine = open.filter(ldMatch);
+  chips.innerHTML = [["mine","For you",mine.length],["approved","Approved",mine.filter(l=>l.stage === "approved").length]].concat(LD_STATUS.slice(1, 6).map(([k,l])=>[k, l, ldList.filter(x=>x.status === k).length]).filter(x=>x[2])).concat([["hidden","Filtered out",open.length - mine.length],["no","Not relevant",ldList.filter(l=>l.status === "no").length],["all","All",ldList.length]]).filter(x=>x[2] || x[0] === ldFilter || x[0] === "mine").map(([k,l,n])=>`<button data-lf="${k}" aria-pressed="${ldFilter===k}">${l} ${n}</button>`).join("") + `<button data-lrules="1" aria-pressed="${ldShowRules}">⚙ My filters</button>`;
   const rows = ldFiltered();
-  box.innerHTML = rows.length ? rows.slice(0, 500).map(l=>{ const st = ldStatus(l.status);
-    return `<button class="jrow ${ldSel===l.id?"on":""}" data-ld="${esc(l.id)}" style="--js:${st[2]}"><span class="jbar"></span><span class="jm"><span class="n">${esc(l.ref)}${l.parish ? " · " + esc(l.parish.toUpperCase()) : ""}</span><span class="c">${esc(String(l.address || "").split(",")[0] || l.ref)}</span><small>${esc(l.description || String(l.address || "").split(",").slice(1).join(",").trim() || "")}</small></span>
-      <span class="when">${esc(ldWhen(l.lastSeen))}${l.stage === "approved" ? `<br><span class="spill" style="--js:#4c7a5a">Approved</span>` : ""}${l.status !== "new" ? `<br><span class="spill" style="--js:${st[2]}">${esc(st[1])}</span>` : ldFit(l) ? `<br><span class="spill" style="--js:var(--accent)">Good fit</span>` : ""}</span></button>`; }).join("")
-    : `<p class="note" style="padding:16px">${!ldLoaded ? "Loading…" : ldList.length ? "Nothing matches." : "No leads yet. Press Check for new leads to read your planning emails."}</p>`;
+  bar.innerHTML = ldPicking ? `<span>${ldPicked.size} selected</span><button class="btn small ghost" data-lpick="all">Select all ${rows.length}</button><button class="btn small" data-lpick="no" ${ldPicked.size ? "" : "disabled"}>Not relevant</button><button class="btn small ghost danger" data-lpick="del" ${ldPicked.size ? "" : "disabled"}>Delete</button><button class="btn small ghost" data-lpick="done">Done</button>`
+    : `<span>${rows.length} shown</span><button class="btn small ghost" data-lpick="start">Select</button>`;
+  box.innerHTML = rows.length ? rows.slice(0, 500).map(l=>{ const st = ldStatus(l.status), why = ldFilter === "hidden" || ldFilter === "all" ? ldWhy(l) : "", fit = ldWant(l);
+    return `<div class="jrow ldrow ${ldSel===l.id?"on":""}" data-ld="${esc(l.id)}" style="--js:${st[2]}" role="button" tabindex="0">${ldPicking ? `<label class="tdck"><input type="checkbox" data-lpk="${esc(l.id)}" ${ldPicked.has(l.id)?"checked":""}><span></span></label>` : `<span class="jbar"></span>`}<span class="jm"><span class="n">${esc(l.ref)}${l.parish ? " · " + esc(l.parish.toUpperCase()) : ""}${/major/i.test(l.appType || "") ? " · MAJOR" : ""}</span><span class="c">${esc(String(l.address || "").split(",")[0] || l.ref)}</span><small>${esc(l.description || String(l.address || "").split(",").slice(1).join(",").trim() || "")}</small>${why ? `<small class="ldwhy">Hidden: ${esc(why)}</small>` : ""}</span>
+      <span class="when">${esc(ldWhen(l.lastSeen))}${l.stage === "approved" ? `<br><span class="spill" style="--js:#4c7a5a">Approved</span>` : ""}${l.status !== "new" ? `<br><span class="spill" style="--js:${st[2]}">${esc(st[1])}</span>` : fit ? `<br><span class="spill" style="--js:var(--accent)">${esc(fit)}</span>` : ""}</span></div>`; }).join("")
+    : `<p class="note" style="padding:16px">${!ldLoaded ? "Loading…" : ldList.length ? (ldFilter === "mine" ? "Nothing matches your filters. Open ⚙ My filters to loosen them." : "Nothing here.") : "No leads yet. Press Check for new leads."}</p>`;
 }
 const ldLinks = l => { const r = encodeURIComponent(l.ref); return [[`https://www.gov.je/citizen/Planning/Pages/PlanningApplicationDetail.aspx?s=1&r=${r}`, "Application"], [`https://www.gov.je/citizen/Planning/Pages/PlanningApplicationDocuments.aspx?s=1&r=${r}`, "Plans & documents"], [`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((l.address || "") + ", Jersey")}`, "Map"]]; };
+function ldRulesHtml(){
+  const r = ldRules, types = [...new Set(ldList.map(l=>l.type).filter(Boolean))].sort(), parishes = [...new Set(ldList.map(l=>l.parish).filter(Boolean))].sort();
+  const cnt = k => ldList.filter(l=>l.type === k).length;
+  const open = ldList.filter(l=>!ldClosed(l)), hidden = open.filter(l=>!ldMatch(l));
+  return `<div class="jdetail"><div class="jhead"><span class="num">LEADS</span><h2>My filters</h2>${ldCur ? `<button class="btn small" data-lda="closeRules">Back to lead</button>` : ""}</div>
+    <div class="jcard"><h3>Words that make a lead worth a look</h3>
+      <textarea data-lr="want" rows="4">${esc(r.want)}</textarea>
+      <label class="check"><input type="checkbox" data-lr="wantOnly" ${r.wantOnly ? "checked" : ""}> Only show leads whose description mentions one of these</label>
+      <p class="note">Separate with commas. Leads that mention one of these show the word as a badge.</p></div>
+    <div class="jcard"><h3>Words that mean I'm not interested</h3>
+      <textarea data-lr="avoid" rows="3">${esc(r.avoid)}</textarea>
+      <p class="note">Hidden unless they also mention one of your words above, so "replace windows and build extension" still shows.</p></div>
+    <div class="jcard"><h3>Application size and type</h3>
+      <div class="ldstat">${[["Major","Major applications"],["Minor","Minor applications"],["other","Other / not known yet"]].map(([k,l])=>`<label class="check" style="margin:0"><input type="checkbox" data-lrsize="${k}" ${r.sizes[k] !== false ? "checked" : ""}> ${l}</label>`).join("")}</div>
+      <p class="note">Hide these application types (tap to toggle):</p>
+      <div class="ldstat">${types.map(t=>`<button data-lrtype="${esc(t)}" aria-pressed="${(r.hideTypes || []).includes(t)}" style="--js:#9a4a3a">${esc(t)} · ${cnt(t)}</button>`).join("")}</div>
+      <label class="check"><input type="checkbox" data-lr="hideClosed" ${r.hideClosed ? "checked" : ""}> Hide refused and withdrawn applications</label></div>
+    <div class="jcard"><h3>Parishes</h3>
+      <div class="ldstat">${parishes.map(p=>`<button data-lrpar="${esc(p)}" aria-pressed="${!(r.parishes || []).length || r.parishes.includes(p)}" style="--js:#4c6e9a">${esc(p)}</button>`).join("")}</div>
+      <p class="note">All on means every parish. Tap to choose just the ones you cover.</p></div>
+    <div class="jcard"><h3>Tidy up</h3>
+      <p class="note" style="margin:0">${hidden.length} open leads don't match your filters. They're kept under "Filtered out" in case you change your mind.</p>
+      <div class="adds"><button class="btn small" data-lda="noHidden" ${hidden.length ? "" : "disabled"}>Mark all ${hidden.length} as Not relevant</button><button class="btn small ghost danger" data-lda="delHidden" ${hidden.length ? "" : "disabled"}>Delete all ${hidden.length}</button><button class="btn small ghost" data-lda="resetRules">Reset filters</button></div></div>
+  </div>`;
+}
 function ldRender(){
   const sc = $("#ldScroll"); if(!sc) return;
+  if(ldShowRules){ sc.innerHTML = ldRulesHtml(); return; }
   if(!ldCur){
-    sc.innerHTML = `<div class="planempty"><h2>Planning leads.</h2><p>Every application in your daily Government of Jersey planning emails, pulled in automatically, with the description and architect where the Gazette has them.</p>
-      <p class="note">Work through them with the status: Interested, Contacted, Quoting, Won or Lost, or Not relevant to hide one. "Good fit" picks out new builds, extensions, refurbishments, pools and similar. "Approved" shows ones that have got permission, which is often the moment to get in touch.</p>
-      ${window.studioConnections ? `<div class="adds"><button class="btn small primary" data-lda="sync">Check for new leads</button></div>` : ""}</div>`;
+    sc.innerHTML = `<div class="planempty"><h2>Planning leads.</h2><p>Every application from your Government of Jersey planning emails and the planning register, with the description, applicant and architect.</p>
+      <p class="note">"For you" shows only the ones that pass <a href="#" data-lrules="1">your filters</a>: the words you care about, application size and type, and parishes. Work through them with the status buttons, or use Select to clear lots at once.</p>
+      ${window.studioConnections ? `<div class="adds"><button class="btn small primary" data-lda="sync">Check for new leads</button><button class="btn small" data-lrules="1">Set my filters</button></div>` : ""}</div>`;
     return;
   }
-  const l = ldCur, st = ldStatus(l.status), cs = clients.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name)));
-  const prop = l.proposalId && list.find(p=>p.id === l.proposalId);
+  const l = ldCur, cs = clients.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  const prop = l.proposalId && list.find(p=>p.id === l.proposalId), why = ldWhy(l);
+  const meta = [["Applicant", l.applicant], ["Architect / agent", l.agent], ["Parish", l.parish], ["Application", [l.type, l.appType].filter(Boolean).join(" · ")], ["Register status", l.regStatus], ["Officer", l.officer], ["Validated", l.validated], ["Comments close", l.endPublicity], ["Decision", l.decided], ["Constraints", l.constraints]].filter(x=>x[1]);
   sc.innerHTML = `<div class="jdetail">
     <div class="jhead"><span class="num">${esc(l.ref)}${l.stage ? " · " + esc(l.stage.toUpperCase()) : ""}</span><h2>${esc(String(l.address || "").split(",")[0] || l.ref)}</h2></div>
+    ${why ? `<p class="note ldwhy" style="margin:0">Filtered out: ${esc(why)}. <a href="#" data-lrules="1">Change filters</a></p>` : ""}
     <div class="jcard">
       <p style="margin:0">${esc(l.address || "")}</p>
-      ${l.description ? `<p style="margin:0;font-size:15px">${esc(l.description)}</p>` : `<p class="note" style="margin:0">${l.gz ? "No description published in the Gazette for this one. Open the application for details." : "Description not fetched yet."} <button class="btn small ghost" data-lda="details">Fetch details</button></p>`}
-      <div class="ldmeta">${[l.applicant ? `<span><b>Applicant</b> ${esc(l.applicant)}</span>` : "", l.agent ? `<span><b>Architect / agent</b> ${esc(l.agent)}</span>` : "", l.parish ? `<span><b>Parish</b> ${esc(l.parish)}</span>` : "", `<span><b>Type</b> ${esc(l.type || "")}</span>`].filter(Boolean).join("")}</div>
-      <div class="adds">${ldLinks(l).map(([u,t])=>`<a class="btn small" href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>`).join("")}</div>
+      ${l.description ? `<p style="margin:0;font-size:15px">${esc(l.description)}</p>` : `<p class="note" style="margin:0">${l.reg ? "No description on the register." : "Getting the details from the planning register…"}</p>`}
+      ${meta.length ? `<div class="ldmeta">${meta.map(([k,v])=>`<span><b>${esc(k)}</b> ${esc(v)}</span>`).join("")}</div>` : ""}
+      <div class="adds">${ldLinks(l).map(([u,t])=>`<a class="btn small" href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>`).join("")}<button class="btn small ghost" data-lda="details">Refresh from register</button></div>
     </div>
     <div class="jcard"><h3>Your lead</h3>
       <div class="ldstat">${LD_STATUS.map(([k,lab,c])=>`<button data-ldst="${k}" aria-pressed="${l.status===k}" style="--js:${c}">${esc(lab)}</button>`).join("")}</div>
@@ -4086,33 +4132,62 @@ function ldRender(){
       <div class="row"><label class="f"><span>Customer</span><select class="in" data-ldk="clientId"><option value="">None yet</option>${cs.map(c=>`<option value="${esc(c.id)}" ${l.clientId===c.id?"selected":""}>${esc(c.name)}</option>`).join("")}</select></label><div></div></div>
       <div class="adds"><button class="btn small" data-lda="todo">Add a follow-up to-do</button>${prop ? `<button class="btn small" data-lda="openProp">Open proposal ${esc(prop.ref || "")}</button>` : `<button class="btn small" data-lda="proposal">Start a proposal</button>`}</div>
     </div>
-    <div class="jcard"><h3>Planning history <small>${(l.events || []).length}</small></h3>
-      <div class="ldev">${(l.events || []).slice().reverse().map(e=>`<div><span>${esc(ldWhen(e.date))}</span>${esc(e.kind === "new" ? "Application received" : e.kind === "approved" ? "Approved" : e.kind === "refused" ? "Refused" : e.kind === "withdrawn" ? "Withdrawn" : e.label)}</div>`).join("")}</div>
-    </div>
+    ${(l.events || []).length ? `<div class="jcard"><h3>Planning history <small>${l.events.length}</small></h3><div class="ldev">${l.events.slice().reverse().map(e=>`<div><span>${esc(ldWhen(e.date))}</span>${esc(e.kind === "new" ? "Application received" : e.kind === "approved" ? "Approved" : e.kind === "refused" ? "Refused" : e.kind === "withdrawn" ? "Withdrawn" : e.label)}</div>`).join("")}</div></div>` : ""}
+    <div class="adds"><button class="btn small ghost danger" data-lda="delete">Delete lead</button></div>
   </div>`;
 }
-function ldOpen(id){ const l = ldList.find(x=>x.id === id); if(!l) return; ldSel = id; ldCur = clone(l); ldRenderList(); ldRender(); if(innerWidth <= 860) setView("preview"); $("#ldScroll").scrollTop = 0; if(!l.gz && window.studioConnections) ldDetails(l, true); }
-async function ldDetails(l, quiet){ try{ await studioConnections.call("ms", "planning_sync", { refs: [l.ref] }); }catch(e){ if(!quiet) toast(nativeErr(e, "Microsoft 365") || "Couldn't fetch the details."); } }
+function ldOpen(id){ const l = ldList.find(x=>x.id === id); if(!l) return; ldShowRules = false; ldSel = id; ldCur = clone(l); ldRenderList(); ldRender(); if(innerWidth <= 860) setView("preview"); $("#ldScroll").scrollTop = 0; if(!l.reg && window.studioConnections) ldDetails(l, true); }
+async function ldDetails(l, quiet){ try{ const r = await studioConnections.call("ms", "planning_register", { refs: [l.ref] }); if(!quiet && !r.detailed) toast("The register didn't return details for this one."); }catch(e){ if(!quiet) toast(nativeErr(e, "Microsoft 365") || "Couldn't read the register."); } }
 async function ldSave(){ clearTimeout(ldT); if(!ldCur || !ldDirty) return; ldDirty = false; ldCur.updated = Date.now(); const l = clone(ldCur), i = ldList.findIndex(x=>x.id === l.id); if(i >= 0) ldList[i] = l; try{ await db.collection("leads").doc(l.id).set(l); }catch(_){ toast("Couldn't save the lead."); } ldRenderList(); }
-$("#ldChips").addEventListener("click", e=>{ const b = e.target.closest("[data-lf]"); if(b){ ldFilter = b.dataset.lf; ldRenderList(); } });
+let ldRT = null;
+function ldSaveRules(){ clearTimeout(ldRT); ldRT = setTimeout(()=>{ db.doc("settings/leadfilters").set({ rules: ldRules, updated: Date.now() }).catch(()=>toast("Couldn't save your filters.")); }, 600); ldRenderList(); ldOnData(); }
+/* Set several leads at once. Deleting leaves a marker so the same application isn't added again. */
+async function ldBulk(ids, how){
+  ids = [...ids]; if(!ids.length) return;
+  if(how === "del" && !confirm(`Delete ${ids.length} lead${ids.length > 1 ? "s" : ""}? They won't come back on the next check.`)) return;
+  const prev = ids.map(id=>clone(ldList.find(l=>l.id === id))).filter(Boolean);
+  ldSetStatus(`Updating ${ids.length}…`);
+  const gone = new Set(ids);
+  if(how === "del") ldList = ldList.filter(l=>!gone.has(l.id)); else ldList.forEach(l=>{ if(gone.has(l.id)) l.status = "no"; });
+  if(ldCur && gone.has(ldCur.id)){ ldCur = null; ldSel = null; }
+  ldPicked.clear(); ldRenderList(); ldRender();
+  for(const p of prev){ try{ await db.collection("leads").doc(p.id).set(how === "del" ? { id: p.id, ref: p.ref, deleted: true, updated: Date.now() } : Object.assign({}, p, { status: "no", updated: Date.now() })); }catch(_){} }
+  ldSetStatus("Saved");
+  undoToast(`${how === "del" ? "Deleted" : "Marked not relevant:"} ${prev.length} lead${prev.length > 1 ? "s" : ""}.`, async ()=>{ for(const p of prev){ try{ await db.collection("leads").doc(p.id).set(p); }catch(_){} } toast("Put back."); }, null, 8000);
+}
+$("#ldChips").addEventListener("click", e=>{ if(e.target.closest("[data-lrules]")){ ldShowRules = !ldShowRules; ldRenderList(); ldRender(); if(ldShowRules && innerWidth <= 860) setView("preview"); return; } const b = e.target.closest("[data-lf]"); if(b){ ldFilter = b.dataset.lf; ldPicked.clear(); ldRenderList(); } });
 $("#ldSearch").addEventListener("input", e=>{ ldQ = e.target.value; ldRenderList(); });
-$("#ldParish").addEventListener("change", e=>{ ldParish = e.target.value; ldRenderList(); });
-$("#ldRows").addEventListener("click", async e=>{ const b = e.target.closest("[data-ld]"); if(b){ await ldSave(); ldOpen(b.dataset.ld); } });
+$("#ldBar").addEventListener("click", e=>{ const b = e.target.closest("[data-lpick]"); if(!b) return; const a = b.dataset.lpick;
+  if(a === "start"){ ldPicking = true; ldPicked.clear(); } else if(a === "done"){ ldPicking = false; ldPicked.clear(); } else if(a === "all"){ ldFiltered().forEach(l=>ldPicked.add(l.id)); }
+  else if(a === "no" || a === "del"){ ldBulk(ldPicked, a); return; }
+  ldRenderList(); });
+$("#ldRows").addEventListener("change", e=>{ const id = e.target.dataset.lpk; if(!id) return; e.target.checked ? ldPicked.add(id) : ldPicked.delete(id); const s = $("#ldBar span"); if(s) s.textContent = `${ldPicked.size} selected`; $("#ldBar").querySelectorAll('[data-lpick="no"],[data-lpick="del"]').forEach(b=>b.disabled = !ldPicked.size); });
+$("#ldRows").addEventListener("click", async e=>{ if(e.target.closest(".tdck")) return; const b = e.target.closest("[data-ld]"); if(!b) return; if(ldPicking){ const id = b.dataset.ld; ldPicked.has(id) ? ldPicked.delete(id) : ldPicked.add(id); ldRenderList(); return; } await ldSave(); ldOpen(b.dataset.ld); });
 $("#ldSync").addEventListener("click", ()=>ldSync(false));
-$("#ldScroll").addEventListener("input", e=>{ const k = e.target.dataset.ldk; if(!k || !ldCur) return; ldCur[k] = e.target.value; ldDirty = true; clearTimeout(ldT); ldT = setTimeout(ldSave, 700); if(k === "clientId") ldSave(); });
+$("#ldScroll").addEventListener("input", e=>{
+  const r = e.target.dataset.lr; if(r){ ldRules[r] = e.target.type === "checkbox" ? e.target.checked : e.target.value; ldSaveRules(); return; }
+  const sz = e.target.dataset.lrsize; if(sz){ ldRules.sizes = Object.assign({}, ldRules.sizes, { [sz]: e.target.checked }); ldSaveRules(); return; }
+  const k = e.target.dataset.ldk; if(!k || !ldCur) return; ldCur[k] = e.target.value; ldDirty = true; clearTimeout(ldT); ldT = setTimeout(ldSave, 700); if(k === "clientId") ldSave(); });
 $("#ldScroll").addEventListener("click", async e=>{
+  if(e.target.closest("[data-lrules]")){ e.preventDefault(); ldShowRules = true; ldRenderList(); ldRender(); return; }
+  const t = e.target.closest("[data-lrtype]"); if(t){ const k = t.dataset.lrtype, h = new Set(ldRules.hideTypes || []); h.has(k) ? h.delete(k) : h.add(k); ldRules.hideTypes = [...h]; ldSaveRules(); ldRender(); return; }
+  const p = e.target.closest("[data-lrpar]"); if(p){ const all = [...new Set(ldList.map(l=>l.parish).filter(Boolean))]; let sel = new Set((ldRules.parishes || []).length ? ldRules.parishes : all); sel.has(p.dataset.lrpar) ? sel.delete(p.dataset.lrpar) : sel.add(p.dataset.lrpar); ldRules.parishes = sel.size === all.length ? [] : [...sel]; ldSaveRules(); ldRender(); return; }
   const s = e.target.closest("[data-ldst]"); if(s && ldCur){ ldCur.status = s.dataset.ldst; delete ldCur.flagApproved; ldDirty = true; await ldSave(); ldRender(); return; }
   const b = e.target.closest("[data-lda]"); if(!b) return; const a = b.dataset.lda;
   if(a === "sync") return ldSync(false);
+  if(a === "closeRules"){ ldShowRules = false; ldRenderList(); ldRender(); return; }
+  if(a === "resetRules"){ if(!confirm("Put your lead filters back to the starting set?")) return; ldRules = clone(LD_DEF_RULES); ldSaveRules(); ldRender(); return; }
+  if(a === "noHidden" || a === "delHidden"){ await ldBulk(ldList.filter(l=>!ldClosed(l) && !ldMatch(l)).map(l=>l.id), a === "noHidden" ? "no" : "del"); ldRender(); return; }
   if(!ldCur) return; const l = ldCur;
-  if(a === "details"){ b.disabled = true; b.textContent = "Fetching…"; await ldDetails(l, false); }
-  else if(a === "todo"){ await ldSave(); if(!tdStarted) tdStart(); const t = await tdAdd(`Follow up planning lead ${l.ref}, ${String(l.address || "").split(",")[0]} in 3 days`, { clientId: l.clientId || "", notes: [l.address, l.description, l.agent ? "Agent: " + l.agent : ""].filter(Boolean).join("\n") }); if(t){ setTab("todo"); tdFilter = "all"; tdOpen(t.id); } }
+  if(a === "details"){ b.disabled = true; b.textContent = "Reading the register…"; await ldDetails(l, false); b.disabled = false; b.textContent = "Refresh from register"; }
+  else if(a === "delete"){ await ldBulk([l.id], "del"); if(innerWidth <= 860) setView("edit"); }
+  else if(a === "todo"){ await ldSave(); if(!tdStarted) tdStart(); const t = await tdAdd(`Follow up planning lead ${l.ref}, ${String(l.address || "").split(",")[0]} in 3 days`, { clientId: l.clientId || "", notes: [l.address, l.description, l.applicant ? "Applicant: " + l.applicant : "", l.agent ? "Agent: " + l.agent : ""].filter(Boolean).join("\n") }); if(t){ setTab("todo"); tdFilter = "all"; tdOpen(t.id); } }
   else if(a === "proposal"){
     await ldSave(); await createNew();
     const c = l.clientId && clientById(l.clientId);
     Object.assign(current, { site: l.address || "", titleA: String(l.address || "").split(",")[0] || "Project name", preparedFor: (c && c.name) || l.applicant || "", clientId: l.clientId || "", pricedTo: `Planning application ${l.ref}` });
     buildEditor(); renderPreview(); scheduleSave(); fillPickerLabel();
-    ldCur.proposalId = current.id; if(ldCur.status === "new" || ldCur.status === "interested" || ldCur.status === "contacted") ldCur.status = "quoting"; ldDirty = true; await ldSave();
+    ldCur.proposalId = current.id; if(["new","interested","contacted"].includes(ldCur.status)) ldCur.status = "quoting"; ldDirty = true; await ldSave();
     setTab("proposals"); if(innerWidth <= 860) setView("edit"); toast("Proposal started with the site and planning reference filled in.");
   }
   else if(a === "openProp"){ setTab("proposals"); open(l.proposalId); if(innerWidth <= 860) setView("edit"); }

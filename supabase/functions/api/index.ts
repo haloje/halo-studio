@@ -101,6 +101,7 @@ async function msCall(action: string, i: any) {
     return { sent: true };
   }
   if (action === "planning_sync") return await planningSync(i);
+  if (action === "planning_register") return await planningRegister(i);
   throw new ApiError("bad_request", "Unknown Outlook action.");
 }
 
@@ -121,13 +122,6 @@ function parseNotification(html: string) {
     }
   }
   return out;
-}
-function gazetteFields(html: string) {
-  const text = decode(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, "").replace(/<br\s*\/?>|<\/(p|div|td|th|tr|li|h\d|dt|dd|span|label|strong|b)>/gi, "\n").replace(/<[^>]+>/g, ""));
-  const lines = text.split("\n").map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean);
-  const LABELS = ["description", "applicant", "agent company", "agent", "address", "reference", "planning application", "published by", "type", "date published"];
-  const get = (label: string) => { const i = lines.findIndex((l) => l.toLowerCase().replace(/:$/, "") === label); if (i < 0) return ""; const v = lines[i + 1] || ""; return LABELS.includes(v.toLowerCase().replace(/:$/, "")) ? "" : v; };
-  return { description: get("description"), applicant: get("applicant"), agent: get("agent company") || get("agent") };
 }
 async function planningSync(i: any) {
   const { conn } = await accessToken("ms");
@@ -159,6 +153,7 @@ async function planningSync(i: any) {
   const rows: any[] = [];
   refs.forEach((ref, n) => {
     const f = found.get(ref), id = ids[n], cur = existing.get(id);
+    if (cur?.deleted) return;
     if (!cur && !f.events.some((e: any) => e.kind !== "docs")) return; // documents-only notices update leads we already have
     const d: any = cur ? { ...cur } : { id, ref, type: ref.split("/")[0], status: "new", notes: "", created: Date.now() };
     if (!d.address && f.address) d.address = f.address;
@@ -174,24 +169,113 @@ async function planningSync(i: any) {
   });
   for (let k = 0; k < rows.length; k += 200) { const { error } = await admin.from("docs").upsert(rows.slice(k, k + 200)); if (error) throw new ApiError("tool_error", "Couldn't save leads: " + error.message, 500); }
   await admin.from("docs").upsert({ collection: "settings", id: "planning", data: { ...state, lastReceived: last, lastRun: new Date().toISOString() }, updated_at: new Date().toISOString(), updated_by: "planning-sync" });
-  /* details from the Gazette page (description, applicant, agent) for a few leads per run */
-  let enriched = 0;
-  const want = (i.refs || []) as string[];
-  let q = admin.from("docs").select("id,data").eq("collection", "leads");
-  q = want.length ? q.in("id", want.map((r) => r.replace(/\//g, "-").toLowerCase())) : q.is("data->gz", null).order("updated_at", { ascending: false }).limit(12);
-  const { data: todo } = await q;
-  for (const r of todo || []) {
-    const d: any = r.data; if (d.gz && !want.length) continue;
-    try {
-      const res = await fetch(`https://www.gov.je/gazette/Pages/PlanningApplication-${String(d.ref).replace(/\//g, "")}.aspx`, { headers: { "User-Agent": "Mozilla/5.0 halo.je Studio" } });
-      if (res.ok) { const g = gazetteFields(await res.text()); if (g.description) d.description = g.description; if (g.applicant) d.applicant = g.applicant; if (g.agent) d.agent = g.agent; }
-      d.gz = res.ok ? "ok" : String(res.status);
-    } catch (_) { d.gz = "err"; }
-    await admin.from("docs").update({ data: d, updated_at: new Date().toISOString(), updated_by: "planning-sync" }).eq("collection", "leads").eq("id", r.id);
-    enriched++;
+  return { messages: msgs, added, updated, more, lastReceived: last };
+}
+
+/* gov.je pages set a cookie and redirect; follow redirects by hand, keeping cookies. */
+const GOV_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15";
+const govJar = new Map<string, string>();
+async function govFetch(url: string) {
+  const jar = govJar; let u = url, r: Response | null = null;
+  for (let k = 0; k < 10; k++) {
+    r = await fetch(u, { redirect: "manual", headers: { "User-Agent": GOV_UA, Accept: "text/html,application/xhtml+xml", "Accept-Language": "en-GB,en;q=0.9", Cookie: [...jar].map(([a, b]) => `${a}=${b}`).join("; ") } });
+    for (const c of (r.headers as any).getSetCookie?.() || []) { const [nv] = String(c).split(";"); const i = nv.indexOf("="); if (i > 0) jar.set(nv.slice(0, i).trim(), nv.slice(i + 1).trim()); }
+    const loc = r.headers.get("location");
+    if (r.status >= 300 && r.status < 400 && loc) { u = new URL(loc, u).toString(); await r.body?.cancel(); continue; }
+    break;
   }
-  const { count } = await admin.from("docs").select("id", { count: "exact", head: true }).eq("collection", "leads").is("data->gz", null);
-  return { messages: msgs, added, updated, enriched, more: more || (count || 0) > 0, pendingDetails: count || 0, lastReceived: last };
+  return { status: r!.status, url: u, html: r!.status < 300 ? await r!.text() : "" };
+}
+const htmlText = (html: string) => decode(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, "").replace(/<br\s*\/?>|<\/(p|div|td|th|tr|li|h\d|dt|dd|span|label|strong|b|option)>/gi, "\n").replace(/<[^>]+>/g, "")).split("\n").map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean);
+
+/* ---------- Planning register (gov.je search service + detail pages) ---------- */
+const REG_PAGE = "https://www.gov.je/citizen/Planning/Pages/Planning.aspx";
+const dmy = (d: Date) => `${d.getUTCDate()}|${d.getUTCMonth() + 1}|${d.getUTCFullYear()}`;
+const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+let regReady = false;
+async function regSearch(from: Date, to: Date, page: number) {
+  if (!regReady) { await govFetch(REG_PAGE); regReady = true; }
+  const body = JSON.stringify({ URL: "https://www.gov.je//citizen/Planning/Pages/Planning.aspx", CommonParameters: `|05|${page}||49.21|-2.13|12`, SearchParameters: `|1301||||0|All|All|${dmy(from)}|${dmy(to)}` });
+  const r = await fetch("https://www.gov.je/_layouts/15/PlanningAjaxServices/PlanningSearch.svc/Search", { method: "POST", body, headers: { "Content-Type": "application/json; charset=utf-8", Accept: "application/json, text/javascript, */*", "X-Requested-With": "XMLHttpRequest", Origin: "https://www.gov.je", Referer: REG_PAGE, "User-Agent": GOV_UA, Cookie: [...govJar].map(([a, b]) => `${a}=${b}`).join("; ") } });
+  if (!r.ok) throw new ApiError("tool_error", `The planning register didn't answer (${r.status}).`, 502);
+  const j: any = await r.json().catch(() => null); const d = j?.d || j;
+  if (!d || d.Error) throw new ApiError("tool_error", "The planning register search failed: " + (d?.ErrorMessage || "no data"), 502);
+  const items: any[] = [];
+  for (const li of String(d.ResultHTML || "").split(/<li[\s>]/i).slice(1)) {
+    const ref = (li.match(REF_RE) || [])[1]; if (!ref) continue;
+    const o: any = { ref };
+    for (const m of li.matchAll(/<dt[^>]*>([\s\S]*?)<\/dt>\s*<dd[^>]*>([\s\S]*?)<\/dd>/gi)) o[decode(m[1].replace(/<[^>]+>/g, "")).replace(/:$/, "").trim().toLowerCase()] = decode(m[2].replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").replace(/\s*,\s*,\s*/g, ", ").trim();
+    items.push(o);
+  }
+  return { items, max: +d.MaxPageNumber || 1 };
+}
+async function regDetail(ref: string) {
+  const g = await govFetch(`https://www.gov.je/citizen/Planning/Pages/PlanningApplicationDetail.aspx?s=1&r=${encodeURIComponent(ref)}`);
+  if (g.status !== 200) return null;
+  const lines = htmlText(g.html), start = lines.findIndex((l) => l === "Property");
+  if (start < 0) return null;
+  const LAB = ["Property", "Road name", "Parish", "Postcode", "Description", "Location", "View on map", "Applicant", "Agent", "Type", "Status", "Officer responsible", "Constraints", "Validated date", "Advertised date", "End publicity date", "Site visited date", "Committee meeting date", "Decision date", "Appeal lodged date", "Appeal hearing date", "Appeal decision", "Appeal decision date"];
+  const get = (label: string) => { const i = lines.indexOf(label, start); if (i < 0) return ""; const v = lines[i + 1] || ""; return LAB.includes(v) || v === "n/a" ? "" : v; };
+  return { property: get("Property"), description: get("Description"), applicant: get("Applicant"), agent: get("Agent"), appType: get("Type"), regStatus: get("Status"), officer: get("Officer responsible"), constraints: get("Constraints"), validated: get("Validated date"), endPublicity: get("End publicity date"), decided: get("Decision date") };
+}
+const stageOf = (st: string, cur?: string) => /approved|granted/i.test(st) ? "approved" : /refused/i.test(st) ? "refused" : /withdrawn/i.test(st) ? "withdrawn" : (cur || "submitted");
+function leadFromReg(ref: string, cur: any, o: any, seen: string) {
+  const id = ref.replace(/\//g, "-").toLowerCase();
+  const d: any = cur ? { ...cur } : { id, ref, type: ref.split("/")[0], status: "new", notes: "", created: Date.now(), events: [], firstSeen: seen, lastSeen: seen, source: "register" };
+  const addr = o.property || o.address || "";
+  if (addr && (!d.address || d.source === "register")) d.address = addr.replace(/,\s*,/g, ",");
+  if (o.description) d.description = o.description;
+  if (o.applicant) d.applicant = o.applicant;
+  if (o.agent) d.agent = o.agent;
+  if (o.type || o.appType) d.appType = o.type || o.appType;
+  if (o.status || o.regStatus) { d.regStatus = o.status || o.regStatus; d.stage = stageOf(d.regStatus, d.stage); }
+  for (const k of ["officer", "constraints", "validated", "endPublicity", "decided"]) if (o[k]) d[k] = o[k];
+  const pms = [...String(d.address || "").matchAll(/\b(St\.? ?(?:Helier|Saviour|Clement|Lawrence|Brelade|Peter|Ouen|Mary|John|Martin)|Grouville|Trinity)\b/g)]; if (pms.length && !d.parish) d.parish = pms[pms.length - 1][1].replace(/^St\.? ?/, "St. ");
+  d.updated = Date.now();
+  return { id, d };
+}
+async function planningRegister(i: any) {
+  const t0 = Date.now(), now = new Date();
+  /* specific leads: read their register pages */
+  if (i.refs?.length) {
+    let done = 0;
+    for (const ref of (i.refs as string[]).slice(0, 10)) {
+      const id = ref.replace(/\//g, "-").toLowerCase();
+      const { data: row } = await admin.from("docs").select("data").eq("collection", "leads").eq("id", id).maybeSingle();
+      const det = await regDetail(ref); if (!det) continue;
+      const { d } = leadFromReg(ref, row?.data, det, isoDay(now)); d.reg = "ok";
+      await admin.from("docs").upsert({ collection: "leads", id, data: d, updated_at: new Date().toISOString(), updated_by: "planning-register" }); done++;
+    }
+    return { detailed: done };
+  }
+  /* sweep the register by date, a week at a time, resuming where the last run stopped */
+  const { data: st } = await admin.from("docs").select("data").eq("collection", "settings").eq("id", "planning").maybeSingle();
+  const state: any = st?.data || {};
+  let cur = state.regFrom ? new Date(state.regFrom + "T00:00:00Z") : new Date(now.getTime() - (i.days || 365) * 864e5);
+  let page = state.regPage || 1, added = 0, updated = 0, requests = 0, more = true;
+  while (Date.now() - t0 < 90_000 && requests < 40) {
+    if (cur > now) { more = false; break; }
+    const end = new Date(Math.min(cur.getTime() + 6 * 864e5, now.getTime()));
+    const res = await regSearch(cur, end, page); requests++;
+    const ids = res.items.map((o) => o.ref.replace(/\//g, "-").toLowerCase());
+    const { data: ex } = ids.length ? await admin.from("docs").select("id,data").eq("collection", "leads").in("id", ids) : { data: [] as any[] };
+    const exm = new Map((ex || []).map((r: any) => [r.id, r.data]));
+    const rows: any[] = [];
+    for (const o of res.items) {
+      const id = o.ref.replace(/\//g, "-").toLowerCase(), c: any = exm.get(id);
+      if (c?.deleted) continue;
+      const { d } = leadFromReg(o.ref, c, o, isoDay(end));
+      if (!c) added++; else updated++;
+      rows.push({ collection: "leads", id, data: d, updated_at: new Date().toISOString(), updated_by: "planning-register" });
+    }
+    if (rows.length) { const { error } = await admin.from("docs").upsert(rows); if (error) throw new ApiError("tool_error", "Couldn't save leads: " + error.message, 500); }
+    if (page < res.max) page++;
+    else { page = 1; cur = new Date(end.getTime() + 864e5); if (end.getTime() >= now.getTime() - 864e5) { more = false; break; } }
+  }
+  /* once caught up, next run re-checks the last fortnight so status changes are picked up */
+  const nextFrom = more ? isoDay(cur) : isoDay(new Date(now.getTime() - 14 * 864e5));
+  await admin.from("docs").upsert({ collection: "settings", id: "planning", data: { ...state, regFrom: nextFrom, regPage: more ? page : 1, regRun: new Date().toISOString() }, updated_at: new Date().toISOString(), updated_by: "planning-register" });
+  return { added, updated, requests, more, at: isoDay(cur) };
 }
 
 /* ---------- Xero ---------- */
