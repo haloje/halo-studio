@@ -540,6 +540,19 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .aibox .aistat{font-size:13px;color:var(--muted);min-height:18px}
 .aibox .aistat.warn{color:var(--danger)}
 
+/* planning leads */
+.app[data-tab=leads] .pmode{display:none!important}
+.app:not([data-tab=leads]) .lmode{display:none!important}
+#ldParish{height:32px;padding:4px 8px;font-size:13px}
+a.btn{text-decoration:none;display:inline-flex;align-items:center}
+.ldmeta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
+.ldmeta b{font-weight:500;color:var(--ink);margin-right:4px}
+.ldstat{display:flex;flex-wrap:wrap;gap:6px}
+.ldstat button{height:30px;padding:0 12px;border-radius:15px;border:1px solid var(--line);background:var(--field);cursor:pointer;font-size:13px;color:var(--ink)}
+.ldstat button[aria-pressed=true]{background:var(--js);border-color:var(--js);color:#fff}
+.ldev{display:grid;gap:4px;font-size:13px}
+.ldev span{display:inline-block;width:64px;color:var(--muted);font-family:var(--f-mono);font-size:11px}
+
 /* to-do */
 .app[data-tab=todo] .pmode{display:none!important}
 .app:not([data-tab=todo]) .tmode{display:none!important}
@@ -627,11 +640,15 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 <div class="app" id="app" data-tab="proposals">
   <header class="bar">
     <div class="brand"><img class="bmark" src="icons/emblem-96.png" alt="" onerror="this.remove()"><b>halo<span>.je</span></b><small>Studio</small></div>
-    <div class="tabs" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div>
+    <div class="tabs" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabL" role="tab" aria-selected="false">Leads</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div>
     <div class="actions rmode" style="margin-left:auto">
       <span class="prsync" id="prStatus"></span>
       <button class="btn" id="prSyncBtn">Sync to Xero</button>
       <button class="btn primary" id="prNew">New item</button>
+    </div>
+    <div class="actions lmode" style="margin-left:auto">
+      <span class="status" id="ldStatus"></span>
+      <button class="btn primary" id="ldSync">Check for new leads</button>
     </div>
     <div class="actions tmode" style="margin-left:auto">
       <span class="status" id="tdStatus"></span>
@@ -700,6 +717,10 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
   <main class="jwork cmode" id="cwork" data-view="edit">
     <aside class="jlist" aria-label="Customers"><div class="top"><input type="search" id="cuSearch" placeholder="Search name, email, address, phone" autocomplete="off" aria-label="Search customers"><div class="chips" id="cuChips"></div></div><div class="jrows" id="cuRows"></div></aside>
     <section class="jstage" aria-label="Customer details"><div class="jscroll" id="cuScroll"></div></section>
+  </main>
+  <main class="jwork lmode" id="lwork" data-view="edit">
+    <aside class="jlist" aria-label="Planning leads"><div class="top"><input type="search" id="ldSearch" placeholder="Search address, description, architect" autocomplete="off" aria-label="Search leads"><div class="chips" id="ldChips"></div><select class="in" id="ldParish" aria-label="Parish"></select></div><div class="jrows" id="ldRows"></div></aside>
+    <section class="jstage" aria-label="Lead details"><div class="jscroll" id="ldScroll"></div></section>
   </main>
   <main class="jwork tmode" id="twork" data-view="edit">
     <aside class="jlist" aria-label="To-dos"><div class="top"><input type="text" id="tdAdd" placeholder="Add a to-do… e.g. chase deposit fri 10am" autocomplete="off" enterkeyhint="done" aria-label="Add a to-do"><div class="chips" id="tdChips"></div><input type="search" id="tdSearch" placeholder="Search to-dos" autocomplete="off" aria-label="Search to-dos" class="tdsearch"></div><div class="jrows" id="tdRows"></div></aside>
@@ -1783,7 +1804,7 @@ function askDel(){
   };
 }
 $("#btnDel").addEventListener("click", askDel);
-function setView(v){ $("#work").dataset.view = v; $("#dwork").dataset.view = v; $("#jwork").dataset.view = v; $("#cwork").dataset.view = v; const kw = $("#kwork"); if(kw) kw.dataset.view = v; const tw = $("#twork"); if(tw) tw.dataset.view = v; $("#vEdit").setAttribute("aria-pressed", v==="edit"); $("#vPrev").setAttribute("aria-pressed", v==="preview"); if(v==="preview") fitZoom(); }
+function setView(v){ $("#work").dataset.view = v; $("#dwork").dataset.view = v; $("#jwork").dataset.view = v; $("#cwork").dataset.view = v; const kw = $("#kwork"); if(kw) kw.dataset.view = v; const tw = $("#twork"); if(tw) tw.dataset.view = v; const lw = $("#lwork"); if(lw) lw.dataset.view = v; $("#vEdit").setAttribute("aria-pressed", v==="edit"); $("#vPrev").setAttribute("aria-pressed", v==="preview"); if(v==="preview") fitZoom(); }
 $("#vEdit").onclick = ()=>setView("edit"); $("#vPrev").onclick = ()=>setView("preview");
 
 /* ---------- boot ---------- */
@@ -2297,7 +2318,8 @@ $("#dwDel").addEventListener("click", async e=>{
 
 /* ---------- tabs ---------- */
 function setTab(t){
-  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge"); $("#tabT").setAttribute("aria-selected", t==="todo");
+  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge"); $("#tabT").setAttribute("aria-selected", t==="todo"); $("#tabL").setAttribute("aria-selected", t==="leads");
+  if(t === "leads"){ if(mode !== "loading") ldStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); ldStart(); } }, 200); } }
   if(t === "todo"){ if(mode !== "loading") tdStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); tdStart(); } }, 200); } }
   try{ const st = document.querySelector('.tabs [aria-selected="true"]'); st && st.scrollIntoView({ block: "nearest", inline: "nearest" }); }catch(_){}
   if(t === "knowledge"){ if(mode !== "loading") kbStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); kbStart(); } }, 200); } }
@@ -2305,7 +2327,7 @@ function setTab(t){
   if(t === "customers"){ const go = ()=>{ jbStart(); kbStart(); cuStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   if(t === "jobs"){ const go = ()=>{ jbStart(); jbRender(); jbRenderList(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   try{ localStorage.setItem(LS+".tab", t); }catch(_){}
-  { const lbl = { proposals: ["Edit","Preview"], drawings: ["Edit","Plan"], jobs: ["List","Details"], customers: ["List","Details"], knowledge: ["List","Article"], todo: ["List","Details"], prices: ["List","List"] }[t] || ["Edit","Preview"]; $("#vEdit").textContent = lbl[0]; $("#vPrev").textContent = lbl[1]; if(innerWidth <= 860) setView("edit"); }
+  { const lbl = { proposals: ["Edit","Preview"], drawings: ["Edit","Plan"], jobs: ["List","Details"], customers: ["List","Details"], knowledge: ["List","Article"], todo: ["List","Details"], leads: ["List","Details"], prices: ["List","List"] }[t] || ["Edit","Preview"]; $("#vEdit").textContent = lbl[0]; $("#vPrev").textContent = lbl[1]; if(innerWidth <= 860) setView("edit"); }
   if(t === "drawings"){ if(mode !== "loading") dwStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); dwStart(); } }, 200); } dwRender(); }
 }
 $("#tabP").addEventListener("click", ()=>setTab("proposals"));
@@ -2315,6 +2337,7 @@ $("#tabC").addEventListener("click", ()=>setTab("customers"));
 $("#tabR").addEventListener("click", ()=>setTab("prices"));
 $("#tabK").addEventListener("click", ()=>setTab("knowledge"));
 $("#tabT").addEventListener("click", ()=>setTab("todo"));
+$("#tabL").addEventListener("click", ()=>setTab("leads"));
 
 </script>
 <script>
@@ -3070,7 +3093,7 @@ async function rpBackup(){
   const grab = async name=>{ if(mode !== "db") return null; try{ const sn = await db.collection(name).get(); return sn.docs.map(d=>Object.assign({ _id: d.id }, d.data())); }catch(_){ return null; } };
   const data = { app: "halo.je Studio", exported: new Date().toISOString(),
     proposals: (await grab("proposals")) || list, jobs: (await grab("jobs")) || jbList, drawings: (await grab("drawings")) || dwList,
-    customers: (await grab("clients")) || ownClients, customerCatalog: clientCat, products: (await grab("products")) || ownProducts, settings: (await grab("settings")) || [], knowledge: (await grab("kb")) || [], todos: (await grab("tasks")) || [] };
+    customers: (await grab("clients")) || ownClients, customerCatalog: clientCat, products: (await grab("products")) || ownProducts, settings: (await grab("settings")) || [], knowledge: (await grab("kb")) || [], todos: (await grab("tasks")) || [], leads: (await grab("leads")) || [] };
   offer(`halo.je Studio backup ${jbToday()}.json`, JSON.stringify(data, null, 1));
 }
 
@@ -3372,7 +3395,7 @@ $("#prImport").addEventListener("change", async e=>{
 });
 
 /* ================= Moving to the new app ================= */
-const MG_COLLECTIONS = ["proposals", "jobs", "drawings", "clients", "products", "settings", "catalog", "kb", "tasks"];
+const MG_COLLECTIONS = ["proposals", "jobs", "drawings", "clients", "products", "settings", "catalog", "kb", "tasks", "leads"];
 async function mgExport(btn){
   if(mode !== "db"){ toast("Open Studio in claude.ai to export."); return; }
   btn.disabled = true; const label = btn.textContent; btn.textContent = "Collecting…";
@@ -3971,6 +3994,130 @@ document.addEventListener("change", e=>{ const id = e.target.dataset && e.target
 document.addEventListener("click", e=>{ const r = e.target.closest(".tdcard [data-tdopen]"); if(!r || e.target.closest(".tdck")) return; setTab("todo"); tdFilter = "all"; tdOpen(r.dataset.tdopen); });
 /* start in the background so the badge shows */
 (function(){ const w = setInterval(()=>{ if(mode === "loading") return; clearInterval(w); tdStart(); }, 400); })();
+
+
+/* ================= Planning leads ================= */
+const LD_STATUS = [["new","New","#8a8178"],["interested","Interested","#c9853a"],["contacted","Contacted","#6e5a90"],["quoting","Quoting","#4c6e9a"],["won","Won","#4c7a5a"],["lost","Lost","#9a4a3a"],["no","Not relevant","#b5ada3"]];
+const ldStatus = k => LD_STATUS.find(s=>s[0]===k) || LD_STATUS[0];
+const LD_FIT = /\b(new (?:build|dwelling|house|home)|dwelling|construct|demolish|replacement|refurbish|renovat|extension|extend|convert|conversion|basement|cinema|annex|apartment|flats?|hotel|office|restaurant|garage|swimming pool|pool house|outbuilding|alterations? to|redevelop|change of use)\w*/i;
+let ldList = [], ldCur = null, ldSel = null, ldDirty = false, ldT = null, ldFilter = "open", ldQ = "", ldParish = "", ldStarted = false, ldLoaded = false, ldSyncing = false;
+function ldSetStatus(t, warn){ const s = $("#ldStatus"); if(s){ s.textContent = t; s.classList.toggle("warn", !!warn); } }
+const ldFit = l => LD_FIT.test(l.description || "");
+function ldStart(){
+  if(!ldStarted){
+    ldStarted = true;
+    if(mode === "db"){ db.collection("leads").onSnapshot(snap=>{ ldList = snap.docs.map(d=>Object.assign({ id: d.id, status: "new", notes: "", events: [] }, d.data())); ldLoaded = true; ldOnData(); }, ()=>ldSetStatus("Couldn't load", true)); }
+    else { ldLoaded = true; }
+    if(window.studioConnections){ db.doc("settings/planning").get().then(d=>{ const b = d.exists ? d.data() : {}; const age = b.lastRun ? Date.now() - new Date(b.lastRun).getTime() : Infinity; ldSetStatus(b.lastRun ? "Checked " + kbWhen(new Date(b.lastRun).getTime()) : ""); if(age > 6 * 36e5) ldSync(true); }).catch(()=>{}); }
+  }
+  ldRenderList(); ldRender();
+}
+function ldOnData(){
+  if(ldCur && !ldDirty){ const f = ldList.find(l=>l.id === ldCur.id); if(f){ const ae = document.activeElement, inside = ae && $("#ldScroll").contains(ae) && /INPUT|TEXTAREA|SELECT/.test(ae.tagName); ldCur = clone(f); if(!inside && $("#app").dataset.tab === "leads") ldRender(); } }
+  if($("#app").dataset.tab === "leads"){ ldRenderList(); if(!ldCur) ldRender(); }
+  const b = $("#tabL"); if(b){ const n = ldList.filter(l=>l.status === "new" && l.lastSeen >= jbIso(new Date(Date.now() - 2 * 864e5)) && l.type !== "A").length; b.innerHTML = `Leads${n ? ` <span class="tdbadge" style="background:var(--accent)">${n}</span>` : ""}`; }
+}
+async function ldSync(quiet){
+  if(ldSyncing || !window.studioConnections) return; ldSyncing = true;
+  const btn = $("#ldSync"); if(btn){ btn.disabled = true; btn.textContent = "Checking…"; }
+  let added = 0, upd = 0, rounds = 0, err = null;
+  try{
+    while(rounds++ < 40){
+      ldSetStatus(rounds > 1 ? `Reading planning emails… ${added} new so far` : "Reading planning emails…");
+      const r = await studioConnections.call("ms", "planning_sync", {});
+      added += r.added || 0; upd += r.updated || 0;
+      if(!r.more || (!r.messages && !r.enriched)) break;
+    }
+  }catch(e){ err = e; }
+  ldSyncing = false; if(btn){ btn.disabled = false; btn.textContent = "Check for new leads"; }
+  if(err){ ldSetStatus("Not checked", true); if(!quiet) toast(nativeErr(err, "Microsoft 365") || "Couldn't read the planning emails: " + ((err && err.message) || "")); return; }
+  ldSetStatus("Checked just now");
+  if(!quiet || added) toast(added ? `${added} new planning lead${added > 1 ? "s" : ""}${upd ? `, ${upd} updated` : ""}.` : upd ? `${upd} leads updated.` : "No new planning applications.");
+}
+function ldWhen(d){ if(!d) return ""; try{ return new Date(d + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" }); }catch(_){ return d; } }
+function ldFiltered(){
+  const toks = ldQ.toLowerCase().split(/\s+/).filter(Boolean);
+  let r = ldList.filter(l=>{
+    if(ldParish && l.parish !== ldParish) return false;
+    if(ldFilter === "open") return !["no","lost","won"].includes(l.status) && l.type !== "A";
+    if(ldFilter === "fit") return ldFit(l) && !["no","lost"].includes(l.status);
+    if(ldFilter === "approved") return l.stage === "approved" && !["no","lost","won"].includes(l.status);
+    if(ldFilter === "all") return true;
+    return l.status === ldFilter;
+  });
+  if(toks.length) r = r.filter(l=>{ const h = [l.ref, l.address, l.parish, l.description, l.applicant, l.agent, l.notes].join(" ").toLowerCase(); return toks.every(k=>h.includes(k)); });
+  return r.sort((a,b)=>String(b.lastSeen || "").localeCompare(String(a.lastSeen || "")) || String(b.ref).localeCompare(String(a.ref)));
+}
+function ldRenderList(){
+  const box = $("#ldRows"), chips = $("#ldChips"), ps = $("#ldParish"); if(!box) return;
+  const live = ldList.filter(l=>!["no","lost","won"].includes(l.status));
+  const cnt = { open: live.filter(l=>l.type !== "A").length, fit: ldList.filter(l=>ldFit(l) && !["no","lost"].includes(l.status)).length, approved: live.filter(l=>l.stage === "approved").length };
+  chips.innerHTML = [["open","Open",cnt.open],["fit","Good fit",cnt.fit],["approved","Approved",cnt.approved]].concat(LD_STATUS.slice(1).map(([k,l])=>[k, l, ldList.filter(x=>x.status === k).length]).filter(x=>x[2])).concat([["all","All",ldList.length]]).map(([k,l,n])=>`<button data-lf="${k}" aria-pressed="${ldFilter===k}">${l} ${n}</button>`).join("");
+  const parishes = [...new Set(ldList.map(l=>l.parish).filter(Boolean))].sort();
+  ps.innerHTML = `<option value="">All parishes</option>` + parishes.map(p=>`<option ${ldParish===p?"selected":""}>${esc(p)}</option>`).join("");
+  const rows = ldFiltered();
+  box.innerHTML = rows.length ? rows.slice(0, 500).map(l=>{ const st = ldStatus(l.status);
+    return `<button class="jrow ${ldSel===l.id?"on":""}" data-ld="${esc(l.id)}" style="--js:${st[2]}"><span class="jbar"></span><span class="jm"><span class="n">${esc(l.ref)}${l.parish ? " · " + esc(l.parish.toUpperCase()) : ""}</span><span class="c">${esc(String(l.address || "").split(",")[0] || l.ref)}</span><small>${esc(l.description || String(l.address || "").split(",").slice(1).join(",").trim() || "")}</small></span>
+      <span class="when">${esc(ldWhen(l.lastSeen))}${l.stage === "approved" ? `<br><span class="spill" style="--js:#4c7a5a">Approved</span>` : ""}${l.status !== "new" ? `<br><span class="spill" style="--js:${st[2]}">${esc(st[1])}</span>` : ldFit(l) ? `<br><span class="spill" style="--js:var(--accent)">Good fit</span>` : ""}</span></button>`; }).join("")
+    : `<p class="note" style="padding:16px">${!ldLoaded ? "Loading…" : ldList.length ? "Nothing matches." : "No leads yet. Press Check for new leads to read your planning emails."}</p>`;
+}
+const ldLinks = l => { const r = encodeURIComponent(l.ref); return [[`https://www.gov.je/citizen/Planning/Pages/PlanningApplicationDetail.aspx?s=1&r=${r}`, "Application"], [`https://www.gov.je/citizen/Planning/Pages/PlanningApplicationDocuments.aspx?s=1&r=${r}`, "Plans & documents"], [`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((l.address || "") + ", Jersey")}`, "Map"]]; };
+function ldRender(){
+  const sc = $("#ldScroll"); if(!sc) return;
+  if(!ldCur){
+    sc.innerHTML = `<div class="planempty"><h2>Planning leads.</h2><p>Every application in your daily Government of Jersey planning emails, pulled in automatically, with the description and architect where the Gazette has them.</p>
+      <p class="note">Work through them with the status: Interested, Contacted, Quoting, Won or Lost, or Not relevant to hide one. "Good fit" picks out new builds, extensions, refurbishments, pools and similar. "Approved" shows ones that have got permission, which is often the moment to get in touch.</p>
+      ${window.studioConnections ? `<div class="adds"><button class="btn small primary" data-lda="sync">Check for new leads</button></div>` : ""}</div>`;
+    return;
+  }
+  const l = ldCur, st = ldStatus(l.status), cs = clients.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  const prop = l.proposalId && list.find(p=>p.id === l.proposalId);
+  sc.innerHTML = `<div class="jdetail">
+    <div class="jhead"><span class="num">${esc(l.ref)}${l.stage ? " · " + esc(l.stage.toUpperCase()) : ""}</span><h2>${esc(String(l.address || "").split(",")[0] || l.ref)}</h2></div>
+    <div class="jcard">
+      <p style="margin:0">${esc(l.address || "")}</p>
+      ${l.description ? `<p style="margin:0;font-size:15px">${esc(l.description)}</p>` : `<p class="note" style="margin:0">${l.gz ? "No description published in the Gazette for this one. Open the application for details." : "Description not fetched yet."} <button class="btn small ghost" data-lda="details">Fetch details</button></p>`}
+      <div class="ldmeta">${[l.applicant ? `<span><b>Applicant</b> ${esc(l.applicant)}</span>` : "", l.agent ? `<span><b>Architect / agent</b> ${esc(l.agent)}</span>` : "", l.parish ? `<span><b>Parish</b> ${esc(l.parish)}</span>` : "", `<span><b>Type</b> ${esc(l.type || "")}</span>`].filter(Boolean).join("")}</div>
+      <div class="adds">${ldLinks(l).map(([u,t])=>`<a class="btn small" href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>`).join("")}</div>
+    </div>
+    <div class="jcard"><h3>Your lead</h3>
+      <div class="ldstat">${LD_STATUS.map(([k,lab,c])=>`<button data-ldst="${k}" aria-pressed="${l.status===k}" style="--js:${c}">${esc(lab)}</button>`).join("")}</div>
+      <label class="f"><span>Notes</span><textarea data-ldk="notes" rows="3" placeholder="Who the client is, who you spoke to, what they want…">${esc(l.notes || "")}</textarea></label>
+      <div class="row"><label class="f"><span>Customer</span><select class="in" data-ldk="clientId"><option value="">None yet</option>${cs.map(c=>`<option value="${esc(c.id)}" ${l.clientId===c.id?"selected":""}>${esc(c.name)}</option>`).join("")}</select></label><div></div></div>
+      <div class="adds"><button class="btn small" data-lda="todo">Add a follow-up to-do</button>${prop ? `<button class="btn small" data-lda="openProp">Open proposal ${esc(prop.ref || "")}</button>` : `<button class="btn small" data-lda="proposal">Start a proposal</button>`}</div>
+    </div>
+    <div class="jcard"><h3>Planning history <small>${(l.events || []).length}</small></h3>
+      <div class="ldev">${(l.events || []).slice().reverse().map(e=>`<div><span>${esc(ldWhen(e.date))}</span>${esc(e.kind === "new" ? "Application received" : e.kind === "approved" ? "Approved" : e.kind === "refused" ? "Refused" : e.kind === "withdrawn" ? "Withdrawn" : e.label)}</div>`).join("")}</div>
+    </div>
+  </div>`;
+}
+function ldOpen(id){ const l = ldList.find(x=>x.id === id); if(!l) return; ldSel = id; ldCur = clone(l); ldRenderList(); ldRender(); if(innerWidth <= 860) setView("preview"); $("#ldScroll").scrollTop = 0; if(!l.gz && window.studioConnections) ldDetails(l, true); }
+async function ldDetails(l, quiet){ try{ await studioConnections.call("ms", "planning_sync", { refs: [l.ref] }); }catch(e){ if(!quiet) toast(nativeErr(e, "Microsoft 365") || "Couldn't fetch the details."); } }
+async function ldSave(){ clearTimeout(ldT); if(!ldCur || !ldDirty) return; ldDirty = false; ldCur.updated = Date.now(); const l = clone(ldCur), i = ldList.findIndex(x=>x.id === l.id); if(i >= 0) ldList[i] = l; try{ await db.collection("leads").doc(l.id).set(l); }catch(_){ toast("Couldn't save the lead."); } ldRenderList(); }
+$("#ldChips").addEventListener("click", e=>{ const b = e.target.closest("[data-lf]"); if(b){ ldFilter = b.dataset.lf; ldRenderList(); } });
+$("#ldSearch").addEventListener("input", e=>{ ldQ = e.target.value; ldRenderList(); });
+$("#ldParish").addEventListener("change", e=>{ ldParish = e.target.value; ldRenderList(); });
+$("#ldRows").addEventListener("click", async e=>{ const b = e.target.closest("[data-ld]"); if(b){ await ldSave(); ldOpen(b.dataset.ld); } });
+$("#ldSync").addEventListener("click", ()=>ldSync(false));
+$("#ldScroll").addEventListener("input", e=>{ const k = e.target.dataset.ldk; if(!k || !ldCur) return; ldCur[k] = e.target.value; ldDirty = true; clearTimeout(ldT); ldT = setTimeout(ldSave, 700); if(k === "clientId") ldSave(); });
+$("#ldScroll").addEventListener("click", async e=>{
+  const s = e.target.closest("[data-ldst]"); if(s && ldCur){ ldCur.status = s.dataset.ldst; delete ldCur.flagApproved; ldDirty = true; await ldSave(); ldRender(); return; }
+  const b = e.target.closest("[data-lda]"); if(!b) return; const a = b.dataset.lda;
+  if(a === "sync") return ldSync(false);
+  if(!ldCur) return; const l = ldCur;
+  if(a === "details"){ b.disabled = true; b.textContent = "Fetching…"; await ldDetails(l, false); }
+  else if(a === "todo"){ await ldSave(); if(!tdStarted) tdStart(); const t = await tdAdd(`Follow up planning lead ${l.ref}, ${String(l.address || "").split(",")[0]} in 3 days`, { clientId: l.clientId || "", notes: [l.address, l.description, l.agent ? "Agent: " + l.agent : ""].filter(Boolean).join("\n") }); if(t){ setTab("todo"); tdFilter = "all"; tdOpen(t.id); } }
+  else if(a === "proposal"){
+    await ldSave(); await createNew();
+    const c = l.clientId && clientById(l.clientId);
+    Object.assign(current, { site: l.address || "", titleA: String(l.address || "").split(",")[0] || "Project name", preparedFor: (c && c.name) || l.applicant || "", clientId: l.clientId || "", pricedTo: `Planning application ${l.ref}` });
+    buildEditor(); renderPreview(); scheduleSave(); fillPickerLabel();
+    ldCur.proposalId = current.id; if(ldCur.status === "new" || ldCur.status === "interested" || ldCur.status === "contacted") ldCur.status = "quoting"; ldDirty = true; await ldSave();
+    setTab("proposals"); if(innerWidth <= 860) setView("edit"); toast("Proposal started with the site and planning reference filled in.");
+  }
+  else if(a === "openProp"){ setTab("proposals"); open(l.proposalId); if(innerWidth <= 860) setView("edit"); }
+});
+(function(){ const w = setInterval(()=>{ if(mode === "loading") return; clearInterval(w); if(mode === "db") ldStart(); }, 500); })();
 
 </script>
 

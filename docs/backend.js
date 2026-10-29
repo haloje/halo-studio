@@ -221,7 +221,8 @@
   window.studioConnections = Object.freeze({
     status: ()=>api("/status"),
     async connect(provider){ const { url } = await api(`/connect/${provider}/start`); location.href = url; },
-    disconnect: provider=>api("/disconnect", { provider })
+    disconnect: provider=>api("/disconnect", { provider }),
+    call: async (provider, action, input)=>(await api("/call", { provider, action, input: input || {} })).result
   });
   /* Coming back from Microsoft / Xero sign-in: remember the result, tidy the address bar. */
   try{

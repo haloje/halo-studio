@@ -16,7 +16,8 @@ const MS_SECRET = Deno.env.get("MS_CLIENT_SECRET") || "";
 const XERO_ID = Deno.env.get("XERO_CLIENT_ID") || "";
 const XERO_SECRET = Deno.env.get("XERO_CLIENT_SECRET") || "";
 const FN_BASE = `${SB_URL}/functions/v1/api`;
-const MS_SCOPES = "offline_access openid email User.Read Calendars.ReadWrite Mail.Send";
+const MS_SCOPES = "offline_access openid email User.Read Calendars.ReadWrite Mail.Send Mail.Read";
+const MS_SCOPES_V1 = "offline_access openid email User.Read Calendars.ReadWrite Mail.Send"; // what connections made before Mail.Read were granted
 const XERO_SCOPES = "openid profile email offline_access accounting.invoices accounting.contacts accounting.settings";
 
 const admin = createClient(SB_URL, SERVICE, { auth: { persistSession: false } });
@@ -44,11 +45,11 @@ function authorizeUrl(provider: string, state: string) {
   if (provider === "xero") return "https://login.xero.com/identity/connect/authorize?" + form({ client_id: XERO_ID, response_type: "code", redirect_uri: `${FN_BASE}/connect/xero/callback`, scope: XERO_SCOPES, state });
   throw new ApiError("bad_provider", "Unknown connection.");
 }
-async function tokenRequest(provider: string, params: Record<string, string>) {
+async function tokenRequest(provider: string, params: Record<string, string>, scope?: string) {
   const url = provider === "ms" ? `https://login.microsoftonline.com/${MS_TENANT}/oauth2/v2.0/token` : "https://identity.xero.com/connect/token";
   const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded" };
   const body: Record<string, string> = { ...params };
-  if (provider === "ms") { body.client_id = MS_ID; body.client_secret = MS_SECRET; body.scope = MS_SCOPES; }
+  if (provider === "ms") { body.client_id = MS_ID; body.client_secret = MS_SECRET; body.scope = scope || MS_SCOPES; }
   else headers.Authorization = "Basic " + btoa(`${XERO_ID}:${XERO_SECRET}`);
   const r = await fetch(url, { method: "POST", headers, body: form(body) });
   const j = await r.json().catch(() => ({}));
@@ -60,7 +61,7 @@ async function accessToken(provider: string): Promise<{ token: string; conn: Rec
   if (!conn?.refresh_token) throw new ApiError("not_connected", provider === "ms" ? "Microsoft 365 isn't connected yet." : "Xero isn't connected yet.", 409);
   if (conn.access_token && conn.expires_at && Date.now() < conn.expires_at - 60_000) return { token: conn.access_token, conn };
   try {
-    const t = await tokenRequest(provider, { grant_type: "refresh_token", refresh_token: conn.refresh_token });
+    const t = await tokenRequest(provider, { grant_type: "refresh_token", refresh_token: conn.refresh_token }, provider === "ms" ? (conn.scope || MS_SCOPES_V1) : undefined);
     const next = { ...conn, access_token: t.access_token, refresh_token: t.refresh_token || conn.refresh_token, expires_at: Date.now() + (t.expires_in || 1800) * 1000 };
     await setConn(provider, next);
     return { token: next.access_token, conn: next };
@@ -99,7 +100,98 @@ async function msCall(action: string, i: any) {
     await graph("POST", "/me/sendMail", { message, saveToSentItems: true });
     return { sent: true };
   }
+  if (action === "planning_sync") return await planningSync(i);
   throw new ApiError("bad_request", "Unknown Outlook action.");
+}
+
+/* ---------- Planning leads: Government of Jersey planning notification emails ---------- */
+const decode = (s: string) => s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&#x27;/g, "'").replace(/&nbsp;/g, " ").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n));
+const REF_RE = /\b([A-Z]{1,4}\/\d{4}\/\d{3,5})\b/;
+function parseNotification(html: string) {
+  const out: { ref: string; address: string; kind: string; label: string; url: string }[] = [];
+  const parts = html.split(/<h3[^>]*>/i).slice(1);
+  for (const part of parts) {
+    const head = decode(part.split(/<\/h3>/i)[0].replace(/<[^>]+>/g, "")).trim();
+    const kind = /approved/i.test(head) ? "approved" : /refused|rejected/i.test(head) ? "refused" : /withdrawn/i.test(head) ? "withdrawn" : /^new planning/i.test(head) ? "new" : /document/i.test(head) ? "docs" : "update";
+    for (const m of part.matchAll(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)) {
+      const text = decode(m[2].replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim(), r = text.match(REF_RE);
+      if (!r) continue;
+      const before = text.slice(0, r.index).trim(), after = text.slice((r.index || 0) + r[1].length).replace(/^[,\s]+/, "").trim();
+      out.push({ ref: r[1], address: after, kind, label: kind === "docs" ? (before || "New documents") : head, url: decode(m[1]) });
+    }
+  }
+  return out;
+}
+function gazetteFields(html: string) {
+  const text = decode(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, "").replace(/<br\s*\/?>|<\/(p|div|td|th|tr|li|h\d|dt|dd|span|label|strong|b)>/gi, "\n").replace(/<[^>]+>/g, ""));
+  const lines = text.split("\n").map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean);
+  const LABELS = ["description", "applicant", "agent company", "agent", "address", "reference", "planning application", "published by", "type", "date published"];
+  const get = (label: string) => { const i = lines.findIndex((l) => l.toLowerCase().replace(/:$/, "") === label); if (i < 0) return ""; const v = lines[i + 1] || ""; return LABELS.includes(v.toLowerCase().replace(/:$/, "")) ? "" : v; };
+  return { description: get("description"), applicant: get("applicant"), agent: get("agent company") || get("agent") };
+}
+async function planningSync(i: any) {
+  const { conn } = await accessToken("ms");
+  if (!/mail\.read\b/i.test(String(conn.scope || ""))) throw new ApiError("needs_reauth", "Studio needs permission to read the planning emails. Press Reconnect for Microsoft 365 in Reports › Connections, then try again.", 409);
+  const { data: st } = await admin.from("docs").select("data").eq("collection", "settings").eq("id", "planning").maybeSingle();
+  const state: any = st?.data || {};
+  const since = i.since || state.lastReceived || new Date(Date.now() - (i.days || 365) * 864e5).toISOString();
+  const filter = `receivedDateTime gt ${since} and from/emailAddress/address eq 'noreply@gov.je'`;
+  let next = `/me/messages?$filter=${encodeURIComponent(filter)}&$orderby=receivedDateTime asc&$select=id,subject,receivedDateTime,body&$top=20`;
+  const found = new Map<string, any>(); let last = since, msgs = 0, more = false;
+  for (let k = 0; k < 3 && next; k++) {
+    const j: any = await graph("GET", next.replace("https://graph.microsoft.com/v1.0", ""));
+    for (const m of j.value || []) {
+      msgs++; last = m.receivedDateTime || last;
+      if (!/planning/i.test(m.subject || "")) continue;
+      const day = String(m.receivedDateTime || "").slice(0, 10);
+      for (const e of parseNotification(m.body?.content || "")) {
+        const f = found.get(e.ref) || { ref: e.ref, address: e.address, events: [] as any[] };
+        if (!f.address && e.address) f.address = e.address;
+        f.events.push({ kind: e.kind, label: e.label, date: day }); found.set(e.ref, f);
+      }
+    }
+    next = j["@odata.nextLink"] || ""; more = !!next;
+  }
+  let added = 0, updated = 0;
+  const refs = [...found.keys()], ids = refs.map((r) => r.replace(/\//g, "-").toLowerCase());
+  const existing = new Map<string, any>();
+  for (let k = 0; k < ids.length; k += 100) { const { data } = await admin.from("docs").select("id,data").eq("collection", "leads").in("id", ids.slice(k, k + 100)); (data || []).forEach((r: any) => existing.set(r.id, r.data)); }
+  const rows: any[] = [];
+  refs.forEach((ref, n) => {
+    const f = found.get(ref), id = ids[n], cur = existing.get(id);
+    if (!cur && !f.events.some((e: any) => e.kind !== "docs")) return; // documents-only notices update leads we already have
+    const d: any = cur ? { ...cur } : { id, ref, type: ref.split("/")[0], status: "new", notes: "", created: Date.now() };
+    if (!d.address && f.address) d.address = f.address;
+    const pms = [...String(d.address || "").matchAll(/\b(St\.? ?(?:Helier|Saviour|Clement|Lawrence|Brelade|Peter|Ouen|Mary|John|Martin)|Grouville|Trinity)\b/g)]; if (pms.length && !d.parish) d.parish = pms[pms.length - 1][1].replace(/^St\.? ?/, "St. ");
+    const ev = (d.events || []).slice();
+    for (const e of f.events) if (!ev.some((x: any) => x.kind === e.kind && x.date === e.date && x.label === e.label)) ev.push(e);
+    ev.sort((a: any, b: any) => String(a.date).localeCompare(String(b.date)));
+    d.events = ev.slice(-30); d.firstSeen = d.firstSeen || ev[0]?.date || ""; d.lastSeen = ev[ev.length - 1]?.date || d.lastSeen || "";
+    if (ev.some((e: any) => e.kind === "approved")) d.stage = "approved"; else if (ev.some((e: any) => e.kind === "refused")) d.stage = "refused"; else if (!d.stage) d.stage = "submitted";
+    if (cur && cur.status && cur.status !== "new" && f.events.some((e: any) => e.kind === "approved") && !(cur.events || []).some((e: any) => e.kind === "approved")) d.flagApproved = true;
+    d.updated = Date.now(); cur ? updated++ : added++;
+    rows.push({ collection: "leads", id, data: d, updated_at: new Date().toISOString(), updated_by: "planning-sync" });
+  });
+  for (let k = 0; k < rows.length; k += 200) { const { error } = await admin.from("docs").upsert(rows.slice(k, k + 200)); if (error) throw new ApiError("tool_error", "Couldn't save leads: " + error.message, 500); }
+  await admin.from("docs").upsert({ collection: "settings", id: "planning", data: { ...state, lastReceived: last, lastRun: new Date().toISOString() }, updated_at: new Date().toISOString(), updated_by: "planning-sync" });
+  /* details from the Gazette page (description, applicant, agent) for a few leads per run */
+  let enriched = 0;
+  const want = (i.refs || []) as string[];
+  let q = admin.from("docs").select("id,data").eq("collection", "leads");
+  q = want.length ? q.in("id", want.map((r) => r.replace(/\//g, "-").toLowerCase())) : q.is("data->gz", null).order("updated_at", { ascending: false }).limit(12);
+  const { data: todo } = await q;
+  for (const r of todo || []) {
+    const d: any = r.data; if (d.gz && !want.length) continue;
+    try {
+      const res = await fetch(`https://www.gov.je/gazette/Pages/PlanningApplication-${String(d.ref).replace(/\//g, "")}.aspx`, { headers: { "User-Agent": "Mozilla/5.0 halo.je Studio" } });
+      if (res.ok) { const g = gazetteFields(await res.text()); if (g.description) d.description = g.description; if (g.applicant) d.applicant = g.applicant; if (g.agent) d.agent = g.agent; }
+      d.gz = res.ok ? "ok" : String(res.status);
+    } catch (_) { d.gz = "err"; }
+    await admin.from("docs").update({ data: d, updated_at: new Date().toISOString(), updated_by: "planning-sync" }).eq("collection", "leads").eq("id", r.id);
+    enriched++;
+  }
+  const { count } = await admin.from("docs").select("id", { count: "exact", head: true }).eq("collection", "leads").is("data->gz", null);
+  return { messages: msgs, added, updated, enriched, more: more || (count || 0) > 0, pendingDetails: count || 0, lastReceived: last };
 }
 
 /* ---------- Xero ---------- */
@@ -170,6 +262,7 @@ Deno.serve(async (req) => {
       if (provider === "ms") {
         const me = await fetch("https://graph.microsoft.com/v1.0/me?$select=displayName,mail,userPrincipalName", { headers: { Authorization: `Bearer ${t.access_token}` } }).then((r) => r.json()).catch(() => ({}));
         conn.account = me.mail || me.userPrincipalName || ""; conn.name = me.displayName || "";
+        conn.scope = "offline_access " + String(t.scope || MS_SCOPES).replace(/https:\/\/graph\.microsoft\.com\//g, "").replace(/\boffline_access\b/g, "").replace(/\s+/g, " ").trim();
       } else {
         const cs = await fetch("https://api.xero.com/connections", { headers: { Authorization: `Bearer ${t.access_token}` } }).then((r) => r.json()).catch(() => []);
         const org = (Array.isArray(cs) ? cs : []).find((c: any) => c.tenantType === "ORGANISATION") || (Array.isArray(cs) ? cs[0] : null);
