@@ -78,6 +78,31 @@ button,input,select,textarea{font:inherit;color:inherit}
 .editor{overflow:auto;border-right:1px solid var(--line);background:var(--panel);padding-block:8px 60px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:16px}
 .stage{overflow:auto;background:var(--stage);padding:28px 24px 80px;min-width:0}
+.pvbar{display:flex;gap:4px;justify-content:center;margin:-12px auto 18px;position:sticky;top:-28px;z-index:3;padding:8px 0}
+.pvbar button{height:32px;padding:0 14px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;font-size:13px}
+.pvbar button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.pvbar small{font-family:var(--f-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;opacity:.7;margin-left:4px}
+.costs{max-width:1000px;margin:0 auto;display:grid;gap:16px}
+.ckpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.ckpis>div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:2px}
+.ckpis small{font-family:var(--f-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.ckpis b{font-family:var(--f-display);font-weight:400;font-size:26px}
+.ckpis span{font-size:12px;color:var(--muted)}
+.costs .neg{color:var(--danger,#b0443a)}
+.cset{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:grid;grid-template-columns:200px 1fr;gap:12px;align-items:center}
+.cup{display:flex;align-items:center;gap:6px}.cup input{width:90px!important}
+.ctable{overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.ctable table{width:100%;border-collapse:collapse;font-size:13px;min-width:760px}
+.ctable th{text-align:left;font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:10px;border-bottom:1px solid var(--line);font-weight:400}
+.ctable td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.ctable .r{text-align:right;white-space:nowrap}
+.ctable td small{display:block;color:var(--muted);font-size:11px}
+.ctable .csys td{background:var(--field);font-weight:600;font-size:12px}
+.ctable .cmiss td{background:#c9853a14}
+.ctable .cin{width:150px}.ctable .cin input{width:120px;padding:5px 8px}
+.ctable .csrc{color:var(--accent)!important}
+.ctable .ctot td{font-weight:600;border-bottom:0}
+@media (max-width:860px){ .cset{grid-template-columns:1fr} .pvbar{top:-16px} }
 
 details.sec{border-bottom:1px solid var(--line)}
 details.sec>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:14px 2px;gap:10px}
@@ -761,6 +786,8 @@ function tokens(s, p){ return String(s||"").replace(/\{valid\}/g, longDate(p.val
 
 /* ---------- defaults ---------- */
 function newItem(){ return {qty:1,item:"",model:"",price:0,tag:"",desc:"",img:""}; }
+/* Price the client sees for one unit: your retail price plus any uplift you've built in (e.g. 5%). */
+const sellUnit = (p, it) => Math.round(num(it.price) * (1 + num(p && p.uplift) / 100) * 100) / 100;
 /* Default labour rate: used for new proposals and jobs, and for report figures. Set in Reports. */
 let defRate = 85;
 try{ defRate = num(localStorage.getItem("halojeProposals.v1.rate")) || 85; }catch(_){}
@@ -778,7 +805,7 @@ function blankProposal(){
     intro: "Thank you for the opportunity to price the systems at this property.\n\nThe price covers supply, termination, programming, commissioning and handover. Where the design isn't fixed, I've shown the item as an allowance or a provisional sum so you can see exactly where the price may move.",
     scopeIntro: "", scopeStages: "",
     contractorTitle: "Contractor labour", contractorNote: "", contractors: [],
-    pricedTo: "", rate: defRate, split: true, showPence: false, gst: false,
+    pricedTo: "", rate: defRate, split: true, showPence: false, gst: false, uplift: 5, labourCost: 0,
     allowanceLabel: "Allowance for design development on provisional items", allowance: 0,
     afterTotal: "Items marked Allowance or Provisional depend on information still to come. I'll confirm them as soon as that information is issued.",
     systems: [{ name: "Lighting & shading", desc: "", hours: 0, work: "", items: [newItem()] }],
@@ -796,7 +823,7 @@ function blankProposal(){
   };
 }
 function newContractor(){ return { who: "", work: "", qty: 1, unit: "days", rate: 0 }; }
-function normalise(p){ const b = blankProposal(); const o = Object.assign(b, p || {}); o.contractors = (o.contractors||[]).map(c=>Object.assign(newContractor(), c)); o.systems = (o.systems||[]).map(s => Object.assign({name:"",desc:"",hours:0,work:"",items:[]}, s, {items:(s.items||[]).map(i=>Object.assign(newItem(),i))})); return o; }
+function normalise(p){ const b = blankProposal(); const o = Object.assign(b, p || {}); if(p && p.uplift == null) o.uplift = 0; /* older proposals keep their prices exactly */ o.contractors = (o.contractors||[]).map(c=>Object.assign(newContractor(), c)); o.systems = (o.systems||[]).map(s => Object.assign({name:"",desc:"",hours:0,work:"",items:[]}, s, {items:(s.items||[]).map(i=>Object.assign(newItem(),i))})); return o; }
 
 const STD_STAGES = [
   "Survey and design sign-off: I'll visit site to confirm device positions, cable routes and rack location, and agree the final design with you before anything is ordered.",
@@ -810,7 +837,7 @@ const STD_STAGES = [
 /* ---------- maths ---------- */
 function totals(p){
   const sys = p.systems.map(s => {
-    const equip = s.items.reduce((a,i)=>a + num(i.qty)*num(i.price), 0);
+    const equip = s.items.reduce((a,i)=>a + num(i.qty)*sellUnit(p, i), 0);
     const inst = num(s.hours) * num(p.rate);
     return { equip, inst, total: equip + inst };
   });
@@ -833,7 +860,7 @@ function depLines(p){
   if(mode === "stage"){ const pct = num(p.depPct); return pct > 0 ? [{ desc: `${p.stageLabel ? p.stageLabel + ": " : "Stage payment: "}${pct}% of ${doc} ${ref}${p.titleA ? " – " + p.titleA : ""}`, qty: 1, unit: Math.round(t.grand * pct) / 100 }] : []; }
   if(mode === "final"){ const paid = invPaid(p), bal = Math.round((t.grand - paid) * 100) / 100; return bal > 0 ? [{ desc: `Final balance for ${doc} ${ref}${p.titleA ? " – " + p.titleA : ""} (total ${money(t.grand, {showPence:true})}${paid ? ` less ${money(paid, {showPence:true})} already invoiced` : ""})`, qty: 1, unit: bal }] : []; }
   const pct = num(p.depPct) || 100, out = [];
-  p.systems.forEach(s=>s.items.forEach(it=>{ if(it.dep && (it.item || num(it.price))) out.push({ desc: [it.item, it.model].filter(Boolean).join(" – ") + (pct < 100 ? ` (${pct}% deposit)` : ""), qty: num(it.qty) || 1, unit: Math.round(num(it.price) * pct) / 100 }); }));
+  p.systems.forEach(s=>s.items.forEach(it=>{ if(it.dep && (it.item || num(it.price))) out.push({ desc: [it.item, it.model].filter(Boolean).join(" – ") + (pct < 100 ? ` (${pct}% deposit)` : ""), qty: num(it.qty) || 1, unit: Math.round(sellUnit(p, it) * pct) / 100 }); }));
   return out;
 }
 const depTotal = p => depLines(p).reduce((a,l)=>a + l.qty*l.unit, 0);
@@ -848,7 +875,7 @@ function depSectionHtml(p, openAttr){
     ${(p.invMode||"hardware") === "final" ? `<p class="note">Total ${money(totals(p).grand, {showPence:true})}, less ${money(invPaid(p), {showPence:true})} already invoiced from this proposal, leaves <b>${money(Math.max(0, totals(p).grand - invPaid(p)), {showPence:true})}</b>.</p>` : ""}
     ${(p.invMode||"hardware") !== "hardware" ? "" : `<p class="note">Tick the hardware to invoice up front, at your chosen percentage.</p>`}
     ${(p.invMode||"hardware") !== "hardware" ? "" : anyItem ? `<div class="adds"><button class="btn small" data-act="depAll">Tick everything</button><button class="btn small ghost" data-act="depNone">Clear</button></div>
-    <div class="deplist">${p.systems.map((s,i)=>{ const rows = s.items.map((it,j)=> (it.item || num(it.price)) ? `<label><input type="checkbox" data-k="systems.${i}.items.${j}.dep" ${it.dep?"checked":""}><span>${esc(it.qty)} × ${esc(it.item || it.model)}</span><b>${money(num(it.qty)*num(it.price), {showPence:true})}</b></label>` : "").join(""); return rows ? `<div class="dsys">${esc(s.name || "System")}</div>${rows}` : ""; }).join("")}</div>` : `<p class="note">Add some lines to the systems first.</p>`}
+    <div class="deplist">${p.systems.map((s,i)=>{ const rows = s.items.map((it,j)=> (it.item || num(it.price)) ? `<label><input type="checkbox" data-k="systems.${i}.items.${j}.dep" ${it.dep?"checked":""}><span>${esc(it.qty)} × ${esc(it.item || it.model)}</span><b>${money(num(it.qty)*sellUnit(p, it), {showPence:true})}</b></label>` : "").join(""); return rows ? `<div class="dsys">${esc(s.name || "System")}</div>${rows}` : ""; }).join("")}</div>` : `<p class="note">Add some lines to the systems first.</p>`}
     <div class="row3">${(p.invMode||"hardware") === "final" ? "<div></div>" : field("depPct", (p.invMode||"hardware") === "stage" ? "Stage %" : "Deposit %","number",'step="5" min="1" max="100"')}${field("depInvNo","Invoice number","text",'placeholder="Xero\'s next number"')}${field("depDue","Due date","date")}</div>
     <div class="row">${field("depAccount","Xero account code")}${field("depTax","Xero tax rate name","text",'placeholder="Leave blank unless Xero asks"')}</div>
     <div class="sys-total"><span>Invoice total</span><b id="depTotal">${money(depTotal(p), {showPence:true})}</b></div>
@@ -951,7 +978,7 @@ async function qMakeJob(){
   const j = jbNorm(jbBlank());
   Object.assign(j, { customer: (c && c.name) || p.signedFor || p.preparedFor || "", clientId: p.clientId || "", email: (c && c.email) || "", phone: (c && c.phone) || "", contact: p.client || "", address: p.site || "", reference: [p.ref, p.rev].filter(Boolean).join(" "), status: "To Book", proposalId: p.id,
     description: [[p.titleA, p.titleB].filter(Boolean).join(" "), p.lede].filter(Boolean).join("\n"),
-    materials: p.systems.flatMap(s=>s.items.filter(it=>it.item || num(it.price)).map(it=>({ id: uid(), libId: it.libId || "", item: it.item, model: it.model || "", qty: num(it.qty) || 1, price: num(it.price), supplier: poSupOf(it), fromQuote: true }))) });
+    materials: p.systems.flatMap(s=>s.items.filter(it=>it.item || num(it.price)).map(it=>({ id: uid(), libId: it.libId || "", item: it.item, model: it.model || "", qty: num(it.qty) || 1, price: sellUnit(p, it), cost: num(it.cost) || itemCost(it) || 0, supplier: poSupOf(it), fromQuote: true }))) });
   if(!(await jbWriteJob(j))) return;
   p.jobId = j.id; scheduleSave(); buildEditor(); toast(`Job ${j.number} created with ${j.materials.length} materials, ready to book.`);
 }
@@ -1042,7 +1069,7 @@ function renderDoc(p){
   // scope, one page per system
   p.systems.forEach((s,i)=>{
     const items = s.items.filter(it => it.item || it.model || num(it.price));
-    const body = items.map(it=>`<tr${it.pb?' class="pb"':''}><td class="q">${esc(it.qty)}</td><td class="it">${esc(it.item)}${it.tag?`<span class="tag">${esc(it.tag)}</span>`:""}</td><td class="mm">${esc(it.model)}</td><td class="r pr">${money(num(it.qty)*num(it.price),p)}</td></tr>`).join("")
+    const body = items.map(it=>`<tr${it.pb?' class="pb"':''}><td class="q">${esc(it.qty)}</td><td class="it">${esc(it.item)}${it.tag?`<span class="tag">${esc(it.tag)}</span>`:""}</td><td class="mm">${esc(it.model)}</td><td class="r pr">${money(num(it.qty)*sellUnit(p, it),p)}</td></tr>`).join("")
       + (num(s.hours) ? `<tr><td class="q"></td><td class="it">Installation, programming and commissioning</td><td class="mm">${esc(s.hours)} hours</td><td class="r pr">${money(t.sys[i].inst,p)}</td></tr>` : "")
       + `<tr class="sub"><td></td><td colspan="2">${esc(s.name)} total</td><td class="r">${money(t.sys[i].total,p)}</td></tr>`;
     const work = lines(s.work);
@@ -1246,6 +1273,7 @@ function buildEditor(){
     <p class="note">Leave a blank line between paragraphs. Wrap words in **double stars** for bold.</p>
     ${field("pricedTo","Priced to (drawings or spec)")}
     <div class="row">${field("rate","Labour rate £/hour","number",'step="1" min="0"')}${field("allowance","Allowance £","number",'step="1" min="0"')}</div>
+    <div class="row">${field("uplift","Add to retail prices %","number",'step="0.5" min="0" max="100"')}<p class="note" style="align-self:end;margin:0">Built into each equipment price the client sees. See Costs &amp; margin above the preview.</p></div>
     ${field("allowanceLabel","Allowance wording")}
     <label class="check"><input type="checkbox" id="f_split" data-k="split" ${p.split?"checked":""}> Split equipment and installation in the summary</label>
     <label class="check"><input type="checkbox" id="f_gst" data-k="gst" ${p.gst?"checked":""}> Add GST at 5%</label>
@@ -1649,12 +1677,91 @@ function renderPreview(){
     const b = $("#emptyNew"); b && b.addEventListener("click", ()=>createNew()); return;
   }
   const y = st.scrollTop;
-  st.innerHTML = `<div class="sheets" id="sheets">${layoutDoc(current)}</div>`;
+  const bar = `<div class="pvbar" role="tablist"><button data-pv="doc" aria-pressed="${pvMode!=="costs"}">Proposal</button><button data-pv="costs" aria-pressed="${pvMode==="costs"}">Costs &amp; margin <small>private</small></button></div>`;
+  if(pvMode === "costs"){ const ae = document.activeElement, keep = ae && st.contains(ae) && ae.dataset.ck2 ? ae.dataset.ck2 : ""; st.innerHTML = bar + costsHtml(current); st.scrollTop = y; if(keep){ const el = st.querySelector(`[data-ck2="${keep}"]`); if(el){ el.focus(); try{ const v = el.value; el.value = ""; el.value = v; }catch(_){} } } return; }
+  st.innerHTML = bar + `<div class="sheets" id="sheets">${layoutDoc(current)}</div>`;
   fitZoom(); st.scrollTop = y;
   st.querySelectorAll(".sheet").forEach(s=>{ if(s.scrollHeight > A4H + 2){ s.insertAdjacentHTML("beforeend", `<span class="overflow-flag">Runs onto ${Math.ceil(s.scrollHeight/A4H)} pages</span>`); }});
 }
 function fitZoom(){ const st = $("#stage"), sh = $("#sheets"); if(!sh) return; const w = st.clientWidth - 48; sh.style.setProperty("--z", Math.min(1, Math.max(.3, w/794)).toFixed(3)); }
 new ResizeObserver(fitZoom).observe($("#stage"));
+
+/* ---------- costs & margin (never shown to the client) ---------- */
+let pvMode = "doc";
+try{ if(localStorage.getItem(LS + ".pv") === "costs") pvMode = "costs"; }catch(_){}
+/* Your cost for a line: what you typed on the proposal, else the cost saved on the product, else Xero's purchase price. */
+function itemCost(it){
+  if(it.cost !== undefined && it.cost !== "" && it.cost !== null) return num(it.cost);
+  const pr = it.libId && products.find(x=>x.id === it.libId);
+  if(pr){ if(pr.cost !== undefined && pr.cost !== "" && pr.cost !== null) return num(pr.cost); if(pr.xero && num(pr.xero.pp)) return num(pr.xero.pp); }
+  return null;
+}
+const pctTxt = v => isFinite(v) ? (Math.round(v * 10) / 10) + "%" : "–";
+function costRows(p){
+  const rows = [];
+  p.systems.forEach((s,i)=>{
+    s.items.forEach((it,j)=>{ if(!(it.item || it.model || num(it.price))) return;
+      const own = it.cost !== undefined && it.cost !== "" && it.cost !== null, c = itemCost(it);
+      rows.push({ kind: "item", sys: s.name, i, j, it, qty: num(it.qty), retail: num(it.price), sell: sellUnit(p, it), cost: c, src: own || c === null ? "" : "from your price list" }); });
+    if(num(s.hours)) rows.push({ kind: "labour", sys: s.name, i, qty: num(s.hours), retail: num(p.rate), sell: num(p.rate), cost: num(p.labourCost) });
+  });
+  (p.contractors || []).forEach((c,k)=>{ const charge = num(c.qty) * num(c.rate); if(!charge && !c.who) return; rows.push({ kind: "contr", k, c, qty: 1, retail: charge, sell: charge, cost: (c.cost === undefined || c.cost === "" || c.cost === null) ? null : num(c.cost) }); });
+  return rows;
+}
+function costsHtml(p){
+  const rows = costRows(p), t = totals(p);
+  let sell = 0, cost = 0, missing = 0;
+  rows.forEach(r=>{ sell += r.qty * r.sell; if(r.cost === null) missing++; else cost += r.qty * r.cost; });
+  sell += num(p.allowance);
+  const profit = sell - cost, margin = sell ? profit / sell * 100 : NaN, markup = cost ? profit / cost * 100 : NaN, m = v => money(v, { showPence: true });
+  let lastSys = null;
+  const body = rows.map(r=>{
+    const head = r.kind !== "contr" && r.sys !== lastSys ? `<tr class="csys"><td colspan="8">${esc(r.sys || "System")}</td></tr>` : ""; if(r.kind !== "contr") lastSys = r.sys;
+    const lineSell = r.qty * r.sell, lineCost = r.cost === null ? null : r.qty * r.cost, pr = lineCost === null ? null : lineSell - lineCost;
+    const name = r.kind === "item" ? esc(r.it.item || r.it.model) + (r.it.model && r.it.item ? `<small>${esc(r.it.model)}</small>` : "") : r.kind === "labour" ? `Labour <small>${r.qty} h at ${m(r.sell)}</small>` : `${esc(r.c.who || "Contractor")} <small>${esc(r.c.work || "")}</small>`;
+    const costIn = r.kind === "item" ? `<input type="number" step="0.01" min="0" data-ck2="i${r.i}_${r.j}" value="${r.cost === null ? "" : esc(r.cost)}" placeholder="Your cost" aria-label="Your cost each">${r.src ? `<small class="csrc">${r.src}</small>` : ""}`
+      : r.kind === "labour" ? `<input type="number" step="0.01" min="0" data-ck2="lab" value="${esc(p.labourCost || 0)}" aria-label="Your labour cost per hour"><small class="csrc">per hour</small>`
+      : `<input type="number" step="0.01" min="0" data-ck2="c${r.k}" value="${r.cost === null ? "" : esc(r.cost)}" placeholder="Their price to you" aria-label="Contractor cost">`;
+    return head + `<tr${r.cost === null ? ' class="cmiss"' : ""}><td class="r">${r.kind === "labour" ? "" : esc(r.qty)}</td><td>${name}</td><td class="r">${r.kind === "item" ? m(r.retail) : ""}</td><td class="r">${r.kind === "labour" ? "" : m(r.sell)}</td><td class="r"><b>${m(lineSell)}</b></td><td class="cin">${costIn}</td><td class="r">${lineCost === null ? "–" : m(lineCost)}</td><td class="r ${pr !== null && pr < 0 ? "neg" : ""}">${pr === null ? "–" : m(pr) + `<small>${pctTxt(lineSell ? pr / lineSell * 100 : NaN)}</small>`}</td></tr>`;
+  }).join("");
+  return `<div class="costs">
+    <div class="ckpis">
+      <div><small>Client pays</small><b>${m(t.grand)}</b><span>${p.gst ? "includes the GST line" : "as quoted"}</span></div>
+      <div><small>Your costs</small><b>${m(cost)}</b><span>${missing ? `${missing} line${missing > 1 ? "s" : ""} still need a cost` : "every line costed"}</span></div>
+      <div><small>Profit</small><b class="${profit < 0 ? "neg" : ""}">${m(profit)}</b><span>Margin ${pctTxt(margin)} · Markup ${pctTxt(markup)}</span></div>
+    </div>
+    <div class="cset">
+      <label class="f"><span>Add to retail prices</span><span class="cup"><input type="number" step="0.5" min="0" max="100" data-ck2="up" value="${esc(num(p.uplift))}" aria-label="Percentage added to retail prices">%</span></label>
+      <p class="note" style="margin:0">Built into each equipment price on the proposal, so the client sees one price, not a separate line. New proposals start at 5%. Labour isn't increased.</p>
+    </div>
+    <div class="ctable"><table>
+      <tr><th class="r">Qty</th><th>Item</th><th class="r">Retail each</th><th class="r">Quoted each</th><th class="r">Quoted total</th><th>Your cost each</th><th class="r">Cost total</th><th class="r">Profit</th></tr>
+      ${body || `<tr><td colspan="8" class="note">Add some lines to the proposal first.</td></tr>`}
+      ${num(p.allowance) ? `<tr><td></td><td>${esc(p.allowanceLabel || "Allowance")}</td><td></td><td></td><td class="r"><b>${m(num(p.allowance))}</b></td><td></td><td class="r">–</td><td class="r">–</td></tr>` : ""}
+      <tr class="ctot"><td></td><td>Totals${p.gst ? " (before the GST line)" : ""}</td><td></td><td></td><td class="r">${m(sell)}</td><td></td><td class="r">${m(cost)}</td><td class="r ${profit < 0 ? "neg" : ""}">${m(profit)}<small>${pctTxt(margin)}</small></td></tr>
+    </table></div>
+    <p class="note">Only you see this. It's never in the PDF, HTML or email. A cost you type on a line from your price list is saved to that product, so it's filled in next time. <button class="btn small ghost" data-ccsv="1">Download costing (CSV)</button></p>
+  </div>`;
+}
+$("#stage").addEventListener("click", e=>{
+  const b = e.target.closest("[data-pv]"); if(b){ pvMode = b.dataset.pv; try{ localStorage.setItem(LS + ".pv", pvMode); }catch(_){} renderPreview(); return; }
+  if(e.target.closest("[data-ccsv]") && current){
+    const p = current, q = v => { const t = String(v ?? ""); return /[",\n]/.test(t) ? `"${t.replace(/"/g,'""')}"` : t; };
+    const out = [["System","Item","Model","Qty","Retail each","Quoted each","Quoted total","Cost each","Cost total","Profit"].join(",")];
+    costRows(p).forEach(r=>{ const ls = r.qty * r.sell, lc = r.cost === null ? null : r.qty * r.cost; out.push([r.kind === "contr" ? "Contractors" : r.sys, r.kind === "item" ? r.it.item : r.kind === "labour" ? "Labour" : (r.c.who || "Contractor"), r.kind === "item" ? r.it.model : "", r.qty, r.kind === "item" ? r.retail.toFixed(2) : "", r.sell.toFixed(2), ls.toFixed(2), r.cost === null ? "" : num(r.cost).toFixed(2), lc === null ? "" : lc.toFixed(2), lc === null ? "" : (ls - lc).toFixed(2)].map(q).join(",")); });
+    offer(`${fileBase()} costing.csv`, out.join("\r\n") + "\r\n");
+  }
+});
+let ccT = null;
+$("#stage").addEventListener("input", e=>{
+  const k = e.target.dataset.ck2; if(!k || !current) return;
+  const v = e.target.value, p = current;
+  if(k === "up") p.uplift = v === "" ? 0 : num(v);
+  else if(k === "lab") p.labourCost = num(v);
+  else if(k[0] === "c"){ const c = p.contractors[+k.slice(1)]; if(c) c.cost = v === "" ? "" : num(v); }
+  else { const [i, j] = k.slice(1).split("_").map(Number), it = p.systems[i] && p.systems[i].items[j]; if(it){ it.cost = v === "" ? "" : num(v); if(it.libId && v !== ""){ clearTimeout(ccT); const id = it.libId, cv = num(v); ccT = setTimeout(()=>{ const pr = products.find(x=>x.id === id); if(pr && num(pr.cost) !== cv) prWrite(id, { cost: cv }); }, 1200); } } }
+  scheduleSave(); clearTimeout(previewTimer); previewTimer = setTimeout(()=>{ renderPreview(); if(k === "up") current.systems.forEach((s,i)=>{ const el = $("#st"+i); if(el){ const tt = totals(current).sys[i]; el.innerHTML = `<span>Equipment ${money(tt.equip,current)} · Labour ${money(tt.inst,current)}</span><b>${money(tt.total,current)}</b>`; } }); }, 450);
+});
 
 /* ---------- exports ---------- */
 async function getDownloads(){ try{ return window.claude ? await claude.use("downloads") : null; }catch(e){ return null; } }
