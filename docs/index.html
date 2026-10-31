@@ -1678,7 +1678,7 @@ function renderPreview(){
   }
   const y = st.scrollTop;
   const bar = `<div class="pvbar" role="tablist"><button data-pv="doc" aria-pressed="${pvMode!=="costs"}">Proposal</button><button data-pv="costs" aria-pressed="${pvMode==="costs"}">Costs &amp; margin <small>private</small></button></div>`;
-  if(pvMode === "costs"){ const ae = document.activeElement, keep = ae && st.contains(ae) && ae.dataset.ck2 ? ae.dataset.ck2 : ""; st.innerHTML = bar + costsHtml(current); st.scrollTop = y; if(keep){ const el = st.querySelector(`[data-ck2="${keep}"]`); if(el){ el.focus(); try{ const v = el.value; el.value = ""; el.value = v; }catch(_){} } } return; }
+  if(pvMode === "costs"){ const ae = document.activeElement, keep = ae && st.contains(ae) && ae.dataset.ck2 ? ae.dataset.ck2 : "", raw = keep ? ae.value : "", caret = keep ? ae.selectionStart : 0; st.innerHTML = bar + costsHtml(current); st.scrollTop = y; if(keep){ const el = st.querySelector(`[data-ck2="${keep}"]`); if(el){ el.value = raw; el.focus(); try{ el.setSelectionRange(caret, caret); }catch(_){} } } return; }
   st.innerHTML = bar + `<div class="sheets" id="sheets">${layoutDoc(current)}</div>`;
   fitZoom(); st.scrollTop = y;
   st.querySelectorAll(".sheet").forEach(s=>{ if(s.scrollHeight > A4H + 2){ s.insertAdjacentHTML("beforeend", `<span class="overflow-flag">Runs onto ${Math.ceil(s.scrollHeight/A4H)} pages</span>`); }});
@@ -1697,12 +1697,21 @@ function itemCost(it){
   return null;
 }
 const pctTxt = v => isFinite(v) ? (Math.round(v * 10) / 10) + "%" : "–";
+/* Read a typed amount: allows £, spaces, 1,234.50 and 12,50. */
+function readAmount(v){
+  let t = String(v || "").replace(/[£$€\s]/g, "");
+  if(/^\d+,\d{1,2}$/.test(t)) t = t.replace(",", ".");
+  t = t.replace(/,/g, "");
+  const n = parseFloat(t); return isFinite(n) ? n : 0;
+}
+const costGst = p => p && p.costGst != null ? num(p.costGst) : 5;
+const withGst = (p, c) => Math.round(c * (1 + costGst(p) / 100) * 100) / 100;
 function costRows(p){
   const rows = [];
   p.systems.forEach((s,i)=>{
     s.items.forEach((it,j)=>{ if(!(it.item || it.model || num(it.price))) return;
       const own = it.cost !== undefined && it.cost !== "" && it.cost !== null, c = itemCost(it);
-      rows.push({ kind: "item", sys: s.name, i, j, it, qty: num(it.qty), retail: num(it.price), sell: sellUnit(p, it), cost: c, src: own || c === null ? "" : "from your price list" }); });
+      rows.push({ kind: "item", sys: s.name, i, j, it, qty: num(it.qty), retail: num(it.price), sell: sellUnit(p, it), base: c, cost: c === null ? null : withGst(p, c), src: own || c === null ? "" : "from your price list" }); });
     if(num(s.hours)) rows.push({ kind: "labour", sys: s.name, i, qty: num(s.hours), retail: num(p.rate), sell: num(p.rate), cost: num(p.labourCost) });
   });
   (p.contractors || []).forEach((c,k)=>{ const charge = num(c.qty) * num(c.rate); if(!charge && !c.who) return; rows.push({ kind: "contr", k, c, qty: 1, retail: charge, sell: charge, cost: (c.cost === undefined || c.cost === "" || c.cost === null) ? null : num(c.cost) }); });
@@ -1719,9 +1728,9 @@ function costsHtml(p){
     const head = r.kind !== "contr" && r.sys !== lastSys ? `<tr class="csys"><td colspan="8">${esc(r.sys || "System")}</td></tr>` : ""; if(r.kind !== "contr") lastSys = r.sys;
     const lineSell = r.qty * r.sell, lineCost = r.cost === null ? null : r.qty * r.cost, pr = lineCost === null ? null : lineSell - lineCost;
     const name = r.kind === "item" ? esc(r.it.item || r.it.model) + (r.it.model && r.it.item ? `<small>${esc(r.it.model)}</small>` : "") : r.kind === "labour" ? `Labour <small>${r.qty} h at ${m(r.sell)}</small>` : `${esc(r.c.who || "Contractor")} <small>${esc(r.c.work || "")}</small>`;
-    const costIn = r.kind === "item" ? `<input type="number" step="0.01" min="0" data-ck2="i${r.i}_${r.j}" value="${r.cost === null ? "" : esc(r.cost)}" placeholder="Your cost" aria-label="Your cost each">${r.src ? `<small class="csrc">${r.src}</small>` : ""}`
-      : r.kind === "labour" ? `<input type="number" step="0.01" min="0" data-ck2="lab" value="${esc(p.labourCost || 0)}" aria-label="Your labour cost per hour"><small class="csrc">per hour</small>`
-      : `<input type="number" step="0.01" min="0" data-ck2="c${r.k}" value="${r.cost === null ? "" : esc(r.cost)}" placeholder="Their price to you" aria-label="Contractor cost">`;
+    const costIn = r.kind === "item" ? `<input type="text" inputmode="decimal" data-ck2="i${r.i}_${r.j}" value="${r.base === null ? "" : esc(r.base)}" placeholder="Your cost" aria-label="Your cost each, before GST">${r.base !== null && costGst(p) ? `<small class="csrc">${m(r.cost)} with ${costGst(p)}% GST</small>` : ""}${r.src ? `<small class="csrc">${r.src}</small>` : ""}`
+      : r.kind === "labour" ? `<input type="text" inputmode="decimal" data-ck2="lab" value="${esc(p.labourCost || 0)}" aria-label="Your labour cost per hour"><small class="csrc">per hour</small>`
+      : `<input type="text" inputmode="decimal" data-ck2="c${r.k}" value="${r.cost === null ? "" : esc(r.cost)}" placeholder="Their price to you" aria-label="Contractor cost">`;
     return head + `<tr${r.cost === null ? ' class="cmiss"' : ""}><td class="r">${r.kind === "labour" ? "" : esc(r.qty)}</td><td>${name}</td><td class="r">${r.kind === "item" ? m(r.retail) : ""}</td><td class="r">${r.kind === "labour" ? "" : m(r.sell)}</td><td class="r"><b>${m(lineSell)}</b></td><td class="cin">${costIn}</td><td class="r">${lineCost === null ? "–" : m(lineCost)}</td><td class="r ${pr !== null && pr < 0 ? "neg" : ""}">${pr === null ? "–" : m(pr) + `<small>${pctTxt(lineSell ? pr / lineSell * 100 : NaN)}</small>`}</td></tr>`;
   }).join("");
   return `<div class="costs">
@@ -1731,11 +1740,13 @@ function costsHtml(p){
       <div><small>Profit</small><b class="${profit < 0 ? "neg" : ""}">${m(profit)}</b><span>Margin ${pctTxt(margin)} · Markup ${pctTxt(markup)}</span></div>
     </div>
     <div class="cset">
-      <label class="f"><span>Add to retail prices</span><span class="cup"><input type="number" step="0.5" min="0" max="100" data-ck2="up" value="${esc(num(p.uplift))}" aria-label="Percentage added to retail prices">%</span></label>
+      <label class="f"><span>Add to retail prices</span><span class="cup"><input type="text" inputmode="decimal" data-ck2="up" value="${esc(num(p.uplift))}" aria-label="Percentage added to retail prices">%</span></label>
       <p class="note" style="margin:0">Built into each equipment price on the proposal, so the client sees one price, not a separate line. New proposals start at 5%. Labour isn't increased.</p>
+      <label class="f"><span>GST you pay on equipment</span><span class="cup"><input type="text" inputmode="decimal" data-ck2="gst" value="${esc(costGst(p))}" aria-label="GST percentage added to your equipment costs">%</span></label>
+      <p class="note" style="margin:0">Type equipment costs as the supplier quotes them (before GST). This % is added on top, so your cost totals and profit include the GST you pay when the goods come in. Labour and contractor costs are used as typed.</p>
     </div>
     <div class="ctable"><table>
-      <tr><th class="r">Qty</th><th>Item</th><th class="r">Retail each</th><th class="r">Quoted each</th><th class="r">Quoted total</th><th>Your cost each</th><th class="r">Cost total</th><th class="r">Profit</th></tr>
+      <tr><th class="r">Qty</th><th>Item</th><th class="r">Retail each</th><th class="r">Quoted each</th><th class="r">Quoted total</th><th>Your cost each (before GST)</th><th class="r">Cost total</th><th class="r">Profit</th></tr>
       ${body || `<tr><td colspan="8" class="note">Add some lines to the proposal first.</td></tr>`}
       ${num(p.allowance) ? `<tr><td></td><td>${esc(p.allowanceLabel || "Allowance")}</td><td></td><td></td><td class="r"><b>${m(num(p.allowance))}</b></td><td></td><td class="r">–</td><td class="r">–</td></tr>` : ""}
       <tr class="ctot"><td></td><td>Totals${p.gst ? " (before the GST line)" : ""}</td><td></td><td></td><td class="r">${m(sell)}</td><td></td><td class="r">${m(cost)}</td><td class="r ${profit < 0 ? "neg" : ""}">${m(profit)}<small>${pctTxt(margin)}</small></td></tr>
@@ -1747,7 +1758,7 @@ $("#stage").addEventListener("click", e=>{
   const b = e.target.closest("[data-pv]"); if(b){ pvMode = b.dataset.pv; try{ localStorage.setItem(LS + ".pv", pvMode); }catch(_){} renderPreview(); return; }
   if(e.target.closest("[data-ccsv]") && current){
     const p = current, q = v => { const t = String(v ?? ""); return /[",\n]/.test(t) ? `"${t.replace(/"/g,'""')}"` : t; };
-    const out = [["System","Item","Model","Qty","Retail each","Quoted each","Quoted total","Cost each","Cost total","Profit"].join(",")];
+    const out = [["System","Item","Model","Qty","Retail each","Quoted each","Quoted total",`Cost each (incl. ${costGst(p)}% GST on equipment)`,"Cost total","Profit"].join(",")];
     costRows(p).forEach(r=>{ const ls = r.qty * r.sell, lc = r.cost === null ? null : r.qty * r.cost; out.push([r.kind === "contr" ? "Contractors" : r.sys, r.kind === "item" ? r.it.item : r.kind === "labour" ? "Labour" : (r.c.who || "Contractor"), r.kind === "item" ? r.it.model : "", r.qty, r.kind === "item" ? r.retail.toFixed(2) : "", r.sell.toFixed(2), ls.toFixed(2), r.cost === null ? "" : num(r.cost).toFixed(2), lc === null ? "" : lc.toFixed(2), lc === null ? "" : (ls - lc).toFixed(2)].map(q).join(",")); });
     offer(`${fileBase()} costing.csv`, out.join("\r\n") + "\r\n");
   }
@@ -1756,10 +1767,11 @@ let ccT = null;
 $("#stage").addEventListener("input", e=>{
   const k = e.target.dataset.ck2; if(!k || !current) return;
   const v = e.target.value, p = current;
-  if(k === "up") p.uplift = v === "" ? 0 : num(v);
-  else if(k === "lab") p.labourCost = num(v);
-  else if(k[0] === "c"){ const c = p.contractors[+k.slice(1)]; if(c) c.cost = v === "" ? "" : num(v); }
-  else { const [i, j] = k.slice(1).split("_").map(Number), it = p.systems[i] && p.systems[i].items[j]; if(it){ it.cost = v === "" ? "" : num(v); if(it.libId && v !== ""){ clearTimeout(ccT); const id = it.libId, cv = num(v); ccT = setTimeout(()=>{ const pr = products.find(x=>x.id === id); if(pr && num(pr.cost) !== cv) prWrite(id, { cost: cv }); }, 1200); } } }
+  if(k === "up") p.uplift = v === "" ? 0 : readAmount(v);
+  else if(k === "gst") p.costGst = v === "" ? 0 : readAmount(v);
+  else if(k === "lab") p.labourCost = readAmount(v);
+  else if(k[0] === "c"){ const c = p.contractors[+k.slice(1)]; if(c) c.cost = v.trim() === "" ? "" : readAmount(v); }
+  else { const [i, j] = k.slice(1).split("_").map(Number), it = p.systems[i] && p.systems[i].items[j]; if(it){ it.cost = v.trim() === "" ? "" : readAmount(v); if(it.libId && v.trim() !== ""){ clearTimeout(ccT); const id = it.libId, cv = readAmount(v); ccT = setTimeout(()=>{ const pr = products.find(x=>x.id === id); if(pr && num(pr.cost) !== cv) prWrite(id, { cost: cv }); }, 1200); } } }
   scheduleSave(); clearTimeout(previewTimer); previewTimer = setTimeout(()=>{ renderPreview(); if(k === "up") current.systems.forEach((s,i)=>{ const el = $("#st"+i); if(el){ const tt = totals(current).sys[i]; el.innerHTML = `<span>Equipment ${money(tt.equip,current)} · Labour ${money(tt.inst,current)}</span><b>${money(tt.total,current)}</b>`; } }); }, 450);
 });
 
