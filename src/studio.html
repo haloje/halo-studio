@@ -2542,7 +2542,8 @@ const mpOpted = e => mpOptOut.includes(String(e).toLowerCase());
 const mpTargets = p => mpPeople(p).filter(r=>!mpOpted(r.email) && !(p.excluded || []).includes(r.email) && !(p.sent || {})[r.email]);
 function mpHtml(p, first){
   const paras = s => String(s || "").replace(/\{first\}/g, first).split(/\n\s*\n/).filter(x=>x.trim()).map(x=>`<p style="margin:0 0 14px">${esc(x).replace(/\n/g, "<br>")}</p>`).join("");
-  return `<div style="font-family:Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1a17">${paras(p.greeting)}${paras(p.body)}${paras(p.signoff)}<p style="margin:18px 0 0;font-size:12px;color:#8a8379">You're receiving this because you're a halo.je customer. If you'd rather not hear about offers, just reply and let me know.</p></div>`;
+  const img = p.image ? `<p style="margin:0 0 18px"><img src="${esc(new URL(p.image, "https://haloje.github.io/halo-studio/").href)}" alt="${esc(p.imageAlt || "")}" width="240" style="display:block;width:240px;max-width:100%;height:auto;border-radius:12px"></p>` : "";
+  return `<div style="font-family:Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1a17">${paras(p.greeting)}${paras(p.body)}${img}${paras(p.signoff)}<p style="margin:18px 0 0;font-size:12px;color:#8a8379">You're receiving this because you're a halo.je customer. If you'd rather not hear about offers, just reply and let me know.</p></div>`;
 }
 function mpStart(){
   if(!mpStarted){
