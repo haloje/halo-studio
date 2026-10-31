@@ -589,6 +589,21 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .ldev{display:grid;gap:4px;font-size:13px}
 .ldev span{display:inline-block;width:64px;color:var(--muted);font-family:var(--f-mono);font-size:11px}
 
+/* promotions */
+.app[data-tab=promos] .pmode{display:none!important}
+.app:not([data-tab=promos]) .mmode{display:none!important}
+.mpatt{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:13px}
+.mpprev{border:1px solid var(--line);border-radius:10px;background:#fff;padding:18px 20px;max-height:420px;overflow:auto}
+.mpsubj{font-weight:600;font-size:14px;color:#1c1a17;border-bottom:1px solid #e6e0d6;padding-bottom:10px;margin-bottom:14px}
+.mppeople{display:grid;max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.mpp{display:grid;grid-template-columns:22px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer}
+.mpp:last-child{border-bottom:0}
+.mpp small{display:block;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mpst{font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.mpst.ok{color:#3f7d5a}.mpst.go{color:var(--accent)}.mpst.bad{color:var(--danger)}
+.mpopt{border:0;background:none;color:var(--muted);font-size:11.5px;cursor:pointer;text-decoration:underline;padding:4px}
+@media (max-width:600px){ .mpp{grid-template-columns:22px minmax(0,1fr) auto} .mpopt{grid-column:2} }
+
 /* to-do */
 .app[data-tab=todo] .pmode{display:none!important}
 .app:not([data-tab=todo]) .tmode{display:none!important}
@@ -676,7 +691,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 <div class="app" id="app" data-tab="proposals">
   <header class="bar">
     <div class="brand"><img class="bmark" src="icons/emblem-96.png" alt="" onerror="this.remove()"><b>halo<span>.je</span></b><small>Studio</small></div>
-    <div class="tabs" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabL" role="tab" aria-selected="false">Leads</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div>
+    <div class="tabs" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabL" role="tab" aria-selected="false">Leads</button><button id="tabM" role="tab" aria-selected="false">Promotions</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div>
     <div class="actions rmode" style="margin-left:auto">
       <span class="prsync" id="prStatus"></span>
       <button class="btn" id="prSyncBtn">Sync to Xero</button>
@@ -685,6 +700,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
     <div class="actions lmode" style="margin-left:auto">
       <span class="status" id="ldStatus"></span>
       <button class="btn primary" id="ldSync">Check for new leads</button>
+    </div>
+    <div class="actions mmode" style="margin-left:auto">
+      <span class="status" id="mpStatus"></span>
+      <button class="btn primary" id="mpNew">New promotion</button>
     </div>
     <div class="actions tmode" style="margin-left:auto">
       <span class="status" id="tdStatus"></span>
@@ -761,6 +780,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
   <main class="jwork tmode" id="twork" data-view="edit">
     <aside class="jlist" aria-label="To-dos"><div class="top"><input type="text" id="tdAdd" placeholder="Add a to-do… e.g. chase deposit fri 10am" autocomplete="off" enterkeyhint="done" aria-label="Add a to-do"><div class="chips" id="tdChips"></div><input type="search" id="tdSearch" placeholder="Search to-dos" autocomplete="off" aria-label="Search to-dos" class="tdsearch"></div><div class="jrows" id="tdRows"></div></aside>
     <section class="jstage" aria-label="To-do details"><div class="jscroll" id="tdScroll"></div></section>
+  </main>
+  <main class="jwork mmode" id="mwork" data-view="edit">
+    <aside class="jlist" aria-label="Promotions"><div class="top"><input type="search" id="mpSearch" placeholder="Search promotions" autocomplete="off" aria-label="Search promotions"></div><div class="jrows" id="mpRows"></div></aside>
+    <section class="jstage" aria-label="Promotion"><div class="jscroll" id="mpScroll"></div></section>
   </main>
   <main class="jwork kmode" id="kwork" data-view="edit">
     <aside class="jlist" aria-label="Articles"><div class="top"><input type="search" id="kbSearch" placeholder="Search everything you know" autocomplete="off" aria-label="Search the knowledge base"><div class="chips" id="kbChips"></div></div><div class="jrows" id="kbRows"></div></aside>
@@ -1980,7 +2003,7 @@ function askDel(){
   };
 }
 $("#btnDel").addEventListener("click", askDel);
-function setView(v){ $("#work").dataset.view = v; $("#dwork").dataset.view = v; $("#jwork").dataset.view = v; $("#cwork").dataset.view = v; const kw = $("#kwork"); if(kw) kw.dataset.view = v; const tw = $("#twork"); if(tw) tw.dataset.view = v; const lw = $("#lwork"); if(lw) lw.dataset.view = v; $("#vEdit").setAttribute("aria-pressed", v==="edit"); $("#vPrev").setAttribute("aria-pressed", v==="preview"); if(v==="preview") fitZoom(); }
+function setView(v){ $("#work").dataset.view = v; $("#dwork").dataset.view = v; $("#jwork").dataset.view = v; $("#cwork").dataset.view = v; const kw = $("#kwork"); if(kw) kw.dataset.view = v; const tw = $("#twork"); if(tw) tw.dataset.view = v; const mw = $("#mwork"); if(mw) mw.dataset.view = v; const lw = $("#lwork"); if(lw) lw.dataset.view = v; $("#vEdit").setAttribute("aria-pressed", v==="edit"); $("#vPrev").setAttribute("aria-pressed", v==="preview"); if(v==="preview") fitZoom(); }
 $("#vEdit").onclick = ()=>setView("edit"); $("#vPrev").onclick = ()=>setView("preview");
 
 /* ---------- boot ---------- */
@@ -2494,16 +2517,17 @@ $("#dwDel").addEventListener("click", async e=>{
 
 /* ---------- tabs ---------- */
 function setTab(t){
-  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge"); $("#tabT").setAttribute("aria-selected", t==="todo"); $("#tabL").setAttribute("aria-selected", t==="leads");
+  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge"); $("#tabT").setAttribute("aria-selected", t==="todo"); $("#tabM").setAttribute("aria-selected", t==="promos"); $("#tabL").setAttribute("aria-selected", t==="leads");
   if(t === "leads"){ if(mode !== "loading") ldStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); ldStart(); } }, 200); } }
   if(t === "todo"){ if(mode !== "loading") tdStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); tdStart(); } }, 200); } }
   try{ const st = document.querySelector('.tabs [aria-selected="true"]'); st && st.scrollIntoView({ block: "nearest", inline: "nearest" }); }catch(_){}
   if(t === "knowledge"){ if(mode !== "loading") kbStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); kbStart(); } }, 200); } }
   if(t === "prices"){ prRender(); }
+  if(t === "promos"){ if(mode !== "loading") mpStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); mpStart(); } }, 200); } }
   if(t === "customers"){ const go = ()=>{ jbStart(); kbStart(); cuStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   if(t === "jobs"){ const go = ()=>{ jbStart(); jbRender(); jbRenderList(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   try{ localStorage.setItem(LS+".tab", t); }catch(_){}
-  { const lbl = { proposals: ["Edit","Preview"], drawings: ["Edit","Plan"], jobs: ["List","Details"], customers: ["List","Details"], knowledge: ["List","Article"], todo: ["List","Details"], leads: ["List","Details"], prices: ["List","List"] }[t] || ["Edit","Preview"]; $("#vEdit").textContent = lbl[0]; $("#vPrev").textContent = lbl[1]; if(innerWidth <= 860) setView("edit"); }
+  { const lbl = { proposals: ["Edit","Preview"], drawings: ["Edit","Plan"], jobs: ["List","Details"], customers: ["List","Details"], knowledge: ["List","Article"], todo: ["List","Details"], promos: ["List","Promotion"], leads: ["List","Details"], prices: ["List","List"] }[t] || ["Edit","Preview"]; $("#vEdit").textContent = lbl[0]; $("#vPrev").textContent = lbl[1]; if(innerWidth <= 860) setView("edit"); }
   if(t === "drawings"){ if(mode !== "loading") dwStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); dwStart(); } }, 200); } dwRender(); }
 }
 $("#tabP").addEventListener("click", ()=>setTab("proposals"));
@@ -2514,6 +2538,169 @@ $("#tabR").addEventListener("click", ()=>setTab("prices"));
 $("#tabK").addEventListener("click", ()=>setTab("knowledge"));
 $("#tabT").addEventListener("click", ()=>setTab("todo"));
 $("#tabL").addEventListener("click", ()=>setTab("leads"));
+$("#tabM").addEventListener("click", ()=>setTab("promos"));
+
+/* ---------- Promotions: an offer emailed to each customer individually from info@halo.je ---------- */
+let mpList = [], mpCur = null, mpSel = null, mpDirty = false, mpT = null, mpStarted = false, mpLoaded = false, mpQ = "", mpOptOut = [], mpSending = false, mpStop = false;
+const MP_STATUS = { Draft: "#8a8379", Sending: "#c98f4f", Sent: "#3f7d5a" };
+function mpSetStatus(t, warn){ const s = $("#mpStatus"); if(s){ s.textContent = t; s.classList.toggle("warn", !!warn); } }
+function mpNorm(p){ return Object.assign({ id: "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: "", subject: "", greeting: "Hello {first},", body: "", signoff: "Ian Lamont\nhalo.je\ninfo@halo.je", attachment: null, ends: "", excluded: [], extra: "", sent: {}, failed: {}, created: Date.now(), updated: Date.now() }, p || {}); }
+const mpEmailOf = c => String((c && c.email) || "").split(/[;,\s]+/).find(x=>/@/.test(x)) || "";
+function mpFirst(c){
+  const src = String(c.contact || (c.company ? "" : c.name) || "").trim();
+  if(!src || /\b(ltd|limited|llc|plc|group|hotels?|trust|estates?|properties|holdings|services|club|association|&)\b/i.test(src)) return "there";
+  const w = src.replace(/^(mr|mrs|ms|miss|dr)\.?\s+/i, "").split(/\s+/)[0]; return w ? w.charAt(0).toUpperCase() + w.slice(1) : "there";
+}
+/* Everyone with an email, one row per address. Extra addresses typed into the promotion are added too. */
+function mpPeople(p){
+  const m = new Map();
+  clients.forEach(c=>{ const e = mpEmailOf(c).toLowerCase(); if(e && !m.has(e)) m.set(e, { email: e, name: c.name, first: mpFirst(c), id: c.id }); });
+  String((p && p.extra) || "").split(/[\n;,]+/).map(x=>x.trim()).filter(x=>/@/.test(x)).forEach(x=>{ const e = x.toLowerCase(); if(!m.has(e)) m.set(e, { email: e, name: x, first: "there", id: "" }); });
+  return [...m.values()].sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+}
+const mpOpted = e => mpOptOut.includes(String(e).toLowerCase());
+const mpTargets = p => mpPeople(p).filter(r=>!mpOpted(r.email) && !(p.excluded || []).includes(r.email) && !(p.sent || {})[r.email]);
+function mpHtml(p, first){
+  const paras = s => String(s || "").replace(/\{first\}/g, first).split(/\n\s*\n/).filter(x=>x.trim()).map(x=>`<p style="margin:0 0 14px">${esc(x).replace(/\n/g, "<br>")}</p>`).join("");
+  return `<div style="font-family:Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#1c1a17">${paras(p.greeting)}${paras(p.body)}${paras(p.signoff)}<p style="margin:18px 0 0;font-size:12px;color:#8a8379">You're receiving this because you're a halo.je customer. If you'd rather not hear about offers, just reply and let me know.</p></div>`;
+}
+function mpStart(){
+  if(!mpStarted){
+    mpStarted = true;
+    if(mode === "db"){
+      db.collection("promos").onSnapshot(snap=>{ mpList = snap.docs.map(d=>mpNorm(Object.assign({ id: d.id }, d.data()))); mpLoaded = true; mpOnData(); }, ()=>mpSetStatus("Couldn't load", true));
+      db.doc("settings/marketing").onSnapshot(d=>{ const b = d.exists ? d.data() : null; mpOptOut = ((b && b.optOut) || []).map(x=>String(x).toLowerCase()); if($("#app").dataset.tab === "promos" && !mpDirty) mpRender(); }, ()=>{});
+      mpSetStatus("Saved");
+    } else { try{ mpList = JSON.parse(localStorage.getItem(LS + ".promos") || "[]").map(mpNorm); mpOptOut = JSON.parse(localStorage.getItem(LS + ".optout") || "[]"); }catch(_){ mpList = []; } mpLoaded = true; mpSetStatus("On this device only"); mpOnData(); }
+  }
+  if($("#app").dataset.tab === "promos"){ mpRenderList(); mpRender(); }
+}
+function mpOnData(){
+  if(mpCur && !mpDirty && !mpSending){ const f = mpList.find(x=>x.id === mpCur.id); if(f){ const ae = document.activeElement, inside = ae && $("#mpScroll").contains(ae) && /INPUT|TEXTAREA/.test(ae.tagName); mpCur = clone(f); if(!inside && $("#app").dataset.tab === "promos") mpRender(); } }
+  if(!mpCur && mpLoaded && mpList.length && $("#app").dataset.tab === "promos"){ const first = mpList.slice().sort((a,b)=>b.updated - a.updated)[0]; mpSel = first.id; mpCur = clone(first); mpRender(); }
+  if($("#app").dataset.tab === "promos") mpRenderList();
+}
+async function mpWrite(p){
+  if(mode === "db"){ try{ await db.collection("promos").doc(p.id).set(p); return true; }catch(_){ toast("Couldn't save the promotion. If it has a big attachment, try a smaller file."); return false; } }
+  const i = mpList.findIndex(x=>x.id === p.id); if(i >= 0) mpList[i] = p; else mpList.push(p);
+  try{ localStorage.setItem(LS + ".promos", JSON.stringify(mpList)); }catch(_){} return true;
+}
+async function mpSaveOptOut(){
+  if(mode === "db"){ try{ await db.doc("settings/marketing").set({ optOut: mpOptOut }); }catch(_){ toast("Couldn't save the opt-out list."); } }
+  else try{ localStorage.setItem(LS + ".optout", JSON.stringify(mpOptOut)); }catch(_){}
+}
+const mpStat = p => { const n = Object.keys(p.sent || {}).length; return mpSending && mpCur && mpCur.id === p.id ? "Sending" : n ? "Sent" : "Draft"; };
+function mpRenderList(){
+  const box = $("#mpRows"); if(!box) return;
+  const q = mpQ.toLowerCase(), rows = mpList.filter(p=>!q || [p.name, p.subject, p.body].join(" ").toLowerCase().includes(q)).sort((a,b)=>b.updated - a.updated);
+  box.innerHTML = rows.length ? rows.map(p=>{ const n = Object.keys(p.sent || {}).length, st = mpStat(p);
+    return `<button type="button" class="jrow ${mpSel===p.id?"on":""}" data-mp="${esc(p.id)}" style="--js:${MP_STATUS[st]}"><span class="jbar"></span><span class="jm"><span class="n">${esc(st.toUpperCase())}${p.ends ? " · ENDS " + esc(new Date(p.ends + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }).toUpperCase()) : ""}</span><span class="c">${esc(p.name || "Untitled promotion")}</span><small>${esc(p.subject || "No subject yet")}</small></span><span class="when">${n ? `${n} sent` : ""}</span></button>`; }).join("")
+    : `<p class="note" style="padding:16px">${mpLoaded ? "No promotions yet. Press New promotion." : "Loading…"}</p>`;
+}
+function mpRender(){
+  const sc = $("#mpScroll"); if(!sc) return;
+  if(!mpCur){ sc.innerHTML = `<div class="planempty"><h2>Promotions.</h2><p>Write an offer once and Studio emails it to each customer individually from info@halo.je, with their first name and your flyer attached.</p><p class="note">Studio remembers who's had it, so you can send in batches or add people later without anyone getting it twice. Anyone who asks not to hear about offers can be ticked as opted out and is left off every future promotion.</p></div>`; return; }
+  const p = mpCur, ppl = mpPeople(p), sent = p.sent || {}, failed = p.failed || {}, ex = p.excluded || [], q = (p._q || "").toLowerCase();
+  const targets = mpTargets(p), nSent = Object.keys(sent).length, sample = ppl.find(r=>!mpOpted(r.email)) || { first: "Sarah" };
+  const shown = ppl.filter(r=>!q || (r.name + " " + r.email).toLowerCase().includes(q));
+  const state = r => sent[r.email] ? `<span class="mpst ok">Sent ${esc(new Date(sent[r.email]).toLocaleDateString("en-GB", { day: "numeric", month: "short" }))}</span>` : mpOpted(r.email) ? `<span class="mpst">Opted out</span>` : failed[r.email] ? `<span class="mpst bad" title="${esc(failed[r.email])}">Didn't send</span>` : ex.includes(r.email) ? `<span class="mpst">Left out</span>` : `<span class="mpst go">Will send</span>`;
+  const att = p.attachment;
+  sc.innerHTML = `<div class="jdetail">
+    <div class="jhead"><span class="num">PROMOTION${nSent ? ` · ${nSent} SENT` : ""}</span><h2>${esc(p.name || "New promotion")}</h2></div>
+    <div class="jcard">
+      <div class="row"><label class="f"><span>Promotion name (just for you)</span><input type="text" data-mpk="name" value="${esc(p.name)}" placeholder="e.g. AVA winter offer"></label><label class="f"><span>Offer ends</span><input type="date" data-mpk="ends" value="${esc(p.ends)}"></label></div>
+      <label class="f"><span>Email subject</span><input type="text" data-mpk="subject" value="${esc(p.subject)}" placeholder="What the customer sees in their inbox"></label>
+      <label class="f"><span>Greeting</span><input type="text" data-mpk="greeting" value="${esc(p.greeting)}"></label>
+      <label class="f"><span>Message</span><textarea data-mpk="body" rows="12" placeholder="Leave a blank line between paragraphs.">${esc(p.body)}</textarea></label>
+      <label class="f"><span>Sign off</span><textarea data-mpk="signoff" rows="3">${esc(p.signoff)}</textarea></label>
+      <p class="note">{first} becomes each customer's first name, or "there" when Studio only has a company name. A short line about opting out is added at the bottom.</p>
+      <div class="mpatt">${att ? `<span>📎 <b>${esc(att.name)}</b> · ${Math.round((att.size || att.b64.length * 0.75) / 1024)} KB</span><button class="btn small ghost" data-mpa="dropAtt">Remove</button>` : `<span class="note">No attachment.</span>`}<label class="btn small filebtn">${att ? "Replace attachment" : "Attach flyer (PDF or image)"}<input type="file" accept="application/pdf,image/*" id="mpFile" aria-label="Attach a file"></label></div>
+    </div>
+    <div class="jcard"><h3>Preview <small>AS ${esc(String(sample.first).toUpperCase())} WILL SEE IT</small></h3>
+      <div class="mpprev"><div class="mpsubj">${esc(p.subject || "(no subject)")}</div>${mpHtml(p, sample.first)}</div>
+    </div>
+    <div class="jcard"><h3>Who gets it <small>${targets.length} STILL TO SEND · ${nSent} SENT · ${ppl.length} WITH AN EMAIL</small></h3>
+      <input type="search" data-mpk="_q" value="${esc(p._q || "")}" placeholder="Search customers" aria-label="Search customers">
+      <div class="adds"><button class="btn small ghost" data-mpa="all">Include everyone</button><button class="btn small ghost" data-mpa="none">Leave everyone out</button></div>
+      <div class="mppeople">${shown.slice(0, 500).map(r=>`<label class="mpp"><input type="checkbox" data-mpinc="${esc(r.email)}" ${!ex.includes(r.email) && !mpOpted(r.email) ? "checked" : ""} ${sent[r.email] || mpOpted(r.email) ? "disabled" : ""}><span>${esc(r.name)}<small>${esc(r.email)}${r.first !== "there" ? " · " + esc(r.first) : ""}</small></span>${state(r)}<button class="mpopt" data-mpopt="${esc(r.email)}" title="${mpOpted(r.email) ? "Let them receive offers again" : "They asked not to get offers"}">${mpOpted(r.email) ? "Opt back in" : "Opted out"}</button></label>`).join("") || `<p class="note">No customers match.</p>`}</div>
+      <label class="f"><span>Also send to (other addresses, one per line)</span><textarea data-mpk="extra" rows="2" placeholder="name@example.com">${esc(p.extra)}</textarea></label>
+    </div>
+    <div class="jcard mpsend">
+      <div id="mpProg" class="note">${mpSending ? "Sending…" : targets.length ? `Ready to send to ${targets.length} customer${targets.length > 1 ? "s" : ""}, one email each, from info@halo.je.` : nSent ? "Everyone ticked has had this promotion." : "Tick at least one customer."}</div>
+      <div class="adds"><button class="btn small" data-mpa="test" ${mpSending ? "disabled" : ""}>Send a test to info@halo.je</button>${mpSending ? `<button class="btn small danger" data-mpa="stop">Stop sending</button>` : `<button class="btn primary" data-mpa="send" ${targets.length && p.subject && p.body ? "" : "disabled"}>Send to ${targets.length} customer${targets.length === 1 ? "" : "s"}</button>`}</div>
+    </div>
+    <div class="adds"><button class="btn small ghost" data-mpa="dup">Duplicate</button><button class="btn small ghost danger" data-mpa="remove">Delete promotion</button></div>
+  </div>`;
+}
+function mpOpen(id){ const p = mpList.find(x=>x.id === id); if(!p) return; mpFlush(); mpSel = id; mpCur = clone(p); mpRenderList(); mpRender(); if(innerWidth <= 860) setView("preview"); }
+function mpSchedule(){ mpDirty = true; mpSetStatus("Unsaved"); clearTimeout(mpT); mpT = setTimeout(mpFlush, 700); }
+async function mpFlush(){
+  clearTimeout(mpT); if(!mpCur || !mpDirty) return;
+  mpDirty = false; mpSetStatus("Saving"); mpCur.updated = Date.now();
+  const p = clone(mpCur); delete p._q; const i = mpList.findIndex(x=>x.id === p.id); if(i >= 0) mpList[i] = Object.assign(p, { _q: undefined }); else mpList.push(p);
+  const ok = await mpWrite(p); mpSetStatus(ok ? (mode === "db" ? "Saved" : "Saved on this device") : "Not saved", !ok); mpRenderList();
+}
+async function mpSendOne(m, p, to, first){
+  const a = p.attachment, args = { to: [to], subject: p.subject, body: mpHtml(p, first), bodyType: "html" };
+  if(a) args.attachments = [{ name: a.name, contentType: a.type || "application/octet-stream", contentBytes: a.b64 }];
+  return m.callTool(OL_SRV, "outlook_send_mail", args, { cache: false });
+}
+async function mpSendAll(){
+  const p = mpCur; await mpFlush();
+  const m = await olGet(); if(!m){ toast("Email only sends from the Studio app with Outlook connected."); return; }
+  const targets = mpTargets(p); if(!targets.length) return;
+  if(!confirm(`Send "${p.subject}" to ${targets.length} customer${targets.length > 1 ? "s" : ""} now? Each gets their own email from info@halo.je.`)) return;
+  mpSending = true; mpStop = false; mpRender(); mpRenderList();
+  let ok = 0, bad = 0;
+  for(const r of targets){
+    if(mpStop) break;
+    const pr = $("#mpProg"); if(pr) pr.textContent = `Sending ${ok + bad + 1} of ${targets.length}: ${r.name}`;
+    try{ await mpSendOne(m, p, r.email, r.first); p.sent = Object.assign({}, p.sent, { [r.email]: Date.now() }); if(p.failed) delete p.failed[r.email]; ok++; }
+    catch(err){ p.failed = Object.assign({}, p.failed, { [r.email]: String((err && (err.message || err.code)) || "Failed").slice(0, 200) }); bad++; }
+    if((ok + bad) % 5 === 0){ p.updated = Date.now(); const s = clone(p); delete s._q; await mpWrite(s); }
+    await new Promise(res=>setTimeout(res, 1500));
+  }
+  mpSending = false; p.updated = Date.now(); const s = clone(p); delete s._q; await mpWrite(s);
+  mpRender(); mpRenderList();
+  toast(`${ok} sent${bad ? `, ${bad} didn't send (shown in the list)` : ""}${mpStop ? ". Stopped." : "."}`);
+}
+$("#mpRows").addEventListener("click", e=>{ const r = e.target.closest("[data-mp]"); if(r) mpOpen(r.dataset.mp); });
+$("#mpSearch").addEventListener("input", e=>{ mpQ = e.target.value; mpRenderList(); });
+$("#mpNew").addEventListener("click", async ()=>{ await mpFlush(); const p = mpNorm({ name: "New promotion" }); mpList.push(p); await mpWrite(p); mpOpen(p.id); });
+$("#mpScroll").addEventListener("input", e=>{
+  const k = e.target.dataset.mpk; if(!k || !mpCur) return;
+  mpCur[k] = e.target.value;
+  if(k === "_q"){ const pos = e.target.selectionStart; mpRender(); const el = $("#mpScroll").querySelector('[data-mpk="_q"]'); if(el){ el.focus(); el.setSelectionRange(pos, pos); } return; }
+  mpSchedule();
+  if(k === "name") mpRenderList();
+  clearTimeout(mpCur._pt); mpCur._pt = setTimeout(()=>{ const pv = $("#mpScroll").querySelector(".mpprev"); if(pv && mpCur){ const ppl = mpPeople(mpCur), smp = ppl.find(r=>!mpOpted(r.email)) || { first: "Sarah" }; pv.innerHTML = `<div class="mpsubj">${esc(mpCur.subject || "(no subject)")}</div>${mpHtml(mpCur, smp.first)}`; } if(k === "extra") mpRender(); }, 350);
+});
+$("#mpScroll").addEventListener("change", async e=>{
+  if(!mpCur) return;
+  const inc = e.target.dataset.mpinc;
+  if(inc !== undefined){ const ex = new Set(mpCur.excluded || []); e.target.checked ? ex.delete(inc) : ex.add(inc); mpCur.excluded = [...ex]; mpSchedule(); mpRender(); return; }
+  if(e.target.id === "mpFile"){ const f = e.target.files && e.target.files[0]; if(!f) return;
+    if(f.size > 2.8 * 1024 * 1024){ toast("That file is over 2.8 MB. Outlook won't send it this way, so export a smaller PDF."); return; }
+    const b64 = await new Promise((res, rej)=>{ const r = new FileReader(); r.onload = ()=>res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(f); });
+    mpCur.attachment = { name: f.name, type: f.type || "application/pdf", size: f.size, b64 }; mpSchedule(); mpRender(); }
+});
+$("#mpScroll").addEventListener("click", async e=>{
+  if(!mpCur) return;
+  const o = e.target.closest("[data-mpopt]"); if(o){ e.preventDefault(); const em = o.dataset.mpopt.toLowerCase(); mpOptOut = mpOpted(em) ? mpOptOut.filter(x=>x !== em) : [...mpOptOut, em]; await mpSaveOptOut(); mpRender(); return; }
+  const b = e.target.closest("[data-mpa]"); if(!b) return; const a = b.dataset.mpa;
+  if(a === "dropAtt"){ mpCur.attachment = null; mpSchedule(); mpRender(); }
+  else if(a === "all"){ mpCur.excluded = []; mpSchedule(); mpRender(); }
+  else if(a === "none"){ mpCur.excluded = mpPeople(mpCur).map(r=>r.email); mpSchedule(); mpRender(); }
+  else if(a === "stop"){ mpStop = true; const pr = $("#mpProg"); if(pr) pr.textContent = "Stopping after this one…"; }
+  else if(a === "send") mpSendAll();
+  else if(a === "test"){ await mpFlush(); const m = await olGet(); if(!m){ toast("Email only sends from the Studio app with Outlook connected."); return; }
+    b.disabled = true; try{ await mpSendOne(m, Object.assign({}, mpCur, { subject: "[Test] " + (mpCur.subject || "") }), "info@halo.je", "Ian"); toast("Test sent to info@halo.je."); }catch(err){ toast("The test didn't send: " + ((err && err.message) || "check Outlook is connected in Jobs › Connections.")); } b.disabled = false; }
+  else if(a === "dup"){ await mpFlush(); const p = mpNorm(Object.assign(clone(mpCur), { id: undefined, name: (mpCur.name || "Promotion") + " (copy)", sent: {}, failed: {}, created: Date.now(), updated: Date.now() })); delete p._q; p.id = "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); mpList.push(p); await mpWrite(p); mpOpen(p.id); }
+  else if(a === "remove"){ if(!confirm(`Delete "${mpCur.name || "this promotion"}"? This doesn't unsend anything.`)) return;
+    const id = mpCur.id; mpCur = null; mpSel = null; mpDirty = false; mpList = mpList.filter(x=>x.id !== id);
+    if(mode === "db"){ try{ await db.collection("promos").doc(id).delete(); }catch(_){} } else try{ localStorage.setItem(LS + ".promos", JSON.stringify(mpList)); }catch(_){}
+    mpRenderList(); mpRender(); }
+});
 
 </script>
 <script>
