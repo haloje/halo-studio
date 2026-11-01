@@ -1128,8 +1128,7 @@ function renderDoc(p){
     const items = s.items.filter(it => it.item || it.model || num(it.price));
     const body = items.map(it=>`<tr${it.pb?' class="pb"':''}><td class="q">${esc(it.qty)}</td><td class="it">${esc(it.item)}${it.tag?`<span class="tag">${esc(it.tag)}</span>`:""}</td><td class="mm">${esc(it.model)}</td><td class="r pr">${money(num(it.qty)*sellUnit(p, it),p)}</td></tr>`).join("")
       + (num(s.hours) ? `<tr><td class="q"></td><td class="it">Installation, programming and commissioning</td><td class="mm">${esc(s.hours)} hours</td><td class="r pr">${money(t.sys[i].inst,p)}</td></tr>` : "")
-      + `<tr class="sub"><td></td><td colspan="2">${esc(s.name)} ${oneTail ? "subtotal" : "total"}</td><td class="r">${money(t.sys[i].total,p)}</td></tr>`
-      + (oneTail ? oneTail : "");
+      + (oneTail || `<tr class="sub"><td></td><td colspan="2">${esc(s.name)} total</td><td class="r">${money(t.sys[i].total,p)}</td></tr>`);
     const work = lines(s.work);
     const feat = items.filter(it => (it.desc && it.desc.trim()) || it.img);
     const cards = feat.length ? `<div class="prods">${feat.map(it=>`<div class="prod${feat.length===1?" solo":""}">${it.img?`<div class="pic"><img src="${esc(it.img)}" alt="${esc(it.item)}" crossorigin="anonymous"></div>`:""}<div class="txt">${it.model?`<div class="mono">${esc(it.model)}</div>`:""}<h4>${esc(it.item)}</h4>${paras(it.desc).map(x=>`<p>${inline(x)}</p>`).join("")}</div></div>`).join("")}</div>` : "";
