@@ -874,6 +874,8 @@ const STD_STAGES = [
 ].join("\n");
 
 /* ---------- maths ---------- */
+/* Allowance wording with no amount: shown as a note under the total rather than dropped. */
+const allowNote = p => { const l = String(p.allowanceLabel || "").trim(); return l && l !== "Allowance for design development on provisional items" ? l : ""; };
 const discText = p => { const l = String(p.discLabel || "").trim() || "Discount", v = readAmount(p.discount); return p.discType === "amt" || /%/.test(l) ? l : `${l} (${+v.toFixed(2)}%)`; };
 function totals(p){
   const sys = p.systems.map(s => {
@@ -1101,6 +1103,7 @@ function renderDoc(p){
     ${p.pricedTo?`<p><b>Priced to:</b> ${esc(p.pricedTo)}</p>`:""}
     <table>${head}${rows}</table>
     <div class="grand"><span>${esc(p.totalLabel)}</span><span>${money(t.grand,p)}</span></div>
+    ${!t.allow && allowNote(p) ? `<p style="margin-top:18px">${inline(tokens(allowNote(p),p))}</p>` : ""}
     ${p.afterTotal?`<p style="margin-top:18px">${inline(tokens(p.afterTotal,p))}</p>`:""}
   </article>`);
 
@@ -1322,6 +1325,7 @@ function buildEditor(){
     <div class="row">${field("rate","Labour rate £/hour","number",'step="1" min="0"')}${field("allowance","Allowance £","number",'step="1" min="0"')}</div>
     <div class="row">${field("uplift","Add to retail prices %","number",'step="0.5" min="0" max="100"')}<p class="note" style="align-self:end;margin:0">Built into each equipment price the client sees. See Costs &amp; margin above the preview.</p></div>
     ${field("allowanceLabel","Allowance wording")}
+    <p class="note" style="margin-top:-6px">With an allowance amount this is a priced line in the summary. With £0 it shows as a note under the total.</p>
     <div class="row"><label class="f"><span>Discount</span><div style="display:flex;gap:6px"><input id="f_discount" type="text" inputmode="decimal" data-k="discount" value="${esc(p.discount ?? "")}" placeholder="0" style="flex:1;min-width:0"><select class="in" id="f_discType" data-k="discType" style="width:auto">${[["pct","%"],["amt","£ off"]].map(([v,l])=>`<option value="${v}" ${(p.discType||"pct")===v?"selected":""}>${l}</option>`).join("")}</select></div></label>${field("discLabel","Discount wording","text",'placeholder="Discount"')}</div>
     <p class="note" id="discNote">${totals(p).disc ? `Takes ${money(totals(p).disc,{showPence:true})} off before GST. Shows on the summary as its own line, so the client sees the saving.` : "Optional. Taken off the total before GST and shown as its own line on the summary."}</p>
     <label class="check"><input type="checkbox" id="f_split" data-k="split" ${p.split?"checked":""}> Split equipment and installation in the summary</label>
