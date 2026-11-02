@@ -589,6 +589,26 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .ldev{display:grid;gap:4px;font-size:13px}
 .ldev span{display:inline-block;width:64px;color:var(--muted);font-family:var(--f-mono);font-size:11px}
 
+/* stock */
+.app[data-tab=stock] .pmode{display:none!important}
+.app:not([data-tab=stock]) .smode{display:none!important}
+.skkpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.skkpi>div{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--panel);display:grid;gap:2px}
+.skkpi small{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.skkpi b{font-family:var(--f-display);font-weight:300;font-size:30px;line-height:1.1}
+.skkpi .bad b{color:var(--danger)}
+.skbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}.skbtns .f{width:110px}
+.sktable{display:grid}
+.skl{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.skl:last-child{border-bottom:0}.skl b{font-family:var(--f-display);font-weight:400;font-size:20px;text-align:center}
+.skl small{display:block;color:var(--muted);font-size:12px}
+.sklog{display:grid;grid-template-columns:130px 1fr auto;gap:10px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)}.sklog span:first-child{color:var(--muted);font-family:var(--f-mono);font-size:11px}
+.mstk{grid-column:2 / -1;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;margin-top:-4px;font-size:11.5px}
+.mst{font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.mst.ok{color:#3f7d5a}.mst.mid{color:#6e5a90}.mst.bad{color:var(--danger)}
+.linkbtn{border:0;background:none;padding:2px 0;color:var(--accent);text-decoration:underline;cursor:pointer;font-size:12px}
+@media (max-width:600px){ .skkpi{grid-template-columns:repeat(2,minmax(0,1fr))} }
+
 /* promotions */
 .app[data-tab=promos] .pmode{display:none!important}
 .app:not([data-tab=promos]) .mmode{display:none!important}
@@ -691,7 +711,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 <div class="app" id="app" data-tab="proposals">
   <header class="bar">
     <div class="brand"><img class="bmark" src="icons/emblem-96.png" alt="" onerror="this.remove()"><b>halo<span>.je</span></b><small>Studio</small></div>
-    <div class="tabs" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabL" role="tab" aria-selected="false">Leads</button><button id="tabM" role="tab" aria-selected="false">Promotions</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div>
+    <div class="tabs" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabL" role="tab" aria-selected="false">Leads</button><button id="tabS" role="tab" aria-selected="false">Stock</button><button id="tabM" role="tab" aria-selected="false">Promotions</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div>
     <div class="actions rmode" style="margin-left:auto">
       <span class="prsync" id="prStatus"></span>
       <button class="btn" id="prSyncBtn">Sync to Xero</button>
@@ -700,6 +720,9 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
     <div class="actions lmode" style="margin-left:auto">
       <span class="status" id="ldStatus"></span>
       <button class="btn primary" id="ldSync">Check for new leads</button>
+    </div>
+    <div class="actions smode" style="margin-left:auto">
+      <span class="status" id="skStatus"></span>
     </div>
     <div class="actions mmode" style="margin-left:auto">
       <span class="status" id="mpStatus"></span>
@@ -780,6 +803,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
   <main class="jwork tmode" id="twork" data-view="edit">
     <aside class="jlist" aria-label="To-dos"><div class="top"><input type="text" id="tdAdd" placeholder="Add a to-do… e.g. chase deposit fri 10am" autocomplete="off" enterkeyhint="done" aria-label="Add a to-do"><div class="chips" id="tdChips"></div><input type="search" id="tdSearch" placeholder="Search to-dos" autocomplete="off" aria-label="Search to-dos" class="tdsearch"></div><div class="jrows" id="tdRows"></div></aside>
     <section class="jstage" aria-label="To-do details"><div class="jscroll" id="tdScroll"></div></section>
+  </main>
+  <main class="jwork smode" id="swork" data-view="edit">
+    <aside class="jlist" aria-label="Stock"><div class="top"><input type="search" id="skSearch" placeholder="Search stock" autocomplete="off" aria-label="Search stock"><div class="chips" id="skChips"></div></div><div class="jrows" id="skRows"></div></aside>
+    <section class="jstage" aria-label="Stock item"><div class="jscroll" id="skScroll"></div></section>
   </main>
   <main class="jwork mmode" id="mwork" data-view="edit">
     <aside class="jlist" aria-label="Promotions"><div class="top"><input type="search" id="mpSearch" placeholder="Search promotions" autocomplete="off" aria-label="Search promotions"></div><div class="jrows" id="mpRows"></div></aside>
@@ -2014,7 +2041,7 @@ function askDel(){
   };
 }
 $("#btnDel").addEventListener("click", askDel);
-function setView(v){ $("#work").dataset.view = v; $("#dwork").dataset.view = v; $("#jwork").dataset.view = v; $("#cwork").dataset.view = v; const kw = $("#kwork"); if(kw) kw.dataset.view = v; const tw = $("#twork"); if(tw) tw.dataset.view = v; const mw = $("#mwork"); if(mw) mw.dataset.view = v; const lw = $("#lwork"); if(lw) lw.dataset.view = v; $("#vEdit").setAttribute("aria-pressed", v==="edit"); $("#vPrev").setAttribute("aria-pressed", v==="preview"); if(v==="preview") fitZoom(); }
+function setView(v){ $("#work").dataset.view = v; $("#dwork").dataset.view = v; $("#jwork").dataset.view = v; $("#cwork").dataset.view = v; const kw = $("#kwork"); if(kw) kw.dataset.view = v; const tw = $("#twork"); if(tw) tw.dataset.view = v; const mw = $("#mwork"); if(mw) mw.dataset.view = v; const sw = $("#swork"); if(sw) sw.dataset.view = v; const lw = $("#lwork"); if(lw) lw.dataset.view = v; $("#vEdit").setAttribute("aria-pressed", v==="edit"); $("#vPrev").setAttribute("aria-pressed", v==="preview"); if(v==="preview") fitZoom(); }
 $("#vEdit").onclick = ()=>setView("edit"); $("#vPrev").onclick = ()=>setView("preview");
 
 /* ---------- boot ---------- */
@@ -2528,17 +2555,18 @@ $("#dwDel").addEventListener("click", async e=>{
 
 /* ---------- tabs ---------- */
 function setTab(t){
-  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge"); $("#tabT").setAttribute("aria-selected", t==="todo"); $("#tabM").setAttribute("aria-selected", t==="promos"); $("#tabL").setAttribute("aria-selected", t==="leads");
+  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge"); $("#tabT").setAttribute("aria-selected", t==="todo"); $("#tabM").setAttribute("aria-selected", t==="promos"); $("#tabS").setAttribute("aria-selected", t==="stock"); $("#tabL").setAttribute("aria-selected", t==="leads");
   if(t === "leads"){ if(mode !== "loading") ldStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); ldStart(); } }, 200); } }
   if(t === "todo"){ if(mode !== "loading") tdStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); tdStart(); } }, 200); } }
   try{ const st = document.querySelector('.tabs [aria-selected="true"]'); st && st.scrollIntoView({ block: "nearest", inline: "nearest" }); }catch(_){}
   if(t === "knowledge"){ if(mode !== "loading") kbStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); kbStart(); } }, 200); } }
   if(t === "prices"){ prRender(); }
+  if(t === "stock"){ if(mode !== "loading") skStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); skStart(); } }, 200); } }
   if(t === "promos"){ if(mode !== "loading") mpStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); mpStart(); } }, 200); } }
   if(t === "customers"){ const go = ()=>{ jbStart(); kbStart(); cuStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   if(t === "jobs"){ const go = ()=>{ jbStart(); jbRender(); jbRenderList(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   try{ localStorage.setItem(LS+".tab", t); }catch(_){}
-  { const lbl = { proposals: ["Edit","Preview"], drawings: ["Edit","Plan"], jobs: ["List","Details"], customers: ["List","Details"], knowledge: ["List","Article"], todo: ["List","Details"], promos: ["List","Promotion"], leads: ["List","Details"], prices: ["List","List"] }[t] || ["Edit","Preview"]; $("#vEdit").textContent = lbl[0]; $("#vPrev").textContent = lbl[1]; if(innerWidth <= 860) setView("edit"); }
+  { const lbl = { proposals: ["Edit","Preview"], drawings: ["Edit","Plan"], jobs: ["List","Details"], customers: ["List","Details"], knowledge: ["List","Article"], todo: ["List","Details"], promos: ["List","Promotion"], stock: ["List","Details"], leads: ["List","Details"], prices: ["List","List"] }[t] || ["Edit","Preview"]; $("#vEdit").textContent = lbl[0]; $("#vPrev").textContent = lbl[1]; if(innerWidth <= 860) setView("edit"); }
   if(t === "drawings"){ if(mode !== "loading") dwStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); dwStart(); } }, 200); } dwRender(); }
 }
 $("#tabP").addEventListener("click", ()=>setTab("proposals"));
@@ -2550,6 +2578,166 @@ $("#tabK").addEventListener("click", ()=>setTab("knowledge"));
 $("#tabT").addEventListener("click", ()=>setTab("todo"));
 $("#tabL").addEventListener("click", ()=>setTab("leads"));
 $("#tabM").addEventListener("click", ()=>setTab("promos"));
+$("#tabS").addEventListener("click", ()=>setTab("stock"));
+
+/* ---------- Stock: what's on the shelf, what open jobs need, and what to order ---------- */
+let skList = [], skLoaded = false, skStarted = false, skSel = null, skQ = "", skFilter = "order", skOpenSup = null;
+const SK_OPEN = ["To Book", "Scheduled", "In Progress", "On Hold"];
+const skJobs = () => (typeof jbList !== "undefined" ? jbList : []).map(j=>jbCur && jbCur.id === j.id ? jbCur : j);
+const skKey = x => x.libId || ("m-" + slug(String(x.model || x.item || "")));
+function skSetStatus(t, warn){ const s = $("#skStatus"); if(s){ s.textContent = t; s.classList.toggle("warn", !!warn); } }
+function skNorm(o){ return Object.assign({ id: "", item: "", model: "", supplier: "", libId: "", onHand: 0, onOrder: 0, reorder: 0, log: [], updated: 0 }, o || {}); }
+function skStart(){
+  if(!skStarted){
+    skStarted = true;
+    if(mode === "db"){ db.collection("stock").onSnapshot(snap=>{ skList = snap.docs.map(d=>skNorm(Object.assign({ id: d.id }, d.data()))); skLoaded = true; skOnData(); }, ()=>skSetStatus("Couldn't load", true)); skSetStatus("Saved"); }
+    else { try{ skList = JSON.parse(localStorage.getItem(LS + ".stock") || "[]").map(skNorm); }catch(_){ skList = []; } skLoaded = true; skSetStatus("On this device only"); skOnData(); }
+  }
+  if(typeof jbStart === "function") jbStart();
+  skRender();
+}
+function skOnData(){ if($("#app").dataset.tab === "stock"){ const ae = document.activeElement; if(!(ae && $("#skScroll").contains(ae) && /INPUT|TEXTAREA/.test(ae.tagName))) skRender(); else skRenderList(); } if($("#app").dataset.tab === "jobs" && jbCur && jbView === "job" && !jbDirty){ const ae = document.activeElement; if(!(ae && $("#jbScroll").contains(ae) && /INPUT|TEXTAREA/.test(ae.tagName))) jbRender(); } }
+async function skWrite(o){
+  o.updated = Date.now(); o.log = (o.log || []).slice(-40);
+  const i = skList.findIndex(x=>x.id === o.id); if(i >= 0) skList[i] = o; else skList.push(o);
+  if(mode === "db"){ try{ await db.collection("stock").doc(o.id).set(o); return true; }catch(_){ toast("Couldn't save the stock change."); return false; } }
+  try{ localStorage.setItem(LS + ".stock", JSON.stringify(skList)); }catch(_){} skOnData(); return true;
+}
+/* A stock record for a key, created from the library product or a job line if it doesn't exist yet. */
+function skGet(key, from){
+  let o = skList.find(x=>x.id === key); if(o) return clone(o);
+  const pr = products.find(x=>x.id === key) || {}, f = from || {};
+  return skNorm({ id: key, libId: pr.id || f.libId || "", item: pr.item || f.item || "", model: pr.model || f.model || "", supplier: (pr.supplier && pr.supplier !== "Imported from Xero" ? pr.supplier : "") || f.supplier || "" });
+}
+async function skMove(key, field, delta, why, from, job){
+  const o = skGet(key, from); o[field] = Math.max(0, num(o[field]) + delta);
+  o.log.push({ at: new Date().toISOString().slice(0, 16).replace("T", " "), f: field, d: delta, why, job: job || "" });
+  return skWrite(o);
+}
+/* What open jobs still need: materials not yet fitted, not supplied direct, not invoiced. */
+function skDemand(){
+  const m = new Map();
+  skJobs().filter(j=>SK_OPEN.includes(j.status)).forEach(j=>(j.materials || []).forEach(x=>{
+    if(!(x.item || x.model) || x.st === "fitted" || x.st === "direct" || x.inv) return;
+    const k = skKey(x); if(!m.has(k)) m.set(k, { key: k, item: x.item, model: x.model || "", supplier: x.supplier || poSupOf(x) || "", libId: x.libId || "", need: 0, jobs: [] });
+    const d = m.get(k); d.need += num(x.qty) || 1; d.jobs.push({ id: j.id, number: j.number, customer: j.customer, qty: num(x.qty) || 1 });
+  }));
+  return m;
+}
+function skRows(){
+  const dem = skDemand(), keys = new Set([...skList.map(x=>x.id), ...dem.keys()]);
+  return [...keys].map(k=>{ const s = skList.find(x=>x.id === k) || skNorm({ id: k }), d = dem.get(k) || { need: 0, jobs: [] };
+    const item = s.item || d.item || "", model = s.model || d.model || "", supplier = s.supplier || d.supplier || "";
+    const onHand = num(s.onHand), onOrder = num(s.onOrder), need = d.need, reorder = num(s.reorder);
+    const short = Math.max(0, need + reorder - onHand - onOrder);
+    return { key: k, item, model, supplier, libId: s.libId || d.libId, onHand, onOrder, need, reorder, short, free: onHand - need, jobs: d.jobs, log: s.log || [], cost: itemCost({ libId: s.libId || d.libId }) };
+  }).filter(r=>r.item || r.model).sort((a,b)=>String(a.item).localeCompare(String(b.item)));
+}
+const skStatus = r => r.short > 0 ? ["To order", "#9a3f2f"] : r.onOrder > 0 && r.onHand < r.need ? ["On order", "#6e5a90"] : r.need > 0 ? ["Covered", "#4c7a5a"] : r.onHand > 0 ? ["In stock", "#3f6f9e"] : ["None", "#857f77"];
+/* For a job line: in stock, on order or to order, allocating free stock to jobs in job-number order. */
+function skLineState(j, x){
+  if(x.st === "fitted") return ["Fitted", "ok"]; if(x.st === "direct") return ["Supplied direct", ""];
+  const k = skKey(x), s = skList.find(o=>o.id === k); let left = s ? num(s.onHand) : 0, ord = s ? num(s.onOrder) : 0;
+  const jobs = skJobs().filter(o=>SK_OPEN.includes(o.status)).slice().sort((a,b)=>String(a.number).localeCompare(String(b.number)));
+  for(const o of jobs){ for(const y of (o.materials || [])){ if(skKey(y) !== k || y.st === "fitted" || y.st === "direct" || y.inv) continue; const q = num(y.qty) || 1;
+    if(o.id === j.id && y.id === x.id){ if(left >= q) return ["In stock", "ok"]; if(left + ord >= q) return ["On order", "mid"]; return ["To order", "bad"]; }
+    const fromHand = Math.min(left, q); left -= fromHand; ord = Math.max(0, ord - (q - fromHand)); } }
+  return SK_OPEN.includes(j.status) ? ["To order", "bad"] : ["", ""];
+}
+function skRenderList(){
+  const box = $("#skRows"), chips = $("#skChips"); if(!box) return;
+  const rows = skRows(), cnt = { order: rows.filter(r=>r.short > 0).length, stock: rows.filter(r=>r.onHand > 0).length, onorder: rows.filter(r=>r.onOrder > 0).length, need: rows.filter(r=>r.need > 0).length, all: rows.length };
+  chips.innerHTML = [["order","To order"],["need","For jobs"],["stock","In stock"],["onorder","On order"],["all","All"]].map(([k,l])=>`<button data-skf="${k}" aria-pressed="${skFilter===k}">${l} ${cnt[k]}</button>`).join("");
+  const q = skQ.toLowerCase(), f = { order: r=>r.short > 0, stock: r=>r.onHand > 0, onorder: r=>r.onOrder > 0, need: r=>r.need > 0, all: ()=>true }[skFilter];
+  const shown = rows.filter(f).filter(r=>!q || [r.item, r.model, r.supplier].join(" ").toLowerCase().includes(q));
+  box.innerHTML = `<button type="button" class="jrow ${skSel === null ? "on" : ""}" data-sk="" style="--js:var(--accent)"><span class="jbar"></span><span class="jm"><span class="n">ORDER LIST</span><span class="c">What to order</span><small>${cnt.order ? `${cnt.order} item${cnt.order > 1 ? "s" : ""} short, grouped by supplier` : "Nothing short right now"}</small></span><span class="when"></span></button>`
+    + (shown.length ? shown.map(r=>{ const [st, c] = skStatus(r);
+      return `<button type="button" class="jrow ${skSel === r.key ? "on" : ""}" data-sk="${esc(r.key)}" style="--js:${c}"><span class="jbar"></span><span class="jm"><span class="n">${esc(st.toUpperCase())}${r.supplier ? " · " + esc(r.supplier.toUpperCase()) : ""}</span><span class="c">${esc(r.item || r.model)}</span><small>${esc(r.model)}</small></span><span class="when">${r.onHand} in stock<br>${r.need ? `${r.need} needed` : ""}${r.onOrder ? `${r.need ? " · " : ""}${r.onOrder} ordered` : ""}</span></button>`; }).join("")
+    : `<p class="note" style="padding:16px">${!skLoaded ? "Loading…" : skFilter === "order" ? "Nothing to order. Open jobs are covered by stock and orders." : "Nothing here."}</p>`);
+}
+function skRender(){
+  skRenderList();
+  const sc = $("#skScroll"); if(!sc) return;
+  if(skSel === null){
+    const rows = skRows().filter(r=>r.short > 0), g = new Map(); rows.forEach(r=>{ const k = r.supplier || ""; if(!g.has(k)) g.set(k, []); g.get(k).push(r); });
+    const groups = [...g.entries()].sort((a,b)=>(a[0]?0:1)-(b[0]?0:1) || a[0].localeCompare(b[0]));
+    const tot = rows.reduce((a,r)=>a + r.short * num(r.cost), 0);
+    sc.innerHTML = `<div class="jdetail"><div class="jhead"><span class="num">ORDER LIST${tot ? " · ABOUT " + esc(money(tot, {showPence:true})) + " AT COST" : ""}</span><h2>What to order.</h2></div>
+      <p class="note">Built from materials on open jobs (To Book, Scheduled, In Progress, On Hold) that aren't fitted yet, less what's in stock and already on order, plus any minimum stock levels you've set.</p>
+      ${groups.length ? groups.map(([sup, list])=>`<div class="jcard"><h3>${esc(sup || "No supplier set")} <small>${list.length} LINE${list.length > 1 ? "S" : ""}</small></h3>
+        <div class="sktable">${list.map(r=>`<div class="skl"><b>${r.short}</b><span>${esc(r.item)}<small>${esc([r.model, r.jobs.map(x=>x.number).join(", ")].filter(Boolean).join(" · "))}</small></span><button class="btn small ghost" data-ska="open" data-key="${esc(r.key)}">Open</button></div>`).join("")}</div>
+        ${skOpenSup === sup ? skOrderPanel(sup, list) : `<div class="adds">${sup ? `<button class="btn small" data-ska="email" data-sup="${esc(sup)}">Email order</button>` : ""}<button class="btn small ghost" data-ska="ordered" data-sup="${esc(sup)}">Mark as ordered</button></div>`}
+      </div>`).join("") : `<div class="planempty"><h2>All covered.</h2><p>Every open job's materials are in stock or on order.</p><p class="note">Add materials to a job (or create a job from an accepted quote) and anything you're short of appears here. Tick lines as Fitted on the job and they come out of stock.</p></div>`}
+      <div class="jcard"><h3>Add stock you already have</h3><div class="jxlib"><input type="text" id="skLq" placeholder="Search your library (${products.length})" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="skLr"><div class="libres" id="skLr" role="listbox" hidden></div></div></div>
+    </div>`;
+    return;
+  }
+  const r = skRows().find(x=>x.key === skSel) || Object.assign({ jobs: [], log: [] }, skGet(skSel), { key: skSel, need: 0, short: 0, free: 0 });
+  const [st] = skStatus(r);
+  sc.innerHTML = `<div class="jdetail">
+    <div class="jhead"><span class="num">${esc(st.toUpperCase())}${r.supplier ? " · " + esc(r.supplier.toUpperCase()) : ""}</span><h2>${esc(r.item || r.model)}</h2></div>
+    <div class="skkpi"><div><small>In stock</small><b>${r.onHand}</b></div><div><small>Needed for jobs</small><b>${r.need}</b></div><div><small>On order</small><b>${r.onOrder}</b></div><div class="${r.short ? "bad" : ""}"><small>To order</small><b>${r.short}</b></div></div>
+    <div class="jcard"><h3>Update</h3>
+      <div class="skbtns"><label class="f"><span>Quantity</span><input type="number" id="skQty" min="1" step="1" value="${Math.max(1, r.short || 1)}"></label>
+        <button class="btn small" data-ska="recv">Received</button><button class="btn small" data-ska="ord">Ordered</button><button class="btn small ghost" data-ska="used">Used / taken out</button></div>
+      <div class="row"><label class="f"><span>Count in stock now</span><input type="number" min="0" step="1" data-skk="onHand" value="${r.onHand}"></label><label class="f"><span>Keep at least (reorder level)</span><input type="number" min="0" step="1" data-skk="reorder" value="${r.reorder || 0}"></label></div>
+      <div class="row"><label class="f"><span>Supplier</span><input type="text" data-skk="supplier" value="${esc(r.supplier)}" list="skSupList"></label><label class="f"><span>On order</span><input type="number" min="0" step="1" data-skk="onOrder" value="${r.onOrder}"></label></div>
+      <datalist id="skSupList">${[...new Set(products.map(x=>x.supplier).filter(x=>x && x !== "Imported from Xero"))].map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
+      <p class="note">Received adds to stock and takes it off the order. Ordered adds to On order. Changing a count directly is logged as a stock check.</p>
+    </div>
+    <div class="jcard"><h3>Jobs needing it <small>${r.jobs.length}</small></h3>${r.jobs.length ? r.jobs.map(x=>`<div class="skl"><b>${x.qty}</b><span>${esc(x.number)}<small>${esc(x.customer || "")}</small></span><button class="btn small ghost" data-ska="job" data-id="${esc(x.id)}">Open job</button></div>`).join("") : `<p class="note">No open job needs this.</p>`}</div>
+    <div class="jcard"><h3>History</h3>${r.log && r.log.length ? r.log.slice().reverse().slice(0, 20).map(l=>`<div class="sklog"><span>${esc(l.at)}</span><span>${esc(l.why)}</span><b>${l.d > 0 ? "+" : ""}${l.d}${l.f === "onOrder" ? " ordered" : ""}</b></div>`).join("") : `<p class="note">No changes yet.</p>`}</div>
+  </div>`;
+}
+function skOrderPanel(sup, list){
+  const body = [`Hello,`, ``, `Please could you supply the following:`, ``, ...list.map(r=>`- ${r.short} × ${r.item}${r.model ? " (" + r.model + ")" : ""}`), ``, `Please confirm price, stock and lead time before dispatch.`, ``, `Thanks,`, `Ian Lamont`, `halo.je`].join("\n");
+  return `<div class="empanel"><label class="f"><span>To (${esc(sup)})</span><input type="text" id="skTo" value="${esc(poSuppliers[sup] || "")}" placeholder="orders@supplier.com"></label>
+    <label class="f"><span>Subject</span><input type="text" id="skSubj" value="Order · halo.je · ${esc(jbToday())}"></label>
+    <label class="f"><span>Message</span><textarea id="skBody" rows="10">${esc(body)}</textarea></label>
+    <div class="adds"><button class="btn small primary" data-ska="send" data-sup="${esc(sup)}">Send from info@halo.je and mark ordered</button><button class="btn small ghost" data-ska="cancel">Cancel</button></div></div>`;
+}
+async function skMarkOrdered(sup, how){ const list = skRows().filter(r=>r.short > 0 && (r.supplier || "") === sup); for(const r of list) await skMove(r.key, "onOrder", r.short, how || "Ordered", r); skRender(); toast(`${list.length} line${list.length > 1 ? "s" : ""} marked as ordered.`); }
+$("#skRows").addEventListener("click", e=>{ const b = e.target.closest("[data-sk]"); if(!b) return; skSel = b.dataset.sk || null; skOpenSup = null; skRender(); if(innerWidth <= 860) setView("preview"); });
+$("#skChips").addEventListener("click", e=>{ const b = e.target.closest("[data-skf]"); if(!b) return; skFilter = b.dataset.skf; skRenderList(); });
+$("#skSearch").addEventListener("input", e=>{ skQ = e.target.value; skRenderList(); });
+$("#skScroll").addEventListener("input", e=>{
+  if(e.target.id === "skLq"){ const q = e.target.value.trim(), box = $("#skLr"); if(!q){ box.hidden = true; return; } const res = searchProducts(q, 10);
+    box.innerHTML = res.length ? res.map(pr=>`<button type="button" role="option" data-skpick="${esc(pr.id)}" style="grid-template-columns:1fr auto"><span class="n"><span>${esc(pr.item)}</span><small>${esc([pr.model, pr.supplier].filter(Boolean).join(" · "))}</small></span><b></b></button>`).join("") : `<div class="none">Nothing called "${esc(q)}".</div>`; box.hidden = false; }
+});
+$("#skScroll").addEventListener("change", async e=>{
+  const k = e.target.dataset.skk; if(!k || !skSel) return;
+  const o = skGet(skSel), v = k === "supplier" ? e.target.value.trim() : Math.max(0, Math.round(num(e.target.value)));
+  if(k === "onHand" && v !== num(o.onHand)) o.log.push({ at: new Date().toISOString().slice(0, 16).replace("T", " "), f: "onHand", d: v - num(o.onHand), why: "Stock check" });
+  if(k === "onOrder" && v !== num(o.onOrder)) o.log.push({ at: new Date().toISOString().slice(0, 16).replace("T", " "), f: "onOrder", d: v - num(o.onOrder), why: "Order corrected" });
+  o[k] = v; await skWrite(o); skRender();
+});
+$("#skScroll").addEventListener("mousedown", async e=>{ const b = e.target.closest("[data-skpick]"); if(!b) return; e.preventDefault(); const o = skGet(b.dataset.skpick); if(!skList.find(x=>x.id === o.id)) await skWrite(o); skSel = o.id; skRender(); });
+$("#skScroll").addEventListener("click", async e=>{
+  const b = e.target.closest("[data-ska]"); if(!b) return; const a = b.dataset.ska;
+  if(a === "open"){ skSel = b.dataset.key; skRender(); return; }
+  if(a === "job"){ setTab("jobs"); setTimeout(()=>jbOpen(b.dataset.id), 300); return; }
+  if(a === "email"){ skOpenSup = b.dataset.sup; skRender(); return; }
+  if(a === "cancel"){ skOpenSup = null; skRender(); return; }
+  if(a === "ordered"){ await skMarkOrdered(b.dataset.sup); return; }
+  if(a === "send"){ const sup = b.dataset.sup, to = $("#skTo").value.trim(), subject = $("#skSubj").value.trim(), text = $("#skBody").value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ toast("Add the supplier's email address."); return; }
+    const m = await olGet(); if(!m){ toast("Email only sends from the Studio app with Outlook connected."); return; }
+    b.disabled = true; b.textContent = "Sending…";
+    try{ await m.callTool(OL_SRV, "outlook_send_mail", { to: [to], subject, body: text.split(/\n\s*\n/).map(x=>`<p>${esc(x).replace(/\n/g,"<br>")}</p>`).join(""), bodyType: "html" }, { cache: false });
+      poSuppliers[sup] = to; poSaveSuppliers(); skOpenSup = null; await skMarkOrdered(sup, "Ordered by email"); }
+    catch(err){ b.disabled = false; b.textContent = "Send from info@halo.je and mark ordered"; toast(olErrText(err)); }
+    return; }
+  if(!skSel) return; const q = Math.max(1, Math.round(num(($("#skQty") || {}).value) || 1)), r = skRows().find(x=>x.key === skSel) || {};
+  if(a === "recv"){ const o = skGet(skSel, r); o.onHand = num(o.onHand) + q; o.onOrder = Math.max(0, num(o.onOrder) - q); o.log.push({ at: new Date().toISOString().slice(0, 16).replace("T", " "), f: "onHand", d: q, why: "Received" }); await skWrite(o); toast(`${q} received into stock.`); }
+  if(a === "ord"){ await skMove(skSel, "onOrder", q, "Ordered", r); toast(`${q} marked as ordered.`); }
+  if(a === "used"){ await skMove(skSel, "onHand", -q, "Used / taken out", r); toast(`${q} taken out of stock.`); }
+  skRender();
+});
+/* Job materials: Fitted takes it out of stock, Undo puts it back. */
+async function skFit(j, x, on){
+  if(on){ x.st = "fitted"; x.fitAt = jbToday(); const s = skList.find(o=>o.id === skKey(x)), take = s ? Math.min(num(s.onHand), num(x.qty) || 1) : 0; x.fitTook = take; if(take > 0) await skMove(skKey(x), "onHand", -take, `Fitted on ${j.number}`, x, j.number); }
+  else { if(num(x.fitTook) > 0) await skMove(skKey(x), "onHand", num(x.fitTook), `Fitted undone on ${j.number}`, x, j.number); x.st = ""; delete x.fitAt; delete x.fitTook; }
+}
 
 /* ---------- Promotions: an offer emailed to each customer individually from info@halo.je ---------- */
 let mpList = [], mpCur = null, mpSel = null, mpDirty = false, mpT = null, mpStarted = false, mpLoaded = false, mpQ = "", mpOptOut = [], mpSending = false, mpStop = false;
@@ -2758,6 +2946,7 @@ async function jbStart(){
       if(first){ first = false; jbLoaded = true; jbSetStatus(jbList.length ? "Saved" : "Ready"); }
       if(jbCur){ const r = jbList.find(x=>x.id===jbCur.id); if(r && !jbDirty && !jbSaving && r.updated > jbCur.updated){ jbCur = jbNorm(clone(r)); if(jbView === "job") jbRender(); } }
       jbRenderList(); if(jbView === "week") jbRender();
+      if($("#app").dataset.tab === "stock" && typeof skRender === "function"){ const ae = document.activeElement; if(!(ae && $("#skScroll").contains(ae) && /INPUT|TEXTAREA/.test(ae.tagName))) skRender(); }
       swQueue();
     }, ()=>jbSetStatus("Offline", true));
   } else {
@@ -3202,6 +3391,7 @@ function jxCardsHtml(j){
       <span class="lt" id="ml_${esc(x.id)}">${money(num(x.qty)*num(x.price), {showPence:true})}</span>
       <button class="icon" title="Remove" data-jx="rmMat" data-id="${esc(x.id)}">×</button>
       ${x.inv ? `<small class="invd">Invoiced on ${esc(x.inv)}</small>` : (x.model || x.supplier) ? `<small class="sub">${esc([x.model, x.supplier].filter(Boolean).join(" · "))}</small>` : ""}
+      ${!x.inv && (x.item || x.model) ? (()=>{ const [l, c] = skLineState(j, x); return `<div class="mstk">${l ? `<span class="mst ${c}">${esc(l)}${x.st === "fitted" && x.fitAt ? " " + esc(x.fitAt) : ""}</span>` : ""}${x.st ? `<button class="linkbtn" data-jx="unfitMat" data-id="${esc(x.id)}">Undo</button>` : `<button class="linkbtn" data-jx="fitMat" data-id="${esc(x.id)}">Mark fitted</button><button class="linkbtn" data-jx="directMat" data-id="${esc(x.id)}">Supplied direct</button>`}</div>`; })() : ""}
     </div>`).join("") || `<p class="note">Nothing used yet. Add items from your library as you fit them.</p>`}
     <div class="adds"><div class="jxlib"><input type="text" id="jxLq" data-jxlib="1" placeholder="Add from your library (${products.length})" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="jxLr"><div class="libres" id="jxLr" role="listbox" hidden></div></div><button class="btn small ghost" data-jx="addMat">Add custom line</button></div>
   </div>
@@ -3363,6 +3553,9 @@ async function jxInvoice(btn, viaFile){
 $("#jbScroll").addEventListener("click", async e=>{
   const b = e.target.closest("[data-jx]"); if(!b || !jbCur) return; e.preventDefault();
   const a = b.dataset.jx, id = b.dataset.id, j = jbCur;
+  if(a === "fitMat" || a === "unfitMat" || a === "directMat"){ const x = j.materials.find(m=>m.id === id); if(!x) return;
+    if(a === "directMat"){ x.st = "direct"; } else { if(!skStarted) skStart(); await skFit(j, x, a === "fitMat"); }
+    jbSchedule(); jbRender(); return; }
   if(a === "addMat"){ j.materials.push({ id: uid(), item: "", model: "", qty: 1, price: 0 }); jbSchedule(); jbRender(); const els = document.querySelectorAll('[data-jm-k="item"]'); els.length && els[els.length-1].focus(); }
   else if(a === "rmMat"){ const gone = j.materials.find(x=>x.id === id); if(!gone) return; const idx = j.materials.indexOf(gone); j.materials = j.materials.filter(x=>x.id !== id); jbSchedule(); jbRender();
     undoToast(`${gone.item || "Line"} removed.`, ()=>{ const jj = olFind(j.id); if(jj){ jj.materials.splice(idx, 0, gone); if(jbCur && jbCur.id === jj.id){ jbSchedule(); jbRender(); } } }, null); }
