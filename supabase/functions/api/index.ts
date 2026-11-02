@@ -5,6 +5,7 @@
 //   POST /api/status                      (signed-in member)  -> which connections are live
 //   POST /api/disconnect                  (signed-in member)  -> { provider }
 //   POST /api/call                        (signed-in member)  -> { provider, action, input }
+//   POST /api/svc                         (scheduled tasks)   -> { key, action, input }; key must be in public.svc_keys
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
@@ -18,7 +19,7 @@ const XERO_SECRET = Deno.env.get("XERO_CLIENT_SECRET") || "";
 const FN_BASE = `${SB_URL}/functions/v1/api`;
 const MS_SCOPES = "offline_access openid email User.Read Calendars.ReadWrite Mail.Send Mail.Read";
 const MS_SCOPES_V1 = "offline_access openid email User.Read Calendars.ReadWrite Mail.Send"; // what connections made before Mail.Read were granted
-const XERO_SCOPES = "openid profile email offline_access accounting.invoices accounting.contacts accounting.settings";
+const XERO_SCOPES = "openid profile email offline_access accounting.invoices accounting.contacts accounting.settings accounting.attachments";
 
 const admin = createClient(SB_URL, SERVICE, { auth: { persistSession: false } });
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-key", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
@@ -347,12 +348,59 @@ async function xeroCall(action: string, p: any) {
     if (bad.length && bad.length === res.length) throw new ApiError("tool_error", bad.map((b: any) => `${b.Code}: ${b.error}`).join("; "), 400);
     return { results: res };
   }
+  if (action === "create_bill") return await xeroBill(p);
   if (action === "invoice_status") {
     const ids = (p.ids || []).filter(Boolean).slice(0, 40); if (!ids.length) return { results: [] };
     const r = await xero("GET", `/Invoices?IDs=${ids.map(encodeURIComponent).join(",")}`);
     return { results: (r.body?.Invoices || []).map((x: any) => ({ InvoiceID: x.InvoiceID, InvoiceNumber: x.InvoiceNumber, Status: x.Status, AmountDue: x.AmountDue, AmountPaid: x.AmountPaid, Total: x.Total })) };
   }
   throw new ApiError("bad_request", "Unknown Xero action.");
+}
+
+/* Supplier bill (ACCPAY) from an emailed invoice, with the PDF attached, left Awaiting Payment so the
+   bank-feed line shows it as a match in Reconcile. Safe to call twice: an existing bill with the same
+   supplier invoice number is returned instead of creating another. */
+async function xeroBill(p: any) {
+  const number = String(p.number || "").trim(), supplier = String(p.supplier || "").trim();
+  if (!number || !supplier) throw new ApiError("bad_request", "supplier and number are required.");
+  const lines = (p.lines || []).filter((l: any) => Number(l.unit) || Number(l.qty));
+  if (!lines.length) throw new ApiError("bad_request", "No lines.");
+  const q = (s: string) => s.replace(/"/g, '\\"');
+  const ex = await xero("GET", `/Invoices?where=${encodeURIComponent(`Type=="ACCPAY"&&InvoiceNumber=="${q(number)}"`)}`);
+  const found = (ex.body?.Invoices || []).find((x: any) => x.Status !== "DELETED" && x.Status !== "VOIDED");
+  let id = found?.InvoiceID, created = false, status = found?.Status, total = found?.Total;
+  if (!found) {
+    const c = await xero("GET", `/Contacts?searchTerm=${encodeURIComponent(supplier)}`);
+    const list = c.body?.Contacts || [], norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const hit = list.find((x: any) => norm(x.Name) === norm(supplier)) || list[0];
+    const sum = Math.round(lines.reduce((a: number, l: any) => a + (Number(l.qty) || 1) * (Number(l.unit) || 0), 0) * 100) / 100;
+    const want = p.total != null ? Math.round(Number(p.total) * 100) / 100 : sum, ok = Math.abs(want - sum) < 0.015;
+    const inv: any = { Type: "ACCPAY", Contact: hit ? { ContactID: hit.ContactID } : { Name: supplier }, Date: p.date, DueDate: p.due_date || p.date, InvoiceNumber: number, Reference: p.reference || number,
+      Status: ok ? "AUTHORISED" : "DRAFT", LineAmountTypes: p.tax_inclusive ? "Inclusive" : "NoTax", CurrencyCode: p.currency || "GBP",
+      LineItems: lines.map((l: any) => { const o: any = { Description: (l.code && !String(l.desc || "").includes(l.code) ? `${l.code} · ` : "") + String(l.desc || "").slice(0, 3900), Quantity: Number(l.qty) || 1, UnitAmount: Number(l.unit) || 0,
+        AccountCode: l.account || (/shipping|delivery|carriage|courier|postage/i.test(l.desc || "") ? "425" : "310") }; return o; }) };
+    const r = await xero("POST", "/Invoices?summarizeErrors=false", { Invoices: [inv] });
+    const out = r.body?.Invoices?.[0];
+    if (!out || out.HasErrors || r.status === 400) throw new ApiError("tool_error", xeroErrors(out) || r.body?.Message || "Xero refused the bill.", 400);
+    id = out.InvoiceID; created = true; status = out.Status; total = out.Total;
+  }
+  let attached = false, attachError = "";
+  if (p.message_id && p.attachment_id) {
+    try {
+      const has = found ? ((await xero("GET", `/Invoices/${id}/Attachments`)).body?.Attachments || []).length > 0 : false;
+      if (!has) {
+        const a: any = await graph("GET", `/me/messages/${encodeURIComponent(p.message_id)}/attachments/${encodeURIComponent(p.attachment_id)}`);
+        if (!a.contentBytes) throw new Error("The email attachment couldn't be read.");
+        const bin = Uint8Array.from(atob(a.contentBytes), (ch) => ch.charCodeAt(0));
+        const { token, conn } = await accessToken("xero");
+        const name = String(p.file_name || a.name || `${number}.pdf`).replace(/[^\w.\- ]/g, "_");
+        const r = await fetch(`https://api.xero.com/api.xro/2.0/Invoices/${id}/Attachments/${encodeURIComponent(name)}`, { method: "PUT", headers: { Authorization: `Bearer ${token}`, "Xero-tenant-id": conn.tenantId, "Content-Type": a.contentType || "application/pdf", Accept: "application/json" }, body: bin });
+        if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? "Xero needs reconnecting to allow attachments." : `Xero attachment error ${r.status}`);
+      }
+      attached = true;
+    } catch (e) { attachError = (e as Error).message; }
+  }
+  return { InvoiceID: id, created, status, total, attached, attachError, link: `https://go.xero.com/AccountsPayable/View.aspx?InvoiceID=${id}` };
 }
 
 /* ---------- router ---------- */
@@ -419,6 +467,14 @@ Deno.serve(async (req) => {
       const { provider, action, input } = await req.json();
       const result = provider === "ms" ? await msCall(action, input || {}) : provider === "xero" ? await xeroCall(action, input || {}) : (() => { throw new ApiError("bad_provider", "Unknown connection."); })();
       return json({ result });
+    }
+    if (path === "/svc" && req.method === "POST") {
+      const { key, action, input } = await req.json().catch(() => ({}));
+      if (!key) throw new ApiError("not_allowed", "Key required.", 401);
+      const { data: k } = await admin.from("svc_keys").select("key").eq("key", key).maybeSingle();
+      if (!k) throw new ApiError("not_allowed", "Unknown key.", 401);
+      if (action !== "xero.create_bill") throw new ApiError("bad_request", "Unknown action.");
+      return json({ result: await xeroBill(input || {}) });
     }
     return fail("not_found", "No such route.", 404);
   } catch (e) {
