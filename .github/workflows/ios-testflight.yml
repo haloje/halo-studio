@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: macos-15
     timeout-minutes: 45
     env:
       TEAM_ID: P7B325A469
@@ -40,6 +40,12 @@ jobs:
           if [ -z "$KEY_ID" ] || [ -z "$ISSUER" ] || [ -z "$P8" ]; then
             echo "::error::Add the ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8 secrets first."; exit 1; fi
 
+      - name: Use the newest Xcode
+        run: |
+          X=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          [ -n "$X" ] && sudo xcode-select -s "$X"
+          xcodebuild -version
+
       - name: Install and copy the web shell into the app
         run: |
           npm ci
@@ -51,7 +57,11 @@ jobs:
           KEY_ID: ${{ secrets.ASC_KEY_ID }}
         run: |
           mkdir -p "$RUNNER_TEMP/asc"
-          printf '%s\n' "$P8" > "$RUNNER_TEMP/asc/AuthKey_$KEY_ID.p8"
+          if printf '%s' "$P8" | grep -q "BEGIN PRIVATE KEY"; then
+            printf '%s\n' "$P8" > "$RUNNER_TEMP/asc/AuthKey_$KEY_ID.p8"
+          else
+            { echo "-----BEGIN PRIVATE KEY-----"; printf '%s' "$P8" | tr -d ' \r\n' | fold -w 64; echo; echo "-----END PRIVATE KEY-----"; } > "$RUNNER_TEMP/asc/AuthKey_$KEY_ID.p8"
+          fi
 
       - name: Archive
         env:
