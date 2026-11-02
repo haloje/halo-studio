@@ -83,7 +83,7 @@ jobs:
             -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/asc/AuthKey_$KEY_ID.p8" \
             -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
-            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY="Apple Distribution" \
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             | tee "$RUNNER_TEMP/archive.log" | grep -E "error:|warning: .*SiteWatch|ARCHIVE (SUCCEEDED|FAILED)" || true
           test -d "$RUNNER_TEMP/Studio.xcarchive" || { tail -n 80 "$RUNNER_TEMP/archive.log"; exit 1; }
