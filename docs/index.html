@@ -4806,6 +4806,13 @@ function navClose(){ const w=document.getElementById("navWrap"); if(!w) return; 
 })();
 </script>
 
-<script>if("serviceWorker" in navigator){addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}</script>
+<script>if("serviceWorker" in navigator){addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").then(reg=>{
+ /* Pick up new versions: check when the app comes back to the front, and reload straight away if one arrives then. */
+ let resumed=0, had=!!navigator.serviceWorker.controller;
+ navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(!had){had=true;return;} if(Date.now()-resumed<15000) location.reload(); });
+ const check=()=>{ resumed=Date.now(); reg.update().catch(()=>{}); };
+ document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") check(); });
+ addEventListener("pageshow",e=>{ if(e.persisted) check(); });
+}).catch(()=>{});});}</script>
 </body>
 </html>
