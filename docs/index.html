@@ -291,8 +291,16 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
 /* ---------- tabs ---------- */
-.tabs{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;flex:none}
-.tabs button{height:34px;padding:0 14px;border:0;background:var(--field);cursor:pointer;font-size:13px}
+.navwrap{position:relative;flex:none}
+.navbtn{display:inline-flex;align-items:center;gap:9px;height:34px;padding:0 12px 0 11px;border:1px solid var(--line);border-radius:9px;background:var(--field);color:var(--ink);cursor:pointer;font-size:13px;font-weight:600}
+.navbtn .burger{display:inline-grid;gap:3px}.navbtn .burger i{display:block;width:14px;height:1.5px;background:currentColor;border-radius:1px}
+.navbtn .chev{opacity:.55;font-size:10px;transition:transform .15s}
+.navwrap.open .navbtn{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.navwrap.open .navbtn .chev{transform:rotate(180deg)}
+.tabs{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:60;min-width:200px;flex-direction:column;padding:6px;border:1px solid var(--line);border-radius:11px;background:var(--bg);box-shadow:0 12px 32px rgba(0,0,0,.16)}
+.navwrap.open .tabs{display:flex}
+.tabs button{height:36px;padding:0 12px;border:0;border-radius:7px;background:transparent;color:var(--ink);cursor:pointer;font-size:14px;text-align:left}
+.tabs button:hover{background:var(--field)}
 .tabs button[aria-selected=true]{background:var(--ink);color:var(--bg)}
 .app[data-tab=drawings] .pmode{display:none!important}
 .app:not([data-tab=drawings]) .dmode{display:none!important}
@@ -705,13 +713,13 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .prmore{padding:14px;text-align:center}
 .prsync{font-size:12.5px;color:var(--muted)}
 .prsync.warn{color:var(--danger)}
-@media (max-width:860px){ .tabs{flex:1 1 100%;max-width:100%;overflow-x:auto;scrollbar-width:none} .tabs button{flex:1 0 auto;padding:0 10px} .prtable .sup,.prtable th.sup{display:none} .prtable td.code{width:96px} }
+@media (max-width:860px){ .prtable .sup,.prtable th.sup{display:none} .prtable td.code{width:96px} }
 </style>
 
 <div class="app" id="app" data-tab="proposals">
   <header class="bar">
     <div class="brand"><img class="bmark" src="icons/emblem-96.png" alt="" onerror="this.remove()"><b>halo<span>.je</span></b><small>Studio</small></div>
-    <div class="tabs" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabL" role="tab" aria-selected="false">Leads</button><button id="tabS" role="tab" aria-selected="false">Stock</button><button id="tabM" role="tab" aria-selected="false">Promotions</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div>
+    <div class="navwrap" id="navWrap"><button class="navbtn" id="navBtn" aria-haspopup="true" aria-expanded="false" aria-controls="navMenu"><span class="burger" aria-hidden="true"><i></i><i></i><i></i></span><span id="navLabel">Proposals</span><span class="chev" aria-hidden="true">▼</span></button><div class="tabs" id="navMenu" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabL" role="tab" aria-selected="false">Leads</button><button id="tabS" role="tab" aria-selected="false">Stock</button><button id="tabM" role="tab" aria-selected="false">Promotions</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div></div>
     <div class="actions rmode" style="margin-left:auto">
       <span class="prsync" id="prStatus"></span>
       <button class="btn" id="prSyncBtn">Sync to Xero</button>
@@ -2558,7 +2566,7 @@ function setTab(t){
   $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge"); $("#tabT").setAttribute("aria-selected", t==="todo"); $("#tabM").setAttribute("aria-selected", t==="promos"); $("#tabS").setAttribute("aria-selected", t==="stock"); $("#tabL").setAttribute("aria-selected", t==="leads");
   if(t === "leads"){ if(mode !== "loading") ldStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); ldStart(); } }, 200); } }
   if(t === "todo"){ if(mode !== "loading") tdStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); tdStart(); } }, 200); } }
-  try{ const st = document.querySelector('.tabs [aria-selected="true"]'); st && st.scrollIntoView({ block: "nearest", inline: "nearest" }); }catch(_){}
+  try{ const st = document.querySelector('.tabs [aria-selected="true"]'); if(st) $("#navLabel").textContent = st.textContent; navClose(); }catch(_){}
   if(t === "knowledge"){ if(mode !== "loading") kbStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); kbStart(); } }, 200); } }
   if(t === "prices"){ prRender(); }
   if(t === "stock"){ if(mode !== "loading") skStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); skStart(); } }, 200); } }
@@ -4787,6 +4795,15 @@ $("#ldScroll").addEventListener("click", async e=>{
 });
 (function(){ const w = setInterval(()=>{ if(mode === "loading") return; clearInterval(w); if(mode === "db") ldStart(); }, 500); })();
 
+
+/* ---- section menu ---- */
+function navClose(){ const w=document.getElementById("navWrap"); if(!w) return; w.classList.remove("open"); document.getElementById("navBtn").setAttribute("aria-expanded","false"); }
+(function(){ const w=document.getElementById("navWrap"), b=document.getElementById("navBtn"); if(!w||!b) return;
+  b.addEventListener("click", e=>{ e.stopPropagation(); const o=!w.classList.contains("open"); w.classList.toggle("open",o); b.setAttribute("aria-expanded",String(o)); if(o){ const s=w.querySelector('[aria-selected="true"]'); s&&s.focus(); } });
+  document.getElementById("navMenu").addEventListener("click", e=>{ if(e.target.closest("button")) setTimeout(navClose,0); });
+  document.addEventListener("click", e=>{ if(!w.contains(e.target)) navClose(); });
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape" && w.classList.contains("open")){ navClose(); b.focus(); } });
+})();
 </script>
 
 <script>if("serviceWorker" in navigator){addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}</script>
