@@ -50,7 +50,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);grid-template-columns:minmax(0,1fr)}
 
 /* top bar */
-.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding-block:10px;padding-top:calc(10px + env(safe-area-inset-top,0px));
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding-block:10px;padding-top:calc(10px + var(--safe-top,env(safe-area-inset-top,0px)));
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   border-bottom:1px solid var(--line);background:var(--panel)}
 .brand{display:flex;align-items:baseline;gap:8px;font-family:var(--f-display);font-weight:300;font-size:20px;white-space:nowrap}
@@ -124,6 +124,8 @@ details[open]>summary:after{content:"–"}
 label.f{display:grid;gap:5px;min-width:0}
 label.f>span{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 input[type=text],input[type=number],input[type=date],input[type=time],input[type=email],input[type=search],select.in,textarea{width:100%;border:1px solid var(--line);background:var(--field);border-radius:7px;padding:8px 10px;min-width:0}
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;display:block;max-width:100%;min-height:38px;text-align:left}
+input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left}
 textarea{resize:vertical;min-height:70px;line-height:1.45}
 .check{display:flex;gap:8px;align-items:center;font-size:13px}
 .note{font-size:12px;color:var(--muted);line-height:1.45;margin:0}
@@ -4796,6 +4798,14 @@ $("#ldScroll").addEventListener("click", async e=>{
 (function(){ const w = setInterval(()=>{ if(mode === "loading") return; clearInterval(w); if(mode === "db") ldStart(); }, 500); })();
 
 
+/* ---- iPhone app: keep the top bar below the status bar even if the web view reports no safe area ---- */
+(function(){ try{
+  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent), app=!!(window.Capacitor||navigator.standalone);
+  if(!ios||!app) return;
+  const pr=document.createElement("div"); pr.style.cssText="position:fixed;top:0;height:0;padding-top:env(safe-area-inset-top,0px);visibility:hidden"; document.body.appendChild(pr);
+  const top=pr.getBoundingClientRect().height; pr.remove();
+  if(top<1){ const h=Math.max(screen.height,screen.width); document.documentElement.style.setProperty("--safe-top", h>=852?"54px":h>=812?"47px":"20px"); }
+}catch(_){} })();
 /* ---- section menu ---- */
 function navClose(){ const w=document.getElementById("navWrap"); if(!w) return; w.classList.remove("open"); document.getElementById("navBtn").setAttribute("aria-expanded","false"); }
 (function(){ const w=document.getElementById("navWrap"), b=document.getElementById("navBtn"); if(!w||!b) return;
