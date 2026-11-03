@@ -1994,7 +1994,7 @@ $("#stage").addEventListener("input", e=>{
 /* ---------- exports ---------- */
 async function getDownloads(){ try{ return window.claude ? await claude.use("downloads") : null; }catch(e){ return null; } }
 function fileBase(){ return [current.ref, current.rev, current.titleA].filter(Boolean).join(" ").replace(/[\\/:*?"<>|]+/g,"").trim() || "proposal"; }
-function toast(msg){ if(/^(Saved|Sent|Added|Marked|Booked|Done|Copied|Plan added|Synced)/.test(String(msg))) hap("ok"); const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 3800); }
+function toast(msg){ if(/^(Saved|Sent|Added|Marked|Booked|Done|Copied|Plan added|Synced|Clocked)/.test(String(msg))) hap("ok"); const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 3800); }
 const undoQ = new Set();
 function undoToast(msg, onUndo, onCommit, ms = 8000){
   document.querySelectorAll(".toast.undo").forEach(x=>x.remove());
@@ -5045,8 +5045,14 @@ const IC2 = {
 function qaMenu(){
   if(!jbCur) return;
   sheetOpen(`<h3>${esc(jbCur.number)} ${esc(jbCur.customer || "")}</h3><div class="menu">
+    <button data-qa="clock">${IC2.time}${jbCur.clock ? `Clock off <small style="margin-left:auto;color:var(--muted);font-size:13px">on since ${esc(jbCur.clock.slice(11,16))}</small>` : "Clock on"}</button>
     <button data-qa="visit">${IC2.visit}Add a visit</button><button data-qa="time">${IC2.time}Log time</button><button data-qa="mat">${IC2.mat}Add a material</button></div>`,
-    p=>p.querySelector(".menu").addEventListener("click", e=>{ const b = e.target.closest("[data-qa]"); if(!b) return; ({ visit: qaVisit, time: qaTime, mat: qaMat })[b.dataset.qa](); }));
+    p=>p.querySelector(".menu").addEventListener("click", e=>{ const b = e.target.closest("[data-qa]"); if(!b) return; ({ clock: qaClock, visit: qaVisit, time: qaTime, mat: qaMat })[b.dataset.qa](); }));
+}
+function qaClock(){
+  sheetClose(); if(!jbCur) return; const on = !jbCur.clock, b = document.querySelector(`#jbScroll [data-ja="${on ? "clockOn" : "clockOff"}"]`);
+  if(!b){ toast("Open the job details first."); return; }
+  b.click(); const now = new Date(); toast(on ? `Clocked on at ${dwPad(now.getHours())}:${dwPad(now.getMinutes())}.` : `Clocked off. Time added to ${jbCur.number}.`);
 }
 function qaNextWeekday(){ const d = new Date(); d.setDate(d.getDate() + 1); while([0,6].includes(d.getDay())) d.setDate(d.getDate() + 1); return jbIso(d); }
 function qaVisit(){
