@@ -257,7 +257,8 @@
     async sync(sites){ if(!SW) return null; return await SW.setSites({ sites }); },
     on(fn){ if(SW && SW.addListener) SW.addListener("clock", fn); }
   });
-  if(SW){ ready.then(async ()=>{ try{ if(localStorage.getItem(SWON) === "1"){ const deviceKey = await swLink(); await SW.configure({ apiUrl: API, deviceKey, enabled: true }); } }catch(e){ console.warn("site watch", e); } }); }
+  /* Always link the phone (Siri commands use the same key); only switch site watching on if you turned it on. */
+  if(SW){ ready.then(async ()=>{ try{ const deviceKey = await swLink(); const on = localStorage.getItem(SWON) === "1"; await SW.configure(on ? { apiUrl: API, deviceKey, enabled: true } : { apiUrl: API, deviceKey }); }catch(e){ console.warn("site watch", e); } }); }
 
   /* Claude drafting (sample) arrives in a later phase. */
   const caps = { db, assets, downloads, user, mcp };
