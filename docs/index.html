@@ -793,6 +793,11 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
   .today[hidden]{display:none}
   .today .kick{font:500 11px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
   .today h1{font:300 34px/1.1 var(--f-display);margin:6px 0 18px}
+  .today .tdtop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .today .wx{display:flex;align-items:center;gap:10px;color:var(--ink);text-align:right;min-height:52px}
+  .today .wx svg{width:34px;height:34px;flex:none;stroke:var(--accent);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+  .today .wx b{display:block;font:300 28px/1 var(--f-display)}
+  .today .wx small{display:block;font:500 11px/1.3 var(--f-mono);letter-spacing:.06em;color:var(--muted);margin-top:4px;white-space:nowrap}
   .today h2{font:500 12px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:24px 0 10px}
   .today .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px}
   .today .card .tm{font:500 13px/1 var(--f-mono);color:var(--accent)}
@@ -5146,6 +5151,32 @@ function todayOpen(){ const app = $("#app"); todayEl.hidden = false; app.classLi
   if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); }
   todayRender(true); clearInterval(tdTimer); tdTimer = setInterval(()=>todayRender(false), 1500); document.dispatchEvent(new Event("todaychange")); }
 function todayClose(){ todayEl.hidden = true; $("#app").classList.remove("todayon"); clearInterval(tdTimer); try{ localStorage.setItem(LS + ".today", "0"); }catch(_){} document.dispatchEvent(new Event("todaychange")); }
+/* Weather on the Today screen: Open-Meteo (free, no key), Jersey, cached 30 minutes. */
+const WX_KEY = "halo.wx", WX_URL = "https://api.open-meteo.com/v1/forecast?latitude=49.19&longitude=-2.11&current=temperature_2m,weather_code,wind_speed_10m,is_day&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&wind_speed_unit=mph&timezone=Europe%2FLondon&forecast_days=1";
+let wxData = null, wxBusy = false;
+try{ wxData = JSON.parse(localStorage.getItem(WX_KEY) || "null"); }catch(_){}
+function wxKind(c){ return c === 0 || c === 1 ? "sun" : c === 2 ? "part" : c === 3 ? "cloud" : c === 45 || c === 48 ? "fog" : (c >= 51 && c <= 67) || (c >= 80 && c <= 82) ? "rain" : (c >= 71 && c <= 77) || c === 85 || c === 86 ? "snow" : c >= 95 ? "storm" : "cloud"; }
+const WX_LABEL = { sun: "Clear", part: "Partly cloudy", cloud: "Cloudy", fog: "Fog", rain: "Rain", snow: "Snow", storm: "Thunder" };
+function wxIcon(k, day){
+  const cl = '<path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 11.2 3.5 3.5 0 0 0 7 18z"/>';
+  const sun = day ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>' : '<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>';
+  const b = { sun, part: (day ? '<path d="M8 3v1.5M3.5 8H2M4.3 4.3l1 1M12.2 5.3l-1 1"/><path d="M5.6 10.5A3.5 3.5 0 0 1 11.4 6.6"/>' : '<path d="M11 4.5A5 5 0 0 0 5 10"/>') + '<path d="M8 20h9a3.5 3.5 0 0 0 .5-6.96A5 5 0 0 0 8 13.5 3.25 3.25 0 0 0 8 20z"/>', cloud: cl, fog: '<path d="M4 9h16M3 13h18M5 17h14"/>', rain: '<path d="M7 15h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 8.2 3.5 3.5 0 0 0 7 15z"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/>', snow: '<path d="M7 15h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 8.2 3.5 3.5 0 0 0 7 15z"/><path d="M8 19h.01M12 21h.01M16 19h.01"/>', storm: '<path d="M7 15h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 8.2 3.5 3.5 0 0 0 7 15z"/><path d="M12 15l-2 4h4l-2 3"/>' }[k] || cl;
+  return `<svg viewBox="0 0 24 24" aria-hidden="true">${b}</svg>`;
+}
+function wxHtml(){
+  if(!wxData || Date.now() - (wxData.at || 0) > 30 * 60e3) wxLoad();
+  const w = wxData; if(!w || !w.c) return "";
+  const k = wxKind(w.c.weather_code), rain = w.d && w.d.precipitation_probability_max ? w.d.precipitation_probability_max[0] : null;
+  const hi = w.d ? Math.round(w.d.temperature_2m_max[0]) : null, lo = w.d ? Math.round(w.d.temperature_2m_min[0]) : null;
+  return `${wxIcon(k, w.c.is_day !== 0)}<div><b>${Math.round(w.c.temperature_2m)}°</b><small>${esc(WX_LABEL[k])}</small><small>${hi != null ? `H ${hi}° L ${lo}°` : ""}${rain != null ? ` · ${rain}% rain` : ""}</small><small>Wind ${Math.round(w.c.wind_speed_10m)} mph</small></div>`;
+}
+async function wxLoad(){
+  if(wxBusy || !navigator.onLine) return; wxBusy = true;
+  try{ const r = await fetch(WX_URL); if(!r.ok) throw 0; const j = await r.json();
+    wxData = { at: Date.now(), c: j.current, d: j.daily }; try{ localStorage.setItem(WX_KEY, JSON.stringify(wxData)); }catch(_){}
+    const el = document.getElementById("tdWx"); if(el) el.innerHTML = wxHtml();
+  }catch(_){ } finally{ wxBusy = false; }
+}
 function todayRender(force){
   if(todayEl.hidden) return;
   const t = jbToday(), tm = jbIso(new Date(Date.now() + 864e5));
@@ -5164,7 +5195,7 @@ function todayRender(force){
     return `<div class="card"><div class="tm">${esc(x.v.start)}${x.v.end ? " – " + esc(x.v.end) : ""} · ${esc(j.number)}</div><div class="nm">${esc(j.customer || j.site || "Job")}</div>${addr ? `<div class="ad">${esc(addr)}</div>` : ""}${x.v.note ? `<div class="nt">${esc(x.v.note)}</div>` : ""}
       <div class="row">${addr ? `<a href="https://maps.apple.com/?daddr=${encodeURIComponent(addr)}" target="_blank" rel="noopener">${IC2.nav}Navigate</a>` : ""}${ph ? `<a href="tel:${esc(ph)}">${IC2.call}Call</a>` : ""}<button data-tj="${esc(j.id)}">${IC2.open}Open job</button></div></div>`; };
   const todayItems = items.filter(x=>x.v.date === t), tomItems = items.filter(x=>x.v.date === tm);
-  todayEl.innerHTML = `<div class="kick">${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</div><h1>Today</h1>
+  todayEl.innerHTML = `<div class="tdtop"><div><div class="kick">${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</div><h1>Today</h1></div><div class="wx" id="tdWx">${wxHtml()}</div></div>
     ${mode === "loading" ? `<p class="empty">Loading your day…</p>` : `
     <h2>Visits today</h2>${todayItems.length ? todayItems.map(card).join("") : `<p class="empty">Nothing booked today.</p>`}
     ${tomItems.length ? `<h2>Tomorrow</h2>${tomItems.map(card).join("")}` : ""}
