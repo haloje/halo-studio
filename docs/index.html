@@ -2007,8 +2007,28 @@ function undoToast(msg, onUndo, onCommit, ms = 8000){
   b.addEventListener("click", ()=>{ if(done) return; done = true; undoQ.delete(commit); clearTimeout(tm); t.remove(); onUndo && onUndo(); });
 }
 addEventListener("pagehide", ()=>{ [...undoQ].forEach(f=>f()); });
+/* Phone browsers: share the file. If the phone says the tap has expired (the PDF took a while to build), offer a button to tap. */
+async function mobileShare(filename, data){
+  const type = /\.pdf$/i.test(filename) ? "application/pdf" : /\.csv$/i.test(filename) ? "text/csv" : /\.html?$/i.test(filename) ? "text/html" : "application/octet-stream";
+  const blob = data instanceof Blob ? data : new Blob([data], { type });
+  let file = null; try{ file = new File([blob], filename, { type: blob.type || type }); }catch(_){}
+  const canFile = !!(file && navigator.canShare && navigator.canShare({ files: [file] }));
+  const go = async ()=>{ if(canFile){ await navigator.share({ files: [file], title: filename }); } else { const u = URL.createObjectURL(blob); window.open(u, "_blank"); setTimeout(()=>URL.revokeObjectURL(u), 60000); } };
+  try{ await go(); return true; }
+  catch(e){
+    if(e && e.name === "AbortError") return true;
+    document.querySelectorAll(".toast.undo").forEach(x=>x.remove());
+    const t = document.createElement("div"); t.className = "toast undo"; t.setAttribute("role", "status");
+    const sp = document.createElement("span"); sp.textContent = filename.length > 34 ? filename.slice(0, 32) + "…" : filename;
+    const b = document.createElement("button"); b.textContent = canFile ? "Share" : "Open";
+    t.append(sp, b); document.body.appendChild(t); const tm = setTimeout(()=>t.remove(), 30000);
+    b.addEventListener("click", async ()=>{ clearTimeout(tm); t.remove(); try{ await go(); }catch(err){ if(!err || err.name !== "AbortError") toast("That file couldn't be shared."); } });
+    return true;
+  }
+}
 async function offer(filename, data){
   if(capP()){ try{ if(await nativeShare(filename, data)){ hap("ok"); return; } }catch(e){ if(!/cancel/i.test(String((e && e.message) || e))) toast("That file couldn't be shared."); return; } }
+  if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))){ if(await mobileShare(filename, data)) return; }
   const dl = await getDownloads();
   if(!dl){ toast("Downloads aren't available in this view. Open the page in claude.ai to save files."); return; }
   try{ const r = await dl.save({filename, data}); if(r.status === "saved") toast("Saved " + filename); }
