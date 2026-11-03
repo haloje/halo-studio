@@ -384,6 +384,11 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .a3 .plan .pw{position:relative}
 .a3 .plan .pw img{display:block;width:100%;height:100%}
 .a3 .legend{position:absolute;right:30px;top:30px;width:258px;background:#f4efe6;border-radius:10px;padding:16px 18px;display:grid;gap:7px;z-index:2}
+.a3 .legend.tl{right:auto;left:30px}
+.a3 .legend.br{top:auto;bottom:201px}
+.a3 .legend.bl{top:auto;bottom:201px;right:auto;left:30px}
+.a3 .legend.side{top:30px;right:30px}
+.a3 .plan.side{right:309px}
 .a3 .legend .mono{color:var(--d-brown);margin-bottom:4px}
 .a3 .legend .li{display:flex;gap:10px;align-items:center;font-size:11px;color:var(--d-ink)}
 .a3 .legend .li i{width:18px;height:18px;border-radius:50%;background:var(--mc);color:#fff;font:700 5.5px/18px "Hanken Grotesk",sans-serif;text-align:center;font-style:normal;flex:none;display:grid;place-items:center}
@@ -2233,13 +2238,13 @@ function dwDocSheets(p){
           ${used.map(t=>`<tr><td class="m">${esc(t.tag)}</td><td>${esc(t.name)}</td><td>${esc(t.system)}</td>${p.floors.map(f=>{ const c = f.devices.filter(d=>d.type===t.tag).length; return `<td class="r">${c||"–"}</td>`; }).join("")}<td class="r" style="color:var(--d-brown)">${devs.filter(d=>d.type===t.tag).length}</td></tr>`).join("")}</table>
           <table><tr><th>System</th><th class="r">Cables</th></tr>${systems.map(sy=>`<tr><td>${esc(sy)}</td><td class="r">${rows.filter(r=>r.system===sy).length}</td></tr>`).join("")}<tr class="sum"><td>Total</td><td class="r">${rows.length}</td></tr></table></div></div>`;
     } else if(sh.kind === "lx"){
-      const f = sh.floor, W = 1587-42-52, H = 1123-42-150-52;
+      const f = sh.floor, lg = f.legend || "tr", W = 1587-42-52-(lg==="side"?288:0), H = 1123-42-150-52;
       let pw = "";
       if(f.img && f.iw){ const s = Math.min(W/f.iw, H/f.ih), w = f.iw*s, h = f.ih*s;
         pw = `<div class="pw" style="width:${w.toFixed(0)}px;height:${h.toFixed(0)}px;--u:${(w/1000).toFixed(3)}px"><img src="${esc(f.img)}" alt="" style="opacity:${f.fade ?? .55}" crossorigin="anonymous">${f.devices.map(d=>dwMarkerHtml(p,d)).join("")}</div>`;
       } else pw = `<p style="color:#9a948c;font-size:14px">No plan uploaded for this floor yet.</p>`;
       const used = p.types.filter(t=>f.devices.some(d=>d.type===t.tag));
-      body = `<div class="plan">${pw}</div>${used.length?`<div class="legend"><div class="mono">Legend</div>${used.map(t=>`<div class="li"><i style="--mc:${esc(t.color)}">${dwBadge(t)}</i>${esc(t.tag)} · ${esc(t.name)}</div>`).join("")}<p>Tag: room-type-number<br>Mount: W wall · C ceiling · REC recessed · height mm to centre</p></div>`:""}`;
+      body = `<div class="plan ${lg==="side"?"side":""}">${pw}</div>${used.length && lg!=="off"?`<div class="legend ${lg}"><div class="mono">Legend</div>${used.map(t=>`<div class="li"><i style="--mc:${esc(t.color)}">${dwBadge(t)}</i>${esc(t.tag)} · ${esc(t.name)}</div>`).join("")}<p>Tag: room-type-number<br>Mount: W wall · C ceiling · REC recessed · height mm to centre</p></div>`:""}`;
     } else {
       body = `<div class="content"><div class="mono kick">${upper}</div><h2>Cable <em>schedule</em></h2>
         <table><tr><th>Cable ID</th><th>Device</th><th>Room</th><th>Floor</th><th>Mount</th><th>Cable</th><th>Colour</th><th>To</th><th>Notes</th><th>QC ✓</th></tr>
@@ -2331,6 +2336,7 @@ function dwBuildEditor(){
         <button class="btn small ghost" data-dact="editFloor" data-i="${i}">Place devices</button>
         ${p.floors.length>1?`<button class="btn small ghost danger" data-dact="rmFloor" data-i="${i}">Remove</button>`:""}</div>
       ${dwPdf && dwPdf.i===i ? `<div class="pdfpick"><span class="note">This PDF has ${dwPdf.n} page${dwPdf.n>1?"s":""}. Pick the floor plan page.</span><div class="adds"><select class="in" id="dwPdfPage" style="width:auto">${Array.from({length:dwPdf.n},(_,k)=>`<option value="${k+1}" ${dwPdf.page===k+1?"selected":""}>Page ${k+1}</option>`).join("")}</select><label class="check"><input type="checkbox" id="dwTrim" checked> Trim white margins</label><button class="btn small primary" data-dact="usePdf">Use this page</button><button class="btn small ghost" data-dact="cancelPdf">Cancel</button></div><canvas id="dwPdfCanvas"></canvas></div>` : ""}
+      ${f.img?`<label class="f"><span>Legend on the printed sheet</span><select class="in" data-dk="floors.${i}.legend">${[["tr","Top right"],["tl","Top left"],["br","Bottom right"],["bl","Bottom left"],["side","Beside the plan (never covers it)"],["off","Hidden"]].map(([k,l])=>`<option value="${k}" ${(f.legend||"tr")===k?"selected":""}>${l}</option>`).join("")}</select></label>`:""}
       ${f.img?`<label class="f"><span>Plan strength</span><input type="range" min="0.15" max="1" step="0.05" value="${f.fade ?? .55}" data-dk="floors.${i}.fade" data-num="1"></label>`:""}
       <label class="f"><span>Rooms on this floor, one per line: number then name</span><textarea id="dwRooms${i}" data-rooms="${i}" rows="5" placeholder="01 Entrance Hall&#10;02 Gym">${esc(p.rooms.filter(r=>r.floor===f.id).map(r=>`${r.no} ${r.name}`).join("\n"))}</textarea></label>
       <span class="note">${f.devices.length} device${f.devices.length===1?"":"s"} placed</span>
