@@ -2744,6 +2744,23 @@ async function skWrite(o){
   try{ localStorage.setItem(LS + ".stock", JSON.stringify(skList)); }catch(_){} skOnData(); return true;
 }
 /* A stock record for a key, created from the library product or a job line if it doesn't exist yet. */
+/* Job material search: your price list plus anything in Stock that isn't in it (e.g. items booked in from a supplier email). */
+function matSearch(q, limit){
+  const toks = q.toLowerCase().split(/\s+/).filter(Boolean); if(!toks.length) return [];
+  const lib = new Set(products.map(p=>p.id)), sk = [];
+  (typeof skList !== "undefined" ? skList : []).forEach(s=>{ if(lib.has(s.id) || (s.libId && lib.has(s.libId))) return;
+    const hay = [s.item, s.model, s.supplier, s.id].join(" ").toLowerCase(); if(!toks.every(t=>hay.includes(t))) return;
+    sk.push({ id: s.id, item: s.item || s.model, model: s.model, supplier: s.supplier, price: 0, _stock: num(s.onHand) }); });
+  return sk.concat(searchProducts(q, limit)).slice(0, limit);
+}
+function matLine(id){
+  const pr = products.find(x=>x.id === id);
+  if(pr) return { id: uid(), libId: pr.id, item: pr.item, model: pr.model || "", supplier: pr.supplier && pr.supplier !== "Imported from Xero" ? pr.supplier : "", qty: 1, price: num(pr.price) };
+  const s = (typeof skList !== "undefined" ? skList : []).find(x=>x.id === id); if(!s) return null;
+  const ln = { id: uid(), libId: s.id, item: s.item || s.model, model: s.model || "", supplier: s.supplier || "", qty: 1, price: 0 };
+  if(num(s.cost)) ln.cost = num(s.cost); return ln;
+}
+const matTag = pr => pr._stock !== undefined ? ` · ${pr._stock > 0 ? pr._stock + " in stock" : "on order"}` : "";
 function skGet(key, from){
   let o = skList.find(x=>x.id === key); if(o) return clone(o);
   const pr = products.find(x=>x.id === key) || {}, f = from || {};
@@ -3588,13 +3605,13 @@ $("#jbScroll").addEventListener("change", e=>{ if(jbCur && e.target.dataset.jxk 
 function jxLibResults(){
   const inp = $("#jxLq"), box = $("#jxLr"); if(!inp || !box) return;
   const q = inp.value.trim(); if(!q){ box.hidden = true; return; }
-  const res = searchProducts(q, 10);
-  box.innerHTML = res.length ? res.map(pr=>`<button type="button" role="option" data-jxpick="${esc(pr.id)}" style="grid-template-columns:1fr auto"><span class="n"><span>${esc(pr.item)}</span><small>${esc([pr.model, pr.supplier].filter(Boolean).join(" · "))}</small></span><b>${num(pr.price) ? money(pr.price, {showPence:true}) : "No price"}</b></button>`).join("") : `<div class="none">Nothing called "${esc(q)}". Use Add custom line.</div>`;
+  const res = matSearch(q, 10);
+  box.innerHTML = res.length ? res.map(pr=>`<button type="button" role="option" data-jxpick="${esc(pr.id)}" style="grid-template-columns:1fr auto"><span class="n"><span>${esc(pr.item)}</span><small>${esc([pr.model, pr.supplier].filter(Boolean).join(" · ") + matTag(pr))}</small></span><b>${num(pr.price) ? money(pr.price, {showPence:true}) : "No price"}</b></button>`).join("") : `<div class="none">Nothing called "${esc(q)}". Use Add custom line.</div>`;
   box.hidden = false;
 }
 $("#jbScroll").addEventListener("mousedown", e=>{ const b = e.target.closest("[data-jxpick]"); if(!b || !jbCur) return; e.preventDefault();
-  const pr = products.find(x=>x.id === b.dataset.jxpick); if(!pr) return;
-  jbCur.materials.push({ id: uid(), libId: pr.id, item: pr.item, model: pr.model || "", supplier: pr.supplier && pr.supplier !== "Imported from Xero" ? pr.supplier : "", qty: 1, price: num(pr.price) });
+  const pr = matLine(b.dataset.jxpick); if(!pr) return;
+  jbCur.materials.push(pr);
   jbSchedule(); jbRender(); const q = $("#jxLq"); q && q.focus(); toast(`Added ${pr.item}`); });
 $("#jbScroll").addEventListener("keydown", e=>{ if(e.target.dataset && e.target.dataset.jxlib && e.key === "Enter"){ e.preventDefault(); const b = $("#jxLr [data-jxpick]"); if(b) b.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); } });
 /* files */
@@ -5105,11 +5122,11 @@ function qaMat(){
     const q = $("#qaQ"), r = $("#qaR");
     const sc = p.querySelector("[data-scan]"); if(sc) sc.onclick = async ()=>{ const job = jbCur; const id = await scanToItem("Scan the item you're fitting"); if(!id || !job) return; const pr = products.find(x=>x.id === id) || skGet(id);
       job.materials.push({ id: uid(), libId: pr.libId || pr.id, item: pr.item, model: pr.model || "", supplier: pr.supplier && pr.supplier !== "Imported from Xero" ? pr.supplier : "", qty: 1, price: num(pr.price) }); jbSchedule(); jbRender(); toast(`Added ${pr.item || pr.model}`); };
-    const draw = ()=>{ const v = q.value.trim(); const res = v ? searchProducts(v, 12) : [];
-      r.innerHTML = res.map(pr=>`<button data-pick="${esc(pr.id)}"><span>${esc(pr.item)}<small>${esc([pr.model, pr.supplier].filter(Boolean).join(" · "))}</small></span><b>+</b></button>`).join("") + (v ? `<button data-custom><span>Add “${esc(v)}” as its own line<small>Not in the price list</small></span><b>+</b></button>` : ""); };
+    const draw = ()=>{ const v = q.value.trim(); const res = v ? matSearch(v, 12) : [];
+      r.innerHTML = res.map(pr=>`<button data-pick="${esc(pr.id)}"><span>${esc(pr.item)}<small>${esc([pr.model, pr.supplier].filter(Boolean).join(" · ") + matTag(pr))}</small></span><b>+</b></button>`).join("") + (v ? `<button data-custom><span>Add “${esc(v)}” as its own line<small>Not in the price list</small></span><b>+</b></button>` : ""); };
     q.addEventListener("input", draw); setTimeout(()=>q.focus(), 320);
     r.addEventListener("click", e=>{ const b = e.target.closest("button"); if(!b) return;
-      if(b.dataset.pick){ const pr = products.find(x=>x.id === b.dataset.pick); if(!pr) return; jbCur.materials.push({ id: uid(), libId: pr.id, item: pr.item, model: pr.model || "", supplier: pr.supplier && pr.supplier !== "Imported from Xero" ? pr.supplier : "", qty: 1, price: num(pr.price) }); toast(`Added ${pr.item}`); }
+      if(b.dataset.pick){ const pr = matLine(b.dataset.pick); if(!pr) return; jbCur.materials.push(pr); toast(`Added ${pr.item}`); }
       else { jbCur.materials.push({ id: uid(), item: q.value.trim(), model: "", qty: 1, price: 0 }); toast(`Added ${q.value.trim()}`); }
       jbSchedule(); jbRender(); q.value = ""; draw(); q.focus(); });
     p.querySelector("[data-x]").onclick = sheetClose;
