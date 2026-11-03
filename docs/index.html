@@ -383,6 +383,14 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .a3 .plan{position:absolute;left:21px;top:21px;right:21px;bottom:171px;display:grid;place-items:center;padding:26px}
 .a3 .plan .pw{position:relative}
 .a3 .plan .pw img{display:block;width:100%;height:100%}
+.a3 .pp .pm{position:absolute;transform:translate(-50%,-50%);width:calc(var(--u)*15*var(--k));height:calc(var(--u)*15*var(--k))}
+.a3 .pp .pm .c{width:100%;height:100%;border-radius:50%;background:var(--mc);border:calc(var(--u)*1.2*var(--k)) solid #fff;box-shadow:0 0 0 calc(var(--u)*.4) rgba(0,0,0,.18);color:#fff;font:700 calc(var(--u)*4.4*var(--k))/1 "Hanken Grotesk",sans-serif;display:grid;place-items:center;box-sizing:border-box}
+.a3 .pp .pm .c svg{width:70%;height:70%;display:block}
+.a3 .pp .pl{position:absolute;display:grid;white-space:nowrap;line-height:1.1;background:rgba(255,255,255,.82);border-radius:calc(var(--u)*.8);padding:0 calc(var(--u)*1*var(--k))}
+.a3 .pp .pl b{font:700 calc(var(--u)*4.6*var(--k))/1.15 "Geist Mono",monospace;color:var(--mc);letter-spacing:0}
+.a3 .pp .pl span{font:400 calc(var(--u)*3.6*var(--k))/1.25 "Geist Mono",monospace;color:#6f6961}
+.a3 .pp .pll{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.a3 .pp .pll line{stroke-width:calc(var(--u)*.45);opacity:.8}
 .a3 .legend{position:absolute;right:30px;top:30px;width:258px;background:#f4efe6;border-radius:10px;padding:16px 18px;display:grid;gap:7px;z-index:2}
 .a3 .legend.tl{right:auto;left:30px}
 .a3 .legend.br{top:auto;bottom:201px}
@@ -2296,6 +2304,7 @@ function dwNorm(p){
   const o = Object.assign(dwBlank(), p || {});
   o.types = (o.types||[]).map(t=>Object.assign({ tag:"", name:"", system:"", color:"#777777", mount:"W", height:"", cables:" | Cat6 | Blue | AV rack" }, t));
   o.rooms = (o.rooms||[]).map(r=>Object.assign({ no:"", name:"", floor:"" }, r));
+  o.print = Object.assign({ split: true, labels: "tag", icon: .75, grey: true, leaders: true }, o.print || {});
   o.floors = (o.floors||[]).map(f=>Object.assign({ id: uid(), name:"", number:"", size:"A1", img:"", iw:0, ih:0, fade:.55, devices:[] }, f, { devices: (f.devices||[]).map(d=>Object.assign({ id: uid(), type:"", room:"", seq:1, x:.5, y:.5, mount:"", height:"", notes:"" }, d)) }));
   return o;
 }
@@ -2330,9 +2339,74 @@ function dwSheetList(p){
     { kind:"reg", num:"G-001", title:"Drawing register and notes", html:"Drawing register and <em>notes</em>", sub:"General", size:"A3" },
     { kind:"sum", num:"G-002", title:"Device summary", html:"Device <em>summary</em>", sub:"General", size:"A3" }
   ];
-  p.floors.forEach(f=>s.push({ kind:"lx", floor:f, num:f.number || "LX", title:`${f.name} floor device layout`, html:`${esc(f.name)} floor device <em>layout</em>`, sub:"Device layout · first fix", size:f.size || "A1" }));
+  const pr = p.print || {};
+  p.floors.forEach(f=>{
+    const base = f.number || "LX";
+    s.push({ kind:"lx", floor:f, num:base, title:`${f.name} floor device layout${pr.split ? ", all systems" : ""}`, html:`${esc(f.name)} floor device <em>layout</em>`, sub:pr.split ? "Device layout · all systems overview" : "Device layout · first fix", size:f.size || "A1" });
+    if(pr.split && f.img) dwSysGroups(p, f).forEach(g=>s.push({ kind:"lx", floor:f, grp:g, num:`${base}-${g.code}`, title:`${f.name} floor ${g.name.toLowerCase()} layout`, html:`${esc(f.name)} floor ${esc(g.name.toLowerCase())} <em>layout</em>`, sub:`${g.name} · first fix`, size:f.size || "A1" }));
+  });
   for(let i=0;i<n;i++) s.push({ kind:"cs", page:i, rows: rows.slice(i*per, (i+1)*per), num:`CS-${dwPad(i+1,3)}`, title:`Cable schedule, sheet ${i+1} of ${n}`, html:`Cable <em>schedule</em>, sheet ${i+1} of ${n}`, sub:"Cable schedule", size:"A3" });
   return s;
+}
+/* Systems grouped for the per-system sheets. */
+const DW_GROUPS = [
+  { code:"NW", name:"Network and Wi-Fi", test:s=>/network|wi-?fi|data/i.test(s) },
+  { code:"AV", name:"AV and audio", test:s=>/audio|video|av\b|tv|cinema/i.test(s) },
+  { code:"CL", name:"Control and lighting", test:s=>/control|lighting|shading|blind|keypad/i.test(s) },
+  { code:"HV", name:"Heating and HVAC", test:s=>/hvac|heat|cool|climate/i.test(s) },
+  { code:"SC", name:"Security and access", test:s=>/secur|cctv|camera|access|intercom|alarm/i.test(s) }
+];
+function dwGroupOf(sys){ return DW_GROUPS.find(g=>g.test(sys || "")) || { code:"OT", name:"Other services", test:()=>false }; }
+function dwSysGroups(p, f){
+  const out = new Map();
+  f.devices.forEach(d=>{ const g = dwGroupOf(dwType(p, d.type).system); if(!out.has(g.code)) out.set(g.code, g); });
+  return [...DW_GROUPS, { code:"OT" }].map(g=>out.get(g.code)).filter(Boolean);
+}
+/* Greyscale copies of the plans so the architect's red notes recede behind the devices. */
+const dwGrey = new Map();
+function dwGreyPrep(p){
+  return Promise.all(p.floors.filter(f=>f.img && !dwGrey.has(f.img)).map(f=>new Promise(res=>{
+    const im = new Image(); im.crossOrigin = "anonymous";
+    im.onload = ()=>{ try{ const c = document.createElement("canvas"), sc = Math.min(1, 4200 / Math.max(im.naturalWidth, im.naturalHeight)); c.width = Math.round(im.naturalWidth * sc); c.height = Math.round(im.naturalHeight * sc);
+      const x = c.getContext("2d"); x.drawImage(im, 0, 0, c.width, c.height); const d = x.getImageData(0, 0, c.width, c.height), a = d.data;
+      for(let i = 0; i < a.length; i += 4){ const g = .3 * a[i] + .59 * a[i+1] + .11 * a[i+2]; a[i] = a[i+1] = a[i+2] = g; }
+      x.putImageData(d, 0, 0); dwGrey.set(f.img, c.toDataURL("image/jpeg", .88)); }catch(_){ dwGrey.set(f.img, ""); } res(); };
+    im.onerror = ()=>{ dwGrey.set(f.img, ""); res(); }; im.src = f.img;
+  })));
+}
+/* Printed markers: smaller icons, tags placed where they don't collide, leader lines when a tag has to move away. */
+function dwPrintMarkers(p, devs, w, h){
+  const pr = p.print || {}, u = w / 1000, k = num(pr.icon) || .75, full = pr.labels === "full";
+  const R = 8.2 * u * k, fs = 4.6 * u * k, fs2 = 3.6 * u * k, cw = .62;
+  const box = d=>{ const t = dwTag(d), m = full ? dwMountStr(d) : ""; return { t, m, w: Math.max(t.length * fs, m.length * fs2 * 1.03) * cw + 2 * u * k, h: fs * 1.15 + (m ? fs2 * 1.25 : 0) }; };
+  const pts = devs.map(d=>({ d, x: d.x * w, y: d.y * h, b: box(d) }));
+  /* devices placed on the same spot (a keypad and thermostat side by side) are nudged apart so both icons show */
+  pts.forEach((o, i)=>{ for(let n = 0; n < 6; n++){ const c = pts.slice(0, i).find(q=>Math.hypot(q.x - o.x, q.y - o.y) < R * 1.9); if(!c) break; o.x = c.x + R * 2.05; o.y = c.y; } });
+  const icons = pts.map(o=>({ x1: o.x - R, y1: o.y - R, x2: o.x + R, y2: o.y + R, o }));
+  const placed = [], hit = (r, self)=>r.x1 < 0 || r.y1 < 0 || r.x2 > w || r.y2 > h || placed.some(q=>r.x1 < q.x2 && r.x2 > q.x1 && r.y1 < q.y2 && r.y2 > q.y1) || icons.some(q=>q.o !== self && r.x1 < q.x2 && r.x2 > q.x1 && r.y1 < q.y2 && r.y2 > q.y1);
+  const dirs = [[1,0],[-1,0],[0,-1],[0,1],[1,-1],[1,1],[-1,-1],[-1,1]];
+  const order = pts.map((o, i)=>({ o, n: pts.filter(q=>Math.hypot(q.x - o.x, q.y - o.y) < 60 * u * k).length, i })).sort((a,b)=>b.n - a.n || a.i - b.i).map(x=>x.o);
+  let marks = "", labels = "", lines = "";
+  order.forEach(o=>{
+    const b = o.b; let best = null;
+    for(let ring = 0; ring < 5 && !best; ring++){
+      const g = R + 1.6 * u * k + ring * 11 * u * k;
+      for(const [dx, dy] of dirs){
+        const cx = o.x + dx * g, cy = o.y + dy * g;
+        const x1 = dx > 0 ? cx : dx < 0 ? cx - b.w : cx - b.w / 2, y1 = dy > 0 ? cy : dy < 0 ? cy - b.h : cy - b.h / 2;
+        const r = { x1, y1, x2: x1 + b.w, y2: y1 + b.h };
+        if(!hit(r, o)){ best = { r, ring, ax: dx > 0 ? x1 : dx < 0 ? x1 + b.w : x1 + b.w / 2, ay: dy > 0 ? y1 : dy < 0 ? y1 + b.h : y1 + b.h / 2 }; break; }
+      }
+      if(ring && !pr.leaders) break;
+    }
+    if(!best){ const x1 = o.x + R + 1.6 * u * k, y1 = o.y - b.h / 2; best = { r: { x1, y1, x2: x1 + b.w, y2: y1 + b.h }, ring: 0 }; }
+    placed.push(best.r);
+    const t = dwType(p, o.d.type);
+    marks += `<div class="pm" style="left:${o.x.toFixed(1)}px;top:${o.y.toFixed(1)}px;--mc:${esc(t.color)}"><span class="c">${dwBadge(t)}</span></div>`;
+    labels += `<div class="pl" style="left:${best.r.x1.toFixed(1)}px;top:${best.r.y1.toFixed(1)}px;--mc:${esc(t.color)}"><b>${esc(b.t)}</b>${b.m ? `<span>${esc(b.m)}</span>` : ""}</div>`;
+    if(best.ring > 0){ const a = Math.atan2(best.ay - o.y, best.ax - o.x); lines += `<line x1="${(o.x + Math.cos(a) * R).toFixed(1)}" y1="${(o.y + Math.sin(a) * R).toFixed(1)}" x2="${best.ax.toFixed(1)}" y2="${best.ay.toFixed(1)}" stroke="${esc(t.color)}"/>`; }
+  });
+  return `<svg class="pll" width="${w.toFixed(0)}" height="${h.toFixed(0)}" viewBox="0 0 ${w.toFixed(0)} ${h.toFixed(0)}" style="--k:${k}">${lines}</svg>${marks}${labels}`;
 }
 function dwTitleBlock(p, sh, i, total){
   const pre = p.prefix ? p.prefix + "-" : "";
@@ -2373,10 +2447,12 @@ function dwDocSheets(p){
       const f = sh.floor, lg = f.legend || "tr", W = 1587-42-52-(lg==="side"?288:0), H = 1123-42-150-52;
       let pw = "";
       if(f.img && f.iw){ const s = Math.min(W/f.iw, H/f.ih), w = f.iw*s, h = f.ih*s;
-        pw = `<div class="pw" style="width:${w.toFixed(0)}px;height:${h.toFixed(0)}px;--u:${(w/1000).toFixed(3)}px"><img src="${esc(f.img)}" alt="" style="opacity:${f.fade ?? .55}" crossorigin="anonymous">${f.devices.map(d=>dwMarkerHtml(p,d)).join("")}</div>`;
+        const devs = sh.grp ? f.devices.filter(d=>dwGroupOf(dwType(p, d.type).system).code === sh.grp.code) : f.devices;
+        const pr = p.print || {}, gimg = pr.grey && dwGrey.get(f.img);
+        pw = `<div class="pw pp" style="width:${w.toFixed(0)}px;height:${h.toFixed(0)}px;--u:${(w/1000).toFixed(3)}px;--k:${num(pr.icon) || .75}"><img src="${esc(gimg || f.img)}" alt="" style="opacity:${f.fade ?? .55}${pr.grey && !gimg ? ";filter:grayscale(1)" : ""}" ${gimg ? "" : 'crossorigin="anonymous"'}>${dwPrintMarkers(p, devs, w, h)}</div>`;
       } else pw = `<p style="color:#9a948c;font-size:14px">No plan uploaded for this floor yet.</p>`;
-      const used = p.types.filter(t=>f.devices.some(d=>d.type===t.tag));
-      body = `<div class="plan ${lg==="side"?"side":""}">${pw}</div>${used.length && lg!=="off"?`<div class="legend ${lg}"><div class="mono">Legend</div>${used.map(t=>`<div class="li"><i style="--mc:${esc(t.color)}">${dwBadge(t)}</i>${esc(t.tag)} · ${esc(t.name)}</div>`).join("")}<p>Tag: room-type-number<br>Mount: W wall · C ceiling · REC recessed · height mm to centre</p></div>`:""}`;
+      const used = p.types.filter(t=>f.devices.some(d=>d.type===t.tag && (!sh.grp || dwGroupOf(t.system).code === sh.grp.code)));
+      body = `<div class="plan ${lg==="side"?"side":""}">${pw}</div>${used.length && lg!=="off"?`<div class="legend ${lg}"><div class="mono">Legend</div>${used.map(t=>`<div class="li"><i style="--mc:${esc(t.color)}">${dwBadge(t)}</i>${esc(t.tag)} · ${esc(t.name)}</div>`).join("")}<p>Tag: room-type-number${(p.print||{}).labels === "full" ? "<br>Mount: W wall · C ceiling · REC recessed · height mm to centre" : "<br>Mounting heights are in the cable schedule"}</p></div>`:""}`;
     } else {
       body = `<div class="content"><div class="mono kick">${upper}</div><h2>Cable <em>schedule</em></h2>
         <table><tr><th>Cable ID</th><th>Device</th><th>Room</th><th>Floor</th><th>Mount</th><th>Cable</th><th>Colour</th><th>To</th><th>Notes</th><th>QC ✓</th></tr>
@@ -2476,6 +2552,14 @@ function dwBuildEditor(){
     <button class="btn add" data-dact="addFloor">Add floor</button>
   </div></details>
 
+  <details class="sec" data-s="print" ${isOpen("print",false)}><summary><span class="t">Printed sheets</span><span class="hint">${p.print.split ? "Split by system" : "One sheet per floor"}</span></summary><div class="body">
+    <label class="check"><input type="checkbox" data-dk="print.split" data-bool="1" ${p.print.split ? "checked" : ""}> Separate sheet for each system (network, AV, control, heating, security), plus an overview</label>
+    <label class="f"><span>Labels on the plan</span><select class="in" data-dk="print.labels"><option value="tag" ${p.print.labels==="tag"?"selected":""}>Tag only (heights in the cable schedule)</option><option value="full" ${p.print.labels==="full"?"selected":""}>Tag and mounting height</option></select></label>
+    <label class="f"><span>Icon size</span><input type="range" min="0.5" max="1.2" step="0.05" value="${num(p.print.icon) || .75}" data-dk="print.icon" data-num="1"></label>
+    <label class="check"><input type="checkbox" data-dk="print.grey" data-bool="1" ${p.print.grey ? "checked" : ""}> Grey out the architect's plan so devices stand out</label>
+    <label class="check"><input type="checkbox" data-dk="print.leaders" data-bool="1" ${p.print.leaders ? "checked" : ""}> Move crowded tags into clear space with a leader line</label>
+  </div></details>
+
   <details class="sec" data-s="types" ${isOpen("types",false)}><summary><span class="t">Device types</span><span class="hint">${p.types.length} in legend</span></summary><div class="body">
     <p class="note">Each type has its own colour, default mounting and cables. A TV point with four cables gets four schedule lines, each with its own suffix.</p>
     ${p.types.map((t,i)=>`<div class="typeRow"><input type="color" value="${esc(t.color)}" data-dk="types.${i}.color" aria-label="Colour"><button class="icbadge" data-dact="moreType" data-i="${i}" title="Change symbol" style="--mc:${esc(t.color)}">${dwBadge(t)}</button><input type="text" value="${esc(t.tag)}" data-dk="types.${i}.tag" data-retag="1" aria-label="Tag" style="padding:6px 8px;font-family:var(--f-mono)"><input type="text" value="${esc(t.name)}" data-dk="types.${i}.name" aria-label="Device name" style="padding:6px 8px"><button class="icon" data-dact="moreType" data-i="${i}" title="Cables and mounting">${dwOpenTypes.has(i)?"–":"…"}</button>
@@ -2494,7 +2578,7 @@ $("#dwEditor").addEventListener("input", e=>{
   if(!dwCur) return;
   const k = e.target.dataset.dk;
   if(k){
-    let v = e.target.value; if(e.target.type === "number" || e.target.dataset.num) v = v === "" ? "" : num(v);
+    let v = e.target.value; if(e.target.type === "number" || e.target.dataset.num) v = v === "" ? "" : num(v); if(e.target.dataset.bool) v = e.target.checked;
     if(e.target.dataset.retag){ const i = +k.split(".")[1], old = dwCur.types[i].tag; v = v.toUpperCase().replace(/[^A-Z0-9]/g,""); e.target.value = v; dwCur.floors.forEach(f=>f.devices.forEach(d=>{ if(d.type===old) d.type = v; })); if(dwTool.type===old) dwTool.type = v; }
     dwSetPath(k, v); dwSchedule(); dwQueue();
   }
@@ -2587,6 +2671,7 @@ function dwRender(){
     <div class="grp"><span class="lbl">Room</span><select id="dwRoomSel" aria-label="Room for new devices">${rooms.length ? rooms.map(r=>`<option value="${esc(r.no)}" ${r.no===dwTool.room?"selected":""}>${esc(r.no)} ${esc(r.name)}</option>`).join("") : `<option value="">Add rooms first</option>`}</select></div>
     <div class="grp"><label class="check"><input type="checkbox" id="dwLabels" ${dwLabels?"checked":""}> Labels</label><button class="icon" data-dzoom="-1" title="Zoom out">−</button><button class="icon" data-dzoom="1" title="Zoom in">+</button></div>` : `<span class="note">${dwSheetList(p).length} sheets, A3 landscape.</span>`}`;
   if(dwView === "doc"){
+    if(p.print.grey && p.floors.some(f=>f.img && !dwGrey.has(f.img))) dwGreyPrep(p).then(()=>{ if(dwView === "doc" && dwCur === p) dwRender(); });
     sc.innerHTML = `<div class="dsheets" id="dwSheets">${dwDocSheets(p)}</div>`; dwFitSheets(); return;
   }
   if(!f.img){
@@ -2671,6 +2756,7 @@ $("#dwPdfBtn").addEventListener("click", async ()=>{
   if(!dwCur) return;
   const busy = document.createElement("div"); busy.className = "busy"; busy.innerHTML = "<div>Building drawing set</div>"; document.body.appendChild(busy);
   try{
+    if(dwCur.print && dwCur.print.grey) await dwGreyPrep(dwCur);
     const host = document.createElement("div"); host.style.cssText = "position:absolute;left:0;top:0;width:1587px;pointer-events:none;z-index:-1"; host.innerHTML = dwDocSheets(dwCur); document.body.appendChild(host);
     await document.fonts.ready; await Promise.all([...host.querySelectorAll("img")].map(im=>im.complete ? 0 : new Promise(r=>{ im.onload = im.onerror = r; })));
     const { jsPDF } = window.jspdf, pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3", compress: true });
