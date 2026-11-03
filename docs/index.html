@@ -815,6 +815,15 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .applock img{width:200px;height:auto}
 .applock button{visibility:hidden;height:46px;padding:0 28px;border-radius:23px;border:1px solid #3a352f;background:#1c1a18;color:#f3efe9;font:500 16px/1 var(--f-body);cursor:pointer}
 .applock.ask button{visibility:visible}
+
+/* stock book in */
+.bkl{display:grid;grid-template-columns:auto minmax(0,1fr) 64px auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.bkl:first-of-type{border-top:0}
+.bkl input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent)}
+.bkl span{font-size:14px;line-height:1.35}.bkl small{display:block;color:var(--muted);font-size:12px}
+.bkl input[type=number]{width:64px;height:38px;text-align:center;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--ink)}
+.bkl em{font-style:normal;color:var(--muted);font-size:12px;white-space:nowrap}
+.bkl.hit{background:var(--accent-soft);border-radius:10px;padding-inline:10px;margin-inline:-10px}
 </style>
 
 <div class="app" id="app" data-tab="proposals">
@@ -2782,6 +2791,7 @@ function skRenderList(){
   const q = skQ.toLowerCase(), f = { order: r=>r.short > 0, stock: r=>r.onHand > 0, onorder: r=>r.onOrder > 0, need: r=>r.need > 0, all: ()=>true }[skFilter];
   const shown = rows.filter(f).filter(r=>!q || [r.item, r.model, r.supplier].join(" ").toLowerCase().includes(q));
   box.innerHTML = `<button type="button" class="jrow ${skSel === null ? "on" : ""}" data-sk="" style="--js:var(--accent)"><span class="jbar"></span><span class="jm"><span class="n">ORDER LIST</span><span class="c">What to order</span><small>${cnt.order ? `${cnt.order} item${cnt.order > 1 ? "s" : ""} short, grouped by supplier` : "Nothing short right now"}</small></span><span class="when"></span></button>`
+    + `<button type="button" class="jrow ${skSel === BK ? "on" : ""}" data-sk="${BK}" style="--js:#4c7a5a"><span class="jbar"></span><span class="jm"><span class="n">BOOK IN</span><span class="c">Deliveries</span><small>${(()=>{ const n = skOrders().length; return n ? `${n} order${n > 1 ? "s" : ""} waiting to arrive` : "Nothing on order"; })()}</small></span><span class="when"></span></button>`
     + (shown.length ? shown.map(r=>{ const [st, c] = skStatus(r);
       return `<button type="button" class="jrow ${skSel === r.key ? "on" : ""}" data-sk="${esc(r.key)}" style="--js:${c}"><span class="jbar"></span><span class="jm"><span class="n">${esc(st.toUpperCase())}${r.supplier ? " · " + esc(r.supplier.toUpperCase()) : ""}</span><span class="c">${esc(r.item || r.model)}</span><small>${esc(r.model)}</small></span><span class="when">${r.onHand} in stock<br>${r.need ? `${r.need} needed` : ""}${r.onOrder ? `${r.need ? " · " : ""}${r.onOrder} ordered` : ""}</span></button>`; }).join("")
     : `<p class="note" style="padding:16px">${!skLoaded ? "Loading…" : skFilter === "order" ? "Nothing to order. Open jobs are covered by stock and orders." : "Nothing here."}</p>`);
@@ -2789,6 +2799,7 @@ function skRenderList(){
 function skRender(){
   skRenderList();
   const sc = $("#skScroll"); if(!sc) return;
+  if(skSel === BK){ bkRender(sc); return; }
   if(skSel === null){
     const rows = skRows().filter(r=>r.short > 0), g = new Map(); rows.forEach(r=>{ const k = r.supplier || ""; if(!g.has(k)) g.set(k, []); g.get(k).push(r); });
     const groups = [...g.entries()].sort((a,b)=>(a[0]?0:1)-(b[0]?0:1) || a[0].localeCompare(b[0]));
@@ -5090,8 +5101,10 @@ function qaMat(){
   sheetOpen(`<h3>Add a material</h3><p class="sub">${esc(jbCur.number)} ${esc(jbCur.customer || "")}</p>
     <label>Search your price list<input type="search" id="qaQ" placeholder="Model, item or supplier" autocomplete="off"></label>
     <div class="res" id="qaR"></div>
-    <div class="acts"><button data-x>Done</button></div>`, p=>{
+    <div class="acts">${capP() && capP().CapacitorBarcodeScanner ? `<button data-scan>Scan</button>` : ""}<button data-x>Done</button></div>`, p=>{
     const q = $("#qaQ"), r = $("#qaR");
+    const sc = p.querySelector("[data-scan]"); if(sc) sc.onclick = async ()=>{ const job = jbCur; const id = await scanToItem("Scan the item you're fitting"); if(!id || !job) return; const pr = products.find(x=>x.id === id) || skGet(id);
+      job.materials.push({ id: uid(), libId: pr.libId || pr.id, item: pr.item, model: pr.model || "", supplier: pr.supplier && pr.supplier !== "Imported from Xero" ? pr.supplier : "", qty: 1, price: num(pr.price) }); jbSchedule(); jbRender(); toast(`Added ${pr.item || pr.model}`); };
     const draw = ()=>{ const v = q.value.trim(); const res = v ? searchProducts(v, 12) : [];
       r.innerHTML = res.map(pr=>`<button data-pick="${esc(pr.id)}"><span>${esc(pr.item)}<small>${esc([pr.model, pr.supplier].filter(Boolean).join(" · "))}</small></span><b>+</b></button>`).join("") + (v ? `<button data-custom><span>Add “${esc(v)}” as its own line<small>Not in the price list</small></span><b>+</b></button>` : ""); };
     q.addEventListener("input", draw); setTimeout(()=>q.focus(), 320);
@@ -5225,10 +5238,99 @@ if(PH()){ let v = "1"; try{ v = localStorage.getItem(LS + ".today") || "1"; }cat
     save(); });
   PN.addListener("pushNotificationActionPerformed", a=>{ const k = a && a.notification && a.notification.data && a.notification.data.kind;
     const go = t=>{ if($("#app").classList.contains("todayon")) todayClose(); setTab(t); };
-    if(k === "dispatch") go("stock"); else if(k === "accept") go("proposals"); });
+    if(k === "dispatch") skOpenBookIn(); else if(k === "accept") go("proposals"); });
   const ask = async ()=>{ if(mode === "loading"){ setTimeout(ask, 2000); return; }
     try{ let p = await PN.checkPermissions(); if(p.receive === "prompt" || p.receive === "prompt-with-rationale") p = await PN.requestPermissions(); if(p.receive === "granted") await PN.register(); }catch(_){} };
   setTimeout(ask, 9000);
+})();
+
+/* ---- stock: book in deliveries, barcode scanning ---- */
+const BK = "__bookin"; let bkTick = {}, bkQty = {}, bkHit = {};
+function skOrders(){
+  const orders = new Map(), add = (key, sup, no, at, s, q)=>{ if(!orders.has(key)) orders.set(key, { key, sup: sup || "No supplier set", no, at, lines: [] }); const g = orders.get(key); if(at && (!g.at || at < g.at)) g.at = at; const ex = g.lines.find(x=>x.id === s.id); if(ex) ex.q += q; else g.lines.push({ id: s.id, item: s.item, model: s.model, q }); };
+  skList.forEach(s=>{
+    let left = num(s.onOrder); if(left <= 0) return;
+    const ords = [];
+    (s.log || []).forEach(l=>{ if(l.f !== "onOrder" || !(num(l.d) > 0)) return; const m = String(l.why || "").match(/^Ordered from (.+?) \(([^,)]+)/); ords.push({ sup: m ? m[1] : (s.supplier || ""), no: m ? m[2].trim() : "", at: l.at || "", q: num(l.d) }); });
+    ords.sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+    for(const o of ords){ if(left <= 0) break; const q = Math.min(o.q, left); left -= q; add(o.no ? `${o.sup}|${o.no}` : `${o.sup || "Other"}|`, o.sup, o.no, o.at, s, q); }
+    if(left > 0) add(`${s.supplier || "Other"}|`, s.supplier, "", "", s, left);
+  });
+  return [...orders.values()].sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+}
+function bkRender(sc){
+  const ords = skOrders(), rows = new Map(skRows().map(r=>[r.key, r])), canScan = !!(capP() && capP().CapacitorBarcodeScanner);
+  sc.innerHTML = `<div class="jdetail"><div class="jhead"><span class="num">BOOK IN</span><h2>Deliveries.</h2></div>
+    <p class="note">Everything still on order, grouped by supplier order. Tick what arrived, change any quantity that's short, then press Book in. It moves from On order to In stock.${canScan ? " Scan a barcode to find a line quickly." : ""}</p>
+    ${canScan ? `<div class="adds" style="margin:0 0 14px"><button class="btn primary" data-bka="scan">Scan a barcode</button></div>` : ""}
+    ${ords.length ? ords.map(o=>`<div class="jcard" id="bko-${esc(o.key.replace(/[^A-Za-z0-9]/g, "_"))}"><h3>${esc(o.sup)}${o.no ? ` <small>${esc(o.no)}</small>` : ""}${o.at ? `<small style="margin-left:auto">ORDERED ${esc(jbNice(o.at.slice(0,10)).toUpperCase())}</small>` : ""}</h3>
+      ${o.lines.map(l=>{ const k = o.key + "~" + l.id, on = bkTick[k] !== false, q = bkQty[k] ?? l.q, r = rows.get(l.id), jobs = r && r.jobs.length ? "For " + r.jobs.map(j=>j.number + (j.customer ? " " + j.customer : "")).join(", ") : "For stock";
+        return `<div class="bkl ${bkHit[k] ? "hit" : ""}"><input type="checkbox" data-bkt="${esc(k)}" ${on ? "checked" : ""} aria-label="Arrived"><span>${esc(l.item || l.model)}<small>${esc([l.model, jobs].filter(Boolean).join(" · "))}</small></span><input type="number" min="0" max="${l.q}" step="1" value="${q}" data-bkq="${esc(k)}" aria-label="Quantity arrived"><em>of ${l.q}</em></div>`; }).join("")}
+      <div class="adds"><button class="btn small primary" data-bka="book" data-key="${esc(o.key)}">Book in</button></div></div>`).join("")
+      : `<div class="planempty"><h2>Nothing on order.</h2><p>Orders appear here when they're picked up from your supplier emails, or when you mark something as ordered.</p></div>`}
+  </div>`;
+}
+async function bkBook(key){
+  const o = skOrders().find(x=>x.key === key); if(!o) return; let n = 0;
+  for(const l of o.lines){ const k = key + "~" + l.id; if(bkTick[k] === false) continue; const q = Math.max(0, Math.min(l.q, Math.round(num(bkQty[k] ?? l.q)))); if(!q) continue;
+    const s = skGet(l.id); s.onHand = num(s.onHand) + q; s.onOrder = Math.max(0, num(s.onOrder) - q);
+    s.log.push({ at: new Date().toISOString().slice(0, 16).replace("T", " "), f: "onHand", d: q, why: `Received (${o.sup}${o.no ? " " + o.no : ""})` }); await skWrite(s); n += q;
+    delete bkTick[k]; delete bkQty[k]; delete bkHit[k]; }
+  skRender(); toast(n ? `Booked in ${n} item${n > 1 ? "s" : ""} from ${o.sup}${o.no ? " " + o.no : ""}.` : "Nothing ticked to book in.");
+}
+/* barcodes */
+const normCode = s=>String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+async function scanCode(prompt){
+  const P = capP(); if(!P || !P.CapacitorBarcodeScanner){ toast("Barcode scanning works in the iPhone app."); return null; }
+  try{ const r = await P.CapacitorBarcodeScanner.scanBarcode({ hint: 17, scanInstructions: prompt || "Point the camera at the barcode", scanButton: false, scanText: " ", cameraDirection: 1, scanOrientation: 3 });
+    const v = String((r && r.ScanResult) || "").trim(); if(v) hap("ok"); return v || null; }catch(_){ return null; }
+}
+function findByCode(code){
+  const n = normCode(code); if(n.length < 3) return null;
+  let s = skList.find(x=>(x.barcodes || []).includes(n)); if(s) return s.id;
+  const eq = v=>v && normCode(v) === n, inside = v=>{ const m = normCode(v); return m.length >= 5 && n.includes(m); };
+  let pr = products.find(p=>(p.barcodes || []).includes(n) || eq(p.model) || eq(p.code)); if(pr) return pr.id;
+  s = skList.find(x=>eq(x.model)); if(s) return s.id;
+  pr = products.find(p=>inside(p.model) || inside(p.code)); if(pr) return pr.id;
+  s = skList.find(x=>inside(x.model)); return s ? s.id : null;
+}
+async function linkCode(id, code){ const o = skGet(id); o.barcodes = [...new Set([...(o.barcodes || []), normCode(code)])]; if(!skList.find(x=>x.id === o.id) || true) await skWrite(o); }
+function pickForCode(code, done){
+  sheetOpen(`<h3>Which item is this?</h3><p class="sub">Barcode ${esc(code)} isn't linked yet. Pick the item once and it'll be recognised next time.</p>
+    <label>Search<input type="search" id="pkQ" placeholder="Model, item or supplier" autocomplete="off"></label><div class="res" id="pkR"></div>
+    <div class="acts"><button data-x>Cancel</button></div>`, p=>{
+    const q = $("#pkQ"), r = $("#pkR"), draw = ()=>{ const v = q.value.trim(), res = v ? searchProducts(v, 12) : [];
+      r.innerHTML = res.map(pr=>`<button data-pick="${esc(pr.id)}"><span>${esc(pr.item)}<small>${esc([pr.model, pr.supplier].filter(Boolean).join(" · "))}</small></span><b>›</b></button>`).join(""); };
+    q.addEventListener("input", draw); setTimeout(()=>q.focus(), 320);
+    r.addEventListener("click", async e=>{ const b = e.target.closest("[data-pick]"); if(!b) return; sheetClose(); await linkCode(b.dataset.pick, code); toast("Barcode linked to " + ((products.find(x=>x.id === b.dataset.pick) || {}).item || "the item") + "."); done(b.dataset.pick); });
+    p.querySelector("[data-x]").onclick = ()=>{ sheetClose(); done(null); };
+  });
+}
+async function scanToItem(prompt){ const code = await scanCode(prompt); if(!code) return null; const id = findByCode(code); if(id) return id; return await new Promise(res=>pickForCode(code, res)); }
+async function bkScan(){
+  const id = await scanToItem("Scan an item from the delivery"); if(!id) return;
+  const hits = []; skOrders().forEach(o=>o.lines.forEach(l=>{ if(l.id === id) hits.push(o.key + "~" + l.id); }));
+  if(hits.length){ const k = hits[hits.length - 1]; bkHit[k] = true; bkTick[k] = true; skRender(); hap("ok");
+    const el = document.getElementById("bko-" + k.split("~")[0].replace(/[^A-Za-z0-9]/g, "_")); el && el.scrollIntoView({ behavior: "smooth", block: "center" });
+    toast("Found it. Check the quantity, then Book in."); return; }
+  const s = skGet(id);
+  sheetOpen(`<h3>${esc(s.item || s.model || "Item")}</h3><p class="sub">This isn't on any open order. Add it to stock anyway?</p>
+    <label>Quantity<input type="number" id="bkAq" min="1" step="1" value="1"></label>
+    <div class="acts"><button data-x>Cancel</button><button class="go" data-ok>Add to stock</button></div>`, p=>{
+    p.querySelector("[data-x]").onclick = sheetClose;
+    p.querySelector("[data-ok]").onclick = async ()=>{ const q = Math.max(1, Math.round(num($("#bkAq").value) || 1)); sheetClose(); await skMove(id, "onHand", q, "Received (not on an order)", s); skRender(); toast(`Added ${q} to stock.`); };
+  });
+}
+$("#skScroll").addEventListener("click", async e=>{ const b = e.target.closest("[data-bka]"); if(!b) return;
+  if(b.dataset.bka === "scan") bkScan(); else if(b.dataset.bka === "book"){ b.disabled = true; await bkBook(b.dataset.key); } });
+$("#skScroll").addEventListener("change", e=>{ const t = e.target.dataset.bkt, q = e.target.dataset.bkq;
+  if(t){ bkTick[t] = e.target.checked; hap("sel"); } if(q){ bkQty[q] = Math.max(0, Math.round(num(e.target.value))); bkTick[q] = bkQty[q] > 0; const cb = document.querySelector(`[data-bkt="${CSS.escape(q)}"]`); if(cb) cb.checked = bkQty[q] > 0; } });
+function skOpenBookIn(){ if($("#app").classList.contains("todayon")) todayClose(); setTab("stock"); skSel = BK; skRender(); if(innerWidth <= 860) setView("preview"); }
+(function(){ const a = document.querySelector(".actions.smode"); if(!a) return;
+  const sb = document.createElement("button"); sb.className = "btn"; sb.id = "skScanBtn"; sb.textContent = "Scan"; sb.hidden = !(capP() && capP().CapacitorBarcodeScanner);
+  const bb = document.createElement("button"); bb.className = "btn primary"; bb.textContent = "Book in"; a.append(sb, bb);
+  bb.addEventListener("click", skOpenBookIn);
+  sb.addEventListener("click", async ()=>{ const id = await scanToItem("Scan any item"); if(!id) return; const s = skGet(id); if(!skList.find(x=>x.id === id)) await skWrite(s); skSel = id; skRender(); if(innerWidth <= 860) setView("preview"); });
 })();
 /* ---- section menu ---- */
 function navClose(){ const w=document.getElementById("navWrap"); if(!w) return; w.classList.remove("open"); document.getElementById("navBtn").setAttribute("aria-expanded","false"); }
