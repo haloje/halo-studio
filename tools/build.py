@@ -71,4 +71,6 @@ out = head + s + tail
 ver = hashlib.sha1(out.encode() + (ROOT / "docs/backend.js").read_bytes()).hexdigest()[:10]
 sw = (ROOT / "tools/sw.template.js").read_text().replace("__VERSION__", ver)
 (ROOT / "docs/sw.js").write_text(sw)
+(ROOT / "docs/app").mkdir(exist_ok=True)
+(ROOT / "docs/app/version.json").write_text('{"version": "%s", "url": "https://github.com/haloje/halo-studio/releases/download/web-bundle/studio-%s.zip"}\n' % (ver, ver))
 print("built docs/index.html", len(out), "bytes, cache", ver)

@@ -49,6 +49,7 @@ jobs:
       - name: Install and copy the web shell into the app
         run: |
           npm ci
+          rm -rf www && mkdir www && rsync -a --exclude promo ../docs/ www/
           npx cap sync ios
 
       - name: Compile check (no signing)

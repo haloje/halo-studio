@@ -66,6 +66,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Studio uses Face ID to keep your client details and costs private.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Studio uses your location to clock you on when you arrive at a booked job.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

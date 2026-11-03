@@ -3,21 +3,13 @@
   "appName": "halo.je Studio",
   "webDir": "www",
   "server": {
-    "url": "https://haloje.github.io/halo-studio/",
-    "errorPath": "index.html",
     "allowNavigation": [
-      "haloje.github.io",
-      "*.supabase.co",
-      "login.microsoftonline.com",
-      "login.live.com",
-      "login.xero.com",
-      "identity.xero.com"
+      "*.supabase.co"
     ]
   },
   "ios": {
     "contentInset": "never",
-    "backgroundColor": "#121110",
-    "scheme": "halo.je Studio"
+    "backgroundColor": "#121110"
   },
   "plugins": {
     "SplashScreen": {
@@ -30,6 +22,14 @@
     "StatusBar": {
       "style": "DEFAULT",
       "overlaysWebView": true
+    },
+    "CapacitorUpdater": {
+      "autoUpdate": false,
+      "appReadyTimeout": 15000,
+      "resetWhenUpdate": true,
+      "statsUrl": "",
+      "channelUrl": "",
+      "updateUrl": ""
     }
   }
 }

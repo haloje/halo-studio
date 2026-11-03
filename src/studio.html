@@ -783,6 +783,13 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
   .today .tag.bad{background:#f6dcd5;color:#8a2e1c}.today .tag.mid{background:#f5e8cf;color:#7a531a}
   .today .empty{color:var(--muted);font-size:14px;padding:4px 2px}
 }
+
+/* Face ID lock cover (app only) */
+.applock{display:none;position:fixed;inset:0;z-index:200;background:#121110;flex-direction:column;align-items:center;justify-content:center;gap:34px}
+.applock.on{display:flex}
+.applock img{width:200px;height:auto}
+.applock button{visibility:hidden;height:46px;padding:0 28px;border-radius:23px;border:1px solid #3a352f;background:#1c1a18;color:#f3efe9;font:500 16px/1 var(--f-body);cursor:pointer}
+.applock.ask button{visibility:visible}
 </style>
 
 <script>(function(){var h=location.hash||"";if(h.indexOf("#relay=")!==0)return;var u="";try{u=decodeURIComponent(h.slice(7));}catch(e){return;}if(!/^(tel|sms|mailto):/i.test(u))return;
@@ -5122,6 +5129,73 @@ todayEl.addEventListener("click", e=>{
 
 document.getElementById("navMenu").addEventListener("click", e=>{ if(e.target.closest("button") && $("#app").classList.contains("todayon")) todayClose(); });
 if(PH()){ let v = "1"; try{ v = localStorage.getItem(LS + ".today") || "1"; }catch(_){} if(v !== "0") todayOpen(); }
+
+/* ---- app 3: background updates, Face ID lock, visit reminders ---- */
+(function(){
+  const P = capP(); if(!P) return;
+  const bundled = !/^https?:/.test(location.protocol);
+
+  /* background updates: the app runs its own copy of Studio and downloads the newest one for next launch */
+  (async ()=>{
+    try{ P.CapacitorUpdater && await P.CapacitorUpdater.notifyAppReady(); }catch(_){}
+    if(!bundled || !P.CapacitorUpdater) return;
+    const check = async ()=>{ try{
+      const mine = await (await fetch("app/version.json", { cache: "no-store" })).json();
+      const live = await (await fetch("https://haloje.github.io/halo-studio/app/version.json?t=" + Date.now(), { cache: "no-store" })).json();
+      if(!live.version || live.version === mine.version || check.got === live.version) return;
+      const b = await P.CapacitorUpdater.download({ url: live.url, version: live.version });
+      await P.CapacitorUpdater.next({ id: b.id }); check.got = live.version;
+    }catch(_){} };
+    setTimeout(check, 4000);
+    document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "visible") setTimeout(check, 1500); });
+  })();
+
+  /* Face ID: lock on launch and after five minutes away; cover the screen in the app switcher */
+  const NB = P.NativeBiometric; if(NB){
+    const cover = document.createElement("div"); cover.className = "applock"; cover.innerHTML = `<img src="icons/logo-light.png" alt="halo.je"><button type="button">Unlock</button>`; document.body.appendChild(cover);
+    const btn = cover.querySelector("button"); let busy = false, away = 0, okAt = 0;
+    const open = ()=>{ cover.classList.remove("on", "ask"); okAt = Date.now(); };
+    const unlock = async ()=>{ if(busy) return; busy = true; cover.classList.add("on");
+      try{ const a = await NB.isAvailable({ useFallback: true }); if(!a || !a.isAvailable){ open(); busy = false; return; }
+        await NB.verifyIdentity({ reason: "Unlock halo.je Studio", title: "halo.je Studio", useFallback: true, fallbackTitle: "Use passcode" }); open(); hap("ok");
+      }catch(_){ cover.classList.add("ask"); }
+      busy = false; };
+    btn.addEventListener("click", unlock);
+    cover.classList.add("on"); setTimeout(unlock, 400);
+    document.addEventListener("visibilitychange", ()=>{
+      if(document.visibilityState === "hidden"){ away = Date.now(); if(!busy) cover.classList.add("on"); }
+      else if(!busy){ if(Date.now() - away > 5 * 60e3) unlock(); else cover.classList.remove("on", "ask"); }
+    });
+  }
+
+  /* visit reminders: 7:30 on days with visits, and 45 minutes before each visit */
+  const LN = P.LocalNotifications; if(LN){
+    let sig = "", asked = false;
+    LN.addListener("localNotificationActionPerformed", a=>{ const jid = a && a.notification && a.notification.extra && a.notification.extra.jobId;
+      if(jid && typeof jbOpen === "function"){ if($("#app").classList.contains("todayon")) todayClose(); setTab("jobs"); const w = setInterval(()=>{ if(jbList.some(x=>x.id === jid)){ clearInterval(w); jbOpen(jid); setView("preview"); } }, 150); setTimeout(()=>clearInterval(w), 6000); }
+      else todayOpen(); });
+    const plan = ()=>{
+      if(typeof jbList === "undefined" || !jbStarted || mode === "loading") return null;
+      const out = [], now = Date.now();
+      for(let k = 0; k < 14; k++){ const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + k); const day = jbIso(d);
+        const vs = jbVisitsBetween(day, day).filter(x=>!jbPendingDel.has(x.j.id) && x.v.start).sort((a,b)=>a.v.start.localeCompare(b.v.start));
+        if(!vs.length) continue;
+        const m = new Date(day + "T07:30:00"); if(m.getTime() > now) out.push({ id: 700000 + k, title: vs.length === 1 ? "1 visit today" : `${vs.length} visits today`, body: vs.slice(0, 4).map(x=>`${x.v.start} ${x.j.customer || x.j.site || x.j.number}`).join("\n"), schedule: { at: m }, extra: { day } });
+        vs.forEach((x, i)=>{ const t = new Date(`${day}T${x.v.start}:00`).getTime() - 45 * 60e3; if(t > now) out.push({ id: 710000 + k * 50 + i, title: `${x.v.start} ${x.j.customer || x.j.site || "Visit"}`, body: [String(x.j.address || x.j.site || "").replace(/\s*\n\s*/g, ", "), x.v.note].filter(Boolean).join(" · ") || x.j.number, schedule: { at: new Date(t) }, extra: { jobId: x.j.id } }); });
+      }
+      return out;
+    };
+    const sync = async ()=>{ const list = plan(); if(!list) return; const s = JSON.stringify(list.map(n=>[n.id, n.title, n.body, +n.schedule.at])); if(s === sig) return;
+      try{ let p = await LN.checkPermissions(); if(p.display !== "granted"){ if(asked || p.display === "denied") return; asked = true; p = await LN.requestPermissions(); if(p.display !== "granted") return; }
+        const pend = await LN.getPending(); const mine = (pend.notifications || []).filter(n=>n.id >= 700000 && n.id < 800000);
+        if(mine.length) await LN.cancel({ notifications: mine.map(n=>({ id: n.id })) });
+        if(list.length) await LN.schedule({ notifications: list });
+        sig = s; }catch(_){} };
+    const kick = ()=>{ if(mode === "loading") return; try{ jbStart(); }catch(_){} sync(); };
+    setTimeout(kick, 6000); setInterval(kick, 60e3);
+    document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "hidden") sync(); });
+  }
+})();
 /* ---- section menu ---- */
 function navClose(){ const w=document.getElementById("navWrap"); if(!w) return; w.classList.remove("open"); document.getElementById("navBtn").setAttribute("aria-expanded","false"); }
 (function(){ const w=document.getElementById("navWrap"), b=document.getElementById("navBtn"); if(!w||!b) return;
