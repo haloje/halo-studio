@@ -739,13 +739,75 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
   .tabbar button:active svg{transform:scale(.9)}
   .navwrap.open .tabs{position:fixed;left:10px;right:10px;top:auto;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:71;min-width:0;border-radius:14px;padding:8px}
   .navwrap .tabs button{height:46px;font-size:16px;padding:0 14px}
-  .navwrap .tabs #tabJ,.navwrap .tabs #tabP,.navwrap .tabs #tabS,.navwrap .tabs #tabT{display:none}
+  .navwrap .tabs #tabJ,.navwrap .tabs #tabP,.navwrap .tabs #tabT{display:none}
   .navwrap.open::before{content:"";position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:70}
   .toast{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
 }
 .native body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .native input,.native textarea,.native select,.native [contenteditable],.native [contenteditable] *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 .native img{-webkit-user-drag:none}
+
+/* ---------- app feel 2: slide-in screens, back, pull to refresh, sheets, Today ---------- */
+.backbtn,.fab,.ptr,.today,.sheetwrap{display:none}
+@keyframes slInR{from{transform:translateX(100%)}to{transform:none}}
+@keyframes slInL{from{transform:translateX(-28%);opacity:.5}to{transform:none;opacity:1}}
+@media (max-width:860px){
+  .app.anim-fwd .stage,.app.anim-fwd .dstage,.app.anim-fwd .jstage{animation:slInR .32s cubic-bezier(.2,.85,.25,1)}
+  .app.anim-back .editor,.app.anim-back .jlist{animation:slInL .3s cubic-bezier(.2,.85,.25,1)}
+  .app:is([data-tab=jobs],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .bar .seg{display:none}
+  .app[data-pv=preview]:is([data-tab=jobs],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .backbtn{display:inline-flex}
+  .app[data-pv=preview]:is([data-tab=jobs],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .brand{display:none}
+  .backbtn{align-items:center;gap:2px;height:36px;margin-left:-6px;padding:0 10px 0 2px;border:0;background:none;color:var(--accent);font:500 17px/1 var(--f-body);cursor:pointer}
+  .backbtn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .app.swiping .jstage,.app.swiping .stage,.app.swiping .dstage{transition:none!important;box-shadow:-12px 0 24px rgba(0,0,0,.12)}
+  .app[data-tab=jobs][data-pv=preview].hasjob:not(.todayon) ~ .fab{display:grid}
+  .fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(74px + env(safe-area-inset-bottom,0px));z-index:65;width:56px;height:56px;border-radius:50%;border:0;background:var(--accent);color:var(--bg);place-items:center;box-shadow:0 8px 22px rgba(0,0,0,.25);cursor:pointer}
+  .fab svg{width:26px;height:26px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round}
+  .fab:active{transform:scale(.94)}
+  .ptr{display:flex;position:fixed;left:50%;top:calc(var(--safe-top,env(safe-area-inset-top,0px)) + 70px);z-index:80;transform:translate(-50%,-60px);opacity:0;align-items:center;gap:8px;padding:8px 14px;border-radius:20px;background:var(--panel);border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.14);font-size:13px;color:var(--muted);pointer-events:none;transition:opacity .15s}
+  .ptr svg{width:18px;height:18px;stroke:var(--accent);fill:none;stroke-width:2.2;stroke-linecap:round}
+  .ptr.ready{color:var(--ink)}
+  .ptr.go svg{animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .sheetwrap{display:block;position:fixed;inset:0;z-index:90;pointer-events:none}
+  .sheetwrap .scrim{position:absolute;inset:0;background:rgba(0,0,0,.32);opacity:0;transition:opacity .25s}
+  .sheetwrap .sheetp{position:absolute;left:0;right:0;bottom:0;max-height:88vh;overflow:auto;background:var(--panel);border-radius:16px 16px 0 0;padding:8px 18px calc(18px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .3s cubic-bezier(.2,.85,.25,1);box-shadow:0 -10px 30px rgba(0,0,0,.18)}
+  .sheetwrap.open{pointer-events:auto}.sheetwrap.open .scrim{opacity:1}.sheetwrap.open .sheetp{transform:none}
+  .sheetp .grab{width:38px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 12px}
+  .sheetp h3{margin:0 0 12px;font:400 20px/1.2 var(--f-display)}
+  .sheetp .sub{margin:-8px 0 14px;color:var(--muted);font-size:13px}
+  .sheetp label{display:grid;gap:5px;margin-bottom:12px;font-size:12px;color:var(--muted)}
+  .sheetp .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .sheetp input,.sheetp textarea{width:100%;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--field);padding:10px 12px;color:var(--ink)}
+  .sheetp .acts{display:flex;gap:10px;margin-top:6px}
+  .sheetp .acts button{flex:1;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--field);font-size:16px;font-weight:500;cursor:pointer;color:var(--ink)}
+  .sheetp .acts button.go{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+  .sheetp .menu button{display:flex;align-items:center;gap:14px;width:100%;height:56px;border:0;border-bottom:1px solid var(--line);background:none;font-size:17px;color:var(--ink);text-align:left;cursor:pointer}
+  .sheetp .menu button:last-child{border-bottom:0}
+  .sheetp .menu svg{width:24px;height:24px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .sheetp .res{display:grid;gap:0;max-height:46vh;overflow:auto;margin-top:4px}
+  .sheetp .res button{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;min-height:54px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;color:var(--ink);font-size:15px;padding:6px 2px;cursor:pointer}
+  .sheetp .res small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+  .sheetp .res b{color:var(--accent);font-weight:500;font-size:20px}
+  .today{display:block;position:fixed;left:0;right:0;top:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:60;overflow:auto;-webkit-overflow-scrolling:touch;background:var(--bg);padding:calc(var(--safe-top,env(safe-area-inset-top,0px)) + 18px) max(18px,env(safe-area-inset-right,0px)) 30px max(18px,env(safe-area-inset-left,0px));transform:translateX(0);transition:opacity .2s}
+  .today[hidden]{display:none}
+  .today .kick{font:500 11px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .today h1{font:300 34px/1.1 var(--f-display);margin:6px 0 18px}
+  .today h2{font:500 12px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:24px 0 10px}
+  .today .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+  .today .card .tm{font:500 13px/1 var(--f-mono);color:var(--accent)}
+  .today .card .nm{font-size:17px;font-weight:500;margin:6px 0 2px}
+  .today .card .ad{font-size:13.5px;color:var(--muted);line-height:1.4}
+  .today .card .nt{font-size:13.5px;margin-top:6px;line-height:1.4}
+  .today .card .row{display:flex;gap:8px;margin-top:12px}
+  .today .card .row a,.today .card .row button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--field);color:var(--ink);font-size:14px;font-weight:500;text-decoration:none;cursor:pointer}
+  .today .card .row svg{width:17px;height:17px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .today .li{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;text-align:left;color:var(--ink);font-size:15px;cursor:pointer}
+  .today .li small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+  .today .li .tag{margin-left:auto;font-size:12px;font-weight:500;border-radius:10px;padding:4px 9px;white-space:nowrap}
+  .today .tag.bad{background:#f6dcd5;color:#8a2e1c}.today .tag.mid{background:#f5e8cf;color:#7a531a}
+  .today .empty{color:var(--muted);font-size:14px;padding:4px 2px}
+}
 </style>
 
 <div class="app" id="app" data-tab="proposals">
@@ -4873,15 +4935,17 @@ async function nativeShare(filename, data){
     proposals: '<svg viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5M9 13h6M9 16.5h4"/></svg>',
     stock: '<svg viewBox="0 0 24 24"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>',
     todo: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m8.3 12.2 2.5 2.5 4.9-5"/></svg>',
+    today: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>',
     more: '<svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg>'
   };
-  const items = [["jobs","tabJ","Jobs"],["proposals","tabP","Proposals"],["stock","tabS","Stock"],["todo","tabT","To-do"]];
+  const items = [["jobs","tabJ","Jobs"],["proposals","tabP","Proposals"],["todo","tabT","To-do"]];
   const bar = document.createElement("nav"); bar.className = "tabbar"; bar.setAttribute("aria-label", "Sections");
-  bar.innerHTML = items.map(([t,id,l])=>`<button type="button" data-tb="${id}" data-tt="${t}">${ic[t]}<span>${l}</span></button>`).join("") + `<button type="button" data-tb="more">${ic.more}<span>More</span></button>`;
+  bar.innerHTML = `<button type="button" data-tb="today">${ic.today}<span>Today</span></button>` + items.map(([t,id,l])=>`<button type="button" data-tb="${id}" data-tt="${t}">${ic[t]}<span>${l}</span></button>`).join("") + `<button type="button" data-tb="more">${ic.more}<span>More</span></button>`;
   document.body.appendChild(bar);
   const app = document.getElementById("app"), wrap = document.getElementById("navWrap");
-  const sync = ()=>{ const t = app.dataset.tab, main = items.some(i=>i[0]===t), open = wrap && wrap.classList.contains("open");
-    bar.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.tb === "more" ? (open || !main) : (!open && b.dataset.tt === t))); };
+  const sync = ()=>{ const t = app.dataset.tab, main = items.some(i=>i[0]===t), open = wrap && wrap.classList.contains("open"), tod = app.classList.contains("todayon");
+    bar.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.tb === "more" ? (open || (!main && !tod)) : b.dataset.tb === "today" ? (tod && !open) : (!open && !tod && b.dataset.tt === t))); };
+  document.addEventListener("todaychange", sync);
   new MutationObserver(sync).observe(app, { attributes: true, attributeFilter: ["data-tab"] });
   if(wrap) new MutationObserver(sync).observe(wrap, { attributes: true, attributeFilter: ["class"] });
   sync();
@@ -4889,10 +4953,169 @@ async function nativeShare(filename, data){
   bar.addEventListener("click", e=>{
     const b = e.target.closest("button"); if(!b) return; e.stopPropagation(); hap("sel");
     if(b.dataset.tb === "more"){ const o = !wrap.classList.contains("open"); wrap.classList.toggle("open", o); return; }
-    navClose(); const t = document.getElementById(b.dataset.tb); if(t) t.click();
+    if(b.dataset.tb === "today"){ navClose(); todayOpen(); return; }
+    navClose(); const wasToday = app.classList.contains("todayon"); if(wasToday) todayClose(); const t = document.getElementById(b.dataset.tb); if(t && !(wasToday && b.classList.contains("on"))) t.click();
     const sc = document.querySelector(".app:not([hidden]) .editor"); if(b.classList.contains("on") && sc) sc.scrollTo({ top: 0, behavior: "smooth" });
   });
 })();
+
+/* ---- app feel 2: slide-in screens, back button, swipe back, pull to refresh, quick sheets, Today ---- */
+const PH = ()=>innerWidth <= 860;
+const DRILL = { jobs: "Jobs", customers: "Customers", leads: "Leads", todo: "To-do", stock: "Stock", promos: "Promotions", knowledge: "Knowledge" };
+const WORK = { proposals: "work", drawings: "dwork", jobs: "jwork", customers: "cwork", leads: "lwork", todo: "twork", stock: "swork", promos: "mwork", knowledge: "kwork" };
+(function(){
+  const app = $("#app"); app.dataset.pv = $("#work").dataset.view || "edit";
+  const base = setView;
+  setView = function(v){
+    const prev = app.dataset.pv; base(v); app.dataset.pv = v;
+    if(PH() && prev && prev !== v && !app.classList.contains("swiping")){
+      app.classList.remove("anim-fwd", "anim-back"); void app.offsetWidth;
+      app.classList.add(v === "preview" ? "anim-fwd" : "anim-back");
+      clearTimeout(setView._t); setView._t = setTimeout(()=>app.classList.remove("anim-fwd", "anim-back"), 380);
+    }
+    syncFab();
+  };
+  const bb = document.createElement("button"); bb.type = "button"; bb.className = "backbtn"; bb.setAttribute("aria-label", "Back");
+  bb.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span></span>';
+  const bar = app.querySelector(".bar"); bar.insertBefore(bb, bar.firstChild);
+  const label = ()=>{ bb.querySelector("span").textContent = DRILL[app.dataset.tab] || "Back"; };
+  new MutationObserver(label).observe(app, { attributes: true, attributeFilter: ["data-tab"] }); label();
+  bb.addEventListener("click", ()=>{ hap("sel"); setView("edit"); });
+
+  /* swipe back from the left edge */
+  let sx = 0, sy = 0, on = false, pane = null, dx = 0;
+  const paneFor = ()=>{ const w = document.getElementById(WORK[app.dataset.tab]); return w && (w.querySelector(".jstage") || w.querySelector(".dstage") || w.querySelector(".stage")); };
+  document.addEventListener("touchstart", e=>{ if(!PH() || app.dataset.pv !== "preview" || !DRILL[app.dataset.tab] || app.classList.contains("todayon")) return; const t = e.touches[0]; if(t.clientX > 28) return; sx = t.clientX; sy = t.clientY; on = true; dx = 0; pane = paneFor(); }, { passive: true });
+  document.addEventListener("touchmove", e=>{ if(!on || !pane) return; const t = e.touches[0]; dx = t.clientX - sx; const dy = Math.abs(t.clientY - sy);
+    if(dy > 40 && dx < 30){ on = false; pane.style.transform = ""; return; }
+    if(dx > 0){ app.classList.add("swiping"); pane.style.transform = `translateX(${dx}px)`; } }, { passive: true });
+  document.addEventListener("touchend", ()=>{ if(!on || !pane) return; on = false; const p = pane;
+    if(dx > Math.min(110, innerWidth * .3)){ p.style.transition = "transform .2s ease-out"; p.style.transform = "translateX(100%)"; hap("sel");
+      setTimeout(()=>{ p.style.transition = ""; p.style.transform = ""; app.classList.remove("swiping"); setView("edit"); app.classList.add("anim-back"); setTimeout(()=>app.classList.remove("anim-back"), 380); }, 190); }
+    else { p.style.transition = "transform .2s ease-out"; p.style.transform = ""; setTimeout(()=>{ p.style.transition = ""; app.classList.remove("swiping"); }, 210); } });
+
+  /* pull to refresh on lists */
+  const ptr = document.createElement("div"); ptr.className = "ptr"; ptr.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg><span>Pull to refresh</span>'; document.body.appendChild(ptr);
+  let py = 0, pull = false, pd = 0;
+  const scroller = el=>{ for(let n = el; n && n !== document.body; n = n.parentElement){ const s = getComputedStyle(n); if(/(auto|scroll)/.test(s.overflowY) && n.scrollHeight > n.clientHeight + 2) return n; } return null; };
+  document.addEventListener("touchstart", e=>{ pull = false; if(!PH()) return; const inToday = !!e.target.closest(".today"); if(!inToday && (app.dataset.pv === "preview" || !DRILL[app.dataset.tab])) return;
+    if(e.target.closest("input,textarea,select,.sheetwrap,.tabbar,.navwrap")) return; const sc = scroller(e.target); if(sc && sc.scrollTop > 0) return; py = e.touches[0].clientY; pull = true; pd = 0; }, { passive: true });
+  document.addEventListener("touchmove", e=>{ if(!pull) return; pd = e.touches[0].clientY - py; if(pd <= 0){ ptr.style.opacity = 0; return; }
+    const k = Math.min(pd, 120); ptr.style.opacity = Math.min(1, k / 60); ptr.style.transform = `translate(-50%, ${k / 2 - 40}px)`;
+    const ready = pd > 90; if(ready !== ptr.classList.contains("ready")){ ptr.classList.toggle("ready", ready); ptr.querySelector("span").textContent = ready ? "Release to refresh" : "Pull to refresh"; if(ready) hap("sel"); } }, { passive: true });
+  document.addEventListener("touchend", ()=>{ if(!pull) return; pull = false;
+    if(pd > 90){ ptr.classList.add("go"); ptr.querySelector("span").textContent = "Refreshing"; setTimeout(()=>location.reload(), 350); }
+    else { ptr.style.opacity = 0; ptr.style.transform = ""; ptr.classList.remove("ready"); } });
+})();
+
+/* ---- bottom sheets ---- */
+function sheetOpen(html, onReady){
+  let w = $("#qsheet"); if(!w){ w = document.createElement("div"); w.id = "qsheet"; w.className = "sheetwrap"; w.innerHTML = '<div class="scrim"></div><div class="sheetp" role="dialog" aria-modal="true"></div>'; document.body.appendChild(w); w.querySelector(".scrim").addEventListener("click", sheetClose); }
+  w.querySelector(".sheetp").innerHTML = '<div class="grab"></div>' + html; void w.offsetWidth; w.classList.add("open"); hap("sel"); onReady && onReady(w.querySelector(".sheetp"));
+}
+function sheetClose(){ const w = $("#qsheet"); if(w) w.classList.remove("open"); }
+const IC2 = {
+  visit: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M12 13v4M10 15h4"/></svg>',
+  time: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2.5h6"/></svg>',
+  mat: '<svg viewBox="0 0 24 24"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>',
+  nav: '<svg viewBox="0 0 24 24"><path d="M3 11 21 3l-8 18-2-8z"/></svg>',
+  call: '<svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>',
+  open: '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>'
+};
+function qaMenu(){
+  if(!jbCur) return;
+  sheetOpen(`<h3>${esc(jbCur.number)} ${esc(jbCur.customer || "")}</h3><div class="menu">
+    <button data-qa="visit">${IC2.visit}Add a visit</button><button data-qa="time">${IC2.time}Log time</button><button data-qa="mat">${IC2.mat}Add a material</button></div>`,
+    p=>p.querySelector(".menu").addEventListener("click", e=>{ const b = e.target.closest("[data-qa]"); if(!b) return; ({ visit: qaVisit, time: qaTime, mat: qaMat })[b.dataset.qa](); }));
+}
+function qaNextWeekday(){ const d = new Date(); d.setDate(d.getDate() + 1); while([0,6].includes(d.getDay())) d.setDate(d.getDate() + 1); return jbIso(d); }
+function qaVisit(){
+  sheetOpen(`<h3>Add a visit</h3><p class="sub">${esc(jbCur.number)} ${esc(jbCur.customer || "")}</p>
+    <label>Date<input type="date" id="qaD" value="${qaNextWeekday()}"></label>
+    <div class="two"><label>Start<input type="time" id="qaS" value="09:00"></label><label>Finish<input type="time" id="qaE" value="12:00"></label></div>
+    <label>Note<textarea id="qaN" rows="2" placeholder="Optional"></textarea></label>
+    <div class="acts"><button data-x>Cancel</button><button class="go" data-ok>Book visit</button></div>`, p=>{
+    p.querySelector("[data-x]").onclick = sheetClose;
+    p.querySelector("[data-ok]").onclick = ()=>{ const d = $("#qaD").value; if(!d) return; jbCur.visits.push({ id: uid(), date: d, start: $("#qaS").value || "09:00", end: $("#qaE").value || "", staff: jbCur.staff || "Ian Lamont", note: $("#qaN").value.trim(), studio: true });
+      if(jbCur.status === "On Hold") jbCur.status = "Scheduled"; jbSchedule(); jbRender(); jbRenderList(); sheetClose(); toast(`Booked ${jbCur.number} on ${jbNice(d)} at ${$("#qaS").value}.`); };
+  });
+}
+function qaTime(){
+  const now = new Date(), end = `${dwPad(now.getHours())}:${dwPad(now.getMinutes() - now.getMinutes() % 15)}`, st = `${dwPad(Math.max(0, now.getHours() - 1))}:${dwPad(now.getMinutes() - now.getMinutes() % 15)}`;
+  sheetOpen(`<h3>Log time</h3><p class="sub">${esc(jbCur.number)} ${esc(jbCur.customer || "")}</p>
+    <label>Date<input type="date" id="qaD" value="${jbToday()}"></label>
+    <div class="two"><label>Start<input type="time" id="qaS" value="${st}"></label><label>Finish<input type="time" id="qaE" value="${end}"></label></div>
+    <label>What was done<textarea id="qaN" rows="2" placeholder="Optional"></textarea></label>
+    <div class="acts"><button data-x>Cancel</button><button class="go" data-ok>Add time</button></div>`, p=>{
+    p.querySelector("[data-x]").onclick = sheetClose;
+    p.querySelector("[data-ok]").onclick = ()=>{ const s = $("#qaS").value, e = $("#qaE").value, sm = jbMins(s), em = jbMins(e); const hrs = sm != null && em != null && em > sm ? Math.round((em - sm) / 60 * 100) / 100 : 0;
+      jbCur.time.push({ id: uid(), date: $("#qaD").value || jbToday(), start: s, end: e, hours: hrs, staff: jbCur.staff, note: $("#qaN").value.trim() });
+      jbSchedule(); jbRender(); jbRenderList(); sheetClose(); toast(`Added ${hrs} hour${hrs === 1 ? "" : "s"} to ${jbCur.number}.`); };
+  });
+}
+function qaMat(){
+  sheetOpen(`<h3>Add a material</h3><p class="sub">${esc(jbCur.number)} ${esc(jbCur.customer || "")}</p>
+    <label>Search your price list<input type="search" id="qaQ" placeholder="Model, item or supplier" autocomplete="off"></label>
+    <div class="res" id="qaR"></div>
+    <div class="acts"><button data-x>Done</button></div>`, p=>{
+    const q = $("#qaQ"), r = $("#qaR");
+    const draw = ()=>{ const v = q.value.trim(); const res = v ? searchProducts(v, 12) : [];
+      r.innerHTML = res.map(pr=>`<button data-pick="${esc(pr.id)}"><span>${esc(pr.item)}<small>${esc([pr.model, pr.supplier].filter(Boolean).join(" · "))}</small></span><b>+</b></button>`).join("") + (v ? `<button data-custom><span>Add “${esc(v)}” as its own line<small>Not in the price list</small></span><b>+</b></button>` : ""); };
+    q.addEventListener("input", draw); setTimeout(()=>q.focus(), 320);
+    r.addEventListener("click", e=>{ const b = e.target.closest("button"); if(!b) return;
+      if(b.dataset.pick){ const pr = products.find(x=>x.id === b.dataset.pick); if(!pr) return; jbCur.materials.push({ id: uid(), libId: pr.id, item: pr.item, model: pr.model || "", supplier: pr.supplier && pr.supplier !== "Imported from Xero" ? pr.supplier : "", qty: 1, price: num(pr.price) }); toast(`Added ${pr.item}`); }
+      else { jbCur.materials.push({ id: uid(), item: q.value.trim(), model: "", qty: 1, price: 0 }); toast(`Added ${q.value.trim()}`); }
+      jbSchedule(); jbRender(); q.value = ""; draw(); q.focus(); });
+    p.querySelector("[data-x]").onclick = sheetClose;
+  });
+}
+const fab = document.createElement("button"); fab.type = "button"; fab.className = "fab"; fab.setAttribute("aria-label", "Quick actions");
+fab.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>'; document.body.appendChild(fab);
+fab.addEventListener("click", ()=>{ hap("tap"); qaMenu(); });
+function syncFab(){ const app = $("#app"); app.classList.toggle("hasjob", !!(typeof jbCur !== "undefined" && jbCur && jbView === "job")); }
+setInterval(syncFab, 700);
+
+/* ---- Today ---- */
+const todayEl = document.createElement("section"); todayEl.className = "today"; todayEl.id = "today"; todayEl.hidden = true; todayEl.setAttribute("aria-label", "Today"); document.body.appendChild(todayEl);
+let tdTimer = null, tdSig = "";
+function todayOpen(){ const app = $("#app"); todayEl.hidden = false; app.classList.add("todayon"); navClose(); try{ localStorage.setItem(LS + ".today", "1"); }catch(_){}
+  const go = ()=>{ try{ jbStart(); skStart(); tdStart(); }catch(_){ } };
+  if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); }
+  todayRender(true); clearInterval(tdTimer); tdTimer = setInterval(()=>todayRender(false), 1500); document.dispatchEvent(new Event("todaychange")); }
+function todayClose(){ todayEl.hidden = true; $("#app").classList.remove("todayon"); clearInterval(tdTimer); try{ localStorage.setItem(LS + ".today", "0"); }catch(_){} document.dispatchEvent(new Event("todaychange")); }
+function todayRender(force){
+  if(todayEl.hidden) return;
+  const t = jbToday(), tm = jbIso(new Date(Date.now() + 864e5));
+  const vis = (typeof jbVisitsBetween === "function" ? jbVisitsBetween(t, tm) : []).filter(x=>!jbPendingDel.has(x.j.id));
+  let ol = []; try{ ol = olAgenda(t, tm); }catch(_){}
+  const items = vis.concat(ol).sort((a,b)=>(a.v.date + a.v.start).localeCompare(b.v.date + b.v.start));
+  const todos = (tdList || []).filter(x=>!x.done && x.due && x.due <= t).sort((a,b)=>a.due.localeCompare(b.due));
+  const soon = jbIso(new Date(Date.now() + 14 * 864e5)), wait = [];
+  (jbList || []).forEach(j=>{ if(!SK_OPEN.includes(j.status)) return; const nv = j.visits.filter(v=>v.date >= t).sort((a,b)=>a.date.localeCompare(b.date))[0]; if(!nv || nv.date > soon) return;
+    let o = 0, w = 0; (j.materials || []).forEach(x=>{ if(!x.item && !x.model) return; const st = skLineState(j, x)[0]; if(st === "To order") o++; else if(st === "On order") w++; }); if(o || w) wait.push({ j, nv, o, w }); });
+  const sig = JSON.stringify([items.map(x=>[x.v.date, x.v.start, x.j && x.j.id, x.v.note]), todos.map(x=>x.id + x.title), wait.map(x=>[x.j.id, x.o, x.w]), mode]);
+  if(!force && sig === tdSig) return; tdSig = sig;
+  const d = new Date(), card = x=>{
+    if(!x.j){ const ev = x.ol || {}; return `<div class="card"><div class="tm">${esc(x.v.start)}${x.v.end ? " – " + esc(x.v.end) : ""}</div><div class="nm">${esc(ev.subject || "Outlook event")}</div>${ev.location && ev.location.displayName ? `<div class="ad">${esc(ev.location.displayName)}</div>` : ""}</div>`; }
+    const j = x.j, addr = String(j.address || j.site || "").replace(/\s*\n\s*/g, ", ").trim(), ph = String(j.phone || "").replace(/[^\d+]/g, "");
+    return `<div class="card"><div class="tm">${esc(x.v.start)}${x.v.end ? " – " + esc(x.v.end) : ""} · ${esc(j.number)}</div><div class="nm">${esc(j.customer || j.site || "Job")}</div>${addr ? `<div class="ad">${esc(addr)}</div>` : ""}${x.v.note ? `<div class="nt">${esc(x.v.note)}</div>` : ""}
+      <div class="row">${addr ? `<a href="https://maps.apple.com/?daddr=${encodeURIComponent(addr)}" target="_blank" rel="noopener">${IC2.nav}Navigate</a>` : ""}${ph ? `<a href="tel:${esc(ph)}">${IC2.call}Call</a>` : ""}<button data-tj="${esc(j.id)}">${IC2.open}Open job</button></div></div>`; };
+  const todayItems = items.filter(x=>x.v.date === t), tomItems = items.filter(x=>x.v.date === tm);
+  todayEl.innerHTML = `<div class="kick">${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</div><h1>Today</h1>
+    ${mode === "loading" ? `<p class="empty">Loading your day…</p>` : `
+    <h2>Visits today</h2>${todayItems.length ? todayItems.map(card).join("") : `<p class="empty">Nothing booked today.</p>`}
+    ${tomItems.length ? `<h2>Tomorrow</h2>${tomItems.map(card).join("")}` : ""}
+    <h2>To-do</h2>${todos.length ? todos.map(x=>`<button class="li" data-tt="${esc(x.id)}"><span>${esc(x.title || "Untitled")}<small>${x.due < t ? "Overdue · " + esc(jbNice(x.due)) : "Due today"}${x.time ? " · " + esc(x.time) : ""}</small></span></button>`).join("") : `<p class="empty">Nothing due.</p>`}
+    <h2>Waiting on stock</h2>${wait.length ? wait.map(x=>`<button class="li" data-tj="${esc(x.j.id)}"><span>${esc(x.j.number)} ${esc(x.j.customer || "")}<small>Next visit ${esc(jbNice(x.nv.date))}</small></span>${x.o ? `<span class="tag bad">${x.o} to order</span>` : ""}${x.w ? `<span class="tag mid">${x.w} on order</span>` : ""}</button>`).join("") : `<p class="empty">Everything for the next two weeks is in stock.</p>`}`}`;
+}
+todayEl.addEventListener("click", e=>{
+  const j = e.target.closest("[data-tj]"), t = e.target.closest("[data-tt]");
+  if(j){ hap("sel"); todayClose(); setTab("jobs"); const id = j.dataset.tj; const w = setInterval(()=>{ if(jbList.some(x=>x.id === id)){ clearInterval(w); jbOpen(id); setView("preview"); } }, 120); setTimeout(()=>clearInterval(w), 5000); }
+  else if(t){ hap("sel"); todayClose(); setTab("todo"); const id = t.dataset.tt; setTimeout(()=>{ try{ tdOpen(id); }catch(_){} }, 150); }
+});
+
+document.getElementById("navMenu").addEventListener("click", e=>{ if(e.target.closest("button") && $("#app").classList.contains("todayon")) todayClose(); });
+if(PH()){ let v = "1"; try{ v = localStorage.getItem(LS + ".today") || "1"; }catch(_){} if(v !== "0") todayOpen(); }
 /* ---- section menu ---- */
 function navClose(){ const w=document.getElementById("navWrap"); if(!w) return; w.classList.remove("open"); document.getElementById("navBtn").setAttribute("aria-expanded","false"); }
 (function(){ const w=document.getElementById("navWrap"), b=document.getElementById("navBtn"); if(!w||!b) return;
