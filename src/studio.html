@@ -696,6 +696,31 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .prsync{font-size:12.5px;color:var(--muted)}
 .prsync.warn{color:var(--danger)}
 @media (max-width:860px){ .prtable .sup,.prtable th.sup{display:none} .prtable td.code{width:96px} }
+
+/* ---------- app feel: bottom tab bar on phones, no browser behaviours ---------- */
+*{-webkit-tap-highlight-color:transparent}
+.tabbar{display:none}
+@media (max-width:860px){
+  html,body{overscroll-behavior:none}
+  body{touch-action:manipulation}
+  input,select,textarea{font-size:16px!important}
+  .app{padding-bottom:calc(58px + env(safe-area-inset-bottom,0px))}
+  .navbtn{display:none}
+  .navwrap{flex:0 0 0;width:0;margin:0}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:70;height:calc(58px + env(safe-area-inset-bottom,0px));padding:5px max(6px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(6px,env(safe-area-inset-left,0px));background:color-mix(in srgb,var(--panel) 92%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-top:1px solid var(--line)}
+  .tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;background:none;color:var(--muted);font:500 10.5px/1 var(--f-body);cursor:pointer;padding:0;transition:color .15s}
+  .tabbar button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .tabbar button.on{color:var(--accent)}
+  .tabbar button:active svg{transform:scale(.9)}
+  .navwrap.open .tabs{position:fixed;left:10px;right:10px;top:auto;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:71;min-width:0;border-radius:14px;padding:8px}
+  .navwrap .tabs button{height:46px;font-size:16px;padding:0 14px}
+  .navwrap .tabs #tabJ,.navwrap .tabs #tabP,.navwrap .tabs #tabS,.navwrap .tabs #tabT{display:none}
+  .navwrap.open::before{content:"";position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:70}
+  .toast{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+}
+.native body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.native input,.native textarea,.native select,.native [contenteditable],.native [contenteditable] *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+.native img{-webkit-user-drag:none}
 </style>
 
 <script>(function(){var h=location.hash||"";if(h.indexOf("#relay=")!==0)return;var u="";try{u=decodeURIComponent(h.slice(7));}catch(e){return;}if(!/^(tel|sms|mailto):/i.test(u))return;
@@ -1887,7 +1912,7 @@ $("#stage").addEventListener("input", e=>{
 /* ---------- exports ---------- */
 async function getDownloads(){ try{ return window.claude ? await claude.use("downloads") : null; }catch(e){ return null; } }
 function fileBase(){ return [current.ref, current.rev, current.titleA].filter(Boolean).join(" ").replace(/[\\/:*?"<>|]+/g,"").trim() || "proposal"; }
-function toast(msg){ const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 3800); }
+function toast(msg){ if(/^(Saved|Sent|Added|Marked|Booked|Done|Copied|Plan added|Synced)/.test(String(msg))) hap("ok"); const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 3800); }
 const undoQ = new Set();
 function undoToast(msg, onUndo, onCommit, ms = 8000){
   document.querySelectorAll(".toast.undo").forEach(x=>x.remove());
@@ -1901,6 +1926,7 @@ function undoToast(msg, onUndo, onCommit, ms = 8000){
 }
 addEventListener("pagehide", ()=>{ [...undoQ].forEach(f=>f()); });
 async function offer(filename, data){
+  if(capP()){ try{ if(await nativeShare(filename, data)){ hap("ok"); return; } }catch(e){ if(!/cancel/i.test(String((e && e.message) || e))) toast("That file couldn't be shared."); return; } }
   const dl = await getDownloads();
   if(!dl){ toast("Downloads aren't available in this view. Open the page in claude.ai to save files."); return; }
   try{ const r = await dl.save({filename, data}); if(r.status === "saved") toast("Saved " + filename); }
@@ -4792,6 +4818,61 @@ $("#ldScroll").addEventListener("click", async e=>{
   const top=pr.getBoundingClientRect().height; pr.remove();
   if(top<1){ const h=Math.max(screen.height,screen.width); document.documentElement.style.setProperty("--safe-top", h>=852?"54px":h>=812?"47px":"20px"); }
 }catch(_){} })();
+
+/* ---- app feel: native helpers, haptics, share sheet, bottom tab bar ---- */
+function capP(){ try{ return window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform() ? Capacitor.Plugins : null; }catch(_){ return null; } }
+function hap(k){ const P = capP(); if(!P || !P.Haptics) return; try{
+  if(k === "ok") P.Haptics.notification({ type: "SUCCESS" });
+  else if(k === "warn") P.Haptics.notification({ type: "WARNING" });
+  else P.Haptics.impact({ style: k === "tap" ? "MEDIUM" : "LIGHT" });
+}catch(_){} }
+async function nativeShare(filename, data){
+  const P = capP(); if(!P || !P.Filesystem || !P.Share) return false;
+  const blob = data instanceof Blob ? data : new Blob([data], { type: "text/plain" });
+  const b64 = await new Promise((res, rej)=>{ const r = new FileReader(); r.onload = ()=>res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(blob); });
+  const name = String(filename || "file").replace(/[\\/:*?"<>|]+/g, "-");
+  const w = await P.Filesystem.writeFile({ path: name, data: b64, directory: "CACHE" });
+  await P.Share.share({ title: name, files: [w.uri] });
+  return true;
+}
+(function(){
+  const P = capP(); if(!P) return;
+  document.documentElement.classList.add("native");
+  const m = document.querySelector('meta[name="viewport"]'); if(m) m.setAttribute("content", "width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover");
+  document.addEventListener("gesturestart", e=>e.preventDefault());
+  const mq = matchMedia("(prefers-color-scheme: dark)");
+  const bar = ()=>{ try{ const t = document.documentElement.dataset.theme; const dark = t ? t === "dark" : mq.matches; P.StatusBar && P.StatusBar.setStyle({ style: dark ? "DARK" : "LIGHT" }); }catch(_){} };
+  bar(); try{ mq.addEventListener("change", bar); }catch(_){}
+  const w = setInterval(()=>{ if(typeof mode !== "undefined" && mode === "loading") return; clearInterval(w); try{ P.SplashScreen && P.SplashScreen.hide({ fadeOutDuration: 250 }); }catch(_){} }, 150);
+  setTimeout(()=>{ try{ P.SplashScreen && P.SplashScreen.hide(); }catch(_){} }, 6000);
+  document.addEventListener("click", e=>{ const b = e.target.closest(".btn.primary, button.primary, .seg button, [data-ja], [data-shipmode]"); if(b && !b.disabled) hap("tap"); }, true);
+})();
+(function(){
+  const ic = {
+    jobs: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
+    proposals: '<svg viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5M9 13h6M9 16.5h4"/></svg>',
+    stock: '<svg viewBox="0 0 24 24"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>',
+    todo: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m8.3 12.2 2.5 2.5 4.9-5"/></svg>',
+    more: '<svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg>'
+  };
+  const items = [["jobs","tabJ","Jobs"],["proposals","tabP","Proposals"],["stock","tabS","Stock"],["todo","tabT","To-do"]];
+  const bar = document.createElement("nav"); bar.className = "tabbar"; bar.setAttribute("aria-label", "Sections");
+  bar.innerHTML = items.map(([t,id,l])=>`<button type="button" data-tb="${id}" data-tt="${t}">${ic[t]}<span>${l}</span></button>`).join("") + `<button type="button" data-tb="more">${ic.more}<span>More</span></button>`;
+  document.body.appendChild(bar);
+  const app = document.getElementById("app"), wrap = document.getElementById("navWrap");
+  const sync = ()=>{ const t = app.dataset.tab, main = items.some(i=>i[0]===t), open = wrap && wrap.classList.contains("open");
+    bar.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.tb === "more" ? (open || !main) : (!open && b.dataset.tt === t))); };
+  new MutationObserver(sync).observe(app, { attributes: true, attributeFilter: ["data-tab"] });
+  if(wrap) new MutationObserver(sync).observe(wrap, { attributes: true, attributeFilter: ["class"] });
+  sync();
+  if(wrap) wrap.addEventListener("click", e=>{ if(e.target === wrap) navClose(); });
+  bar.addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return; e.stopPropagation(); hap("sel");
+    if(b.dataset.tb === "more"){ const o = !wrap.classList.contains("open"); wrap.classList.toggle("open", o); return; }
+    navClose(); const t = document.getElementById(b.dataset.tb); if(t) t.click();
+    const sc = document.querySelector(".app:not([hidden]) .editor"); if(b.classList.contains("on") && sc) sc.scrollTo({ top: 0, behavior: "smooth" });
+  });
+})();
 /* ---- section menu ---- */
 function navClose(){ const w=document.getElementById("navWrap"); if(!w) return; w.classList.remove("open"); document.getElementById("navBtn").setAttribute("aria-expanded","false"); }
 (function(){ const w=document.getElementById("navWrap"), b=document.getElementById("navBtn"); if(!w||!b) return;

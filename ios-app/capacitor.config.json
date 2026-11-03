@@ -5,7 +5,31 @@
   "server": {
     "url": "https://haloje.github.io/halo-studio/",
     "errorPath": "index.html",
-    "allowNavigation": ["haloje.github.io", "*.supabase.co", "login.microsoftonline.com", "login.live.com", "login.xero.com", "identity.xero.com"]
+    "allowNavigation": [
+      "haloje.github.io",
+      "*.supabase.co",
+      "login.microsoftonline.com",
+      "login.live.com",
+      "login.xero.com",
+      "identity.xero.com"
+    ]
   },
-  "ios": { "contentInset": "never", "backgroundColor": "#121110", "scheme": "halo.je Studio" }
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#121110",
+    "scheme": "halo.je Studio"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2500,
+      "launchAutoHide": true,
+      "backgroundColor": "#121110",
+      "showSpinner": false,
+      "launchFadeOutDuration": 250
+    },
+    "StatusBar": {
+      "style": "DEFAULT",
+      "overlaysWebView": true
+    }
+  }
 }
