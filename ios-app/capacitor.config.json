@@ -30,6 +30,13 @@
       "statsUrl": "",
       "channelUrl": "",
       "updateUrl": ""
+    },
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
     }
   }
 }

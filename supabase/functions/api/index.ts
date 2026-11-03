@@ -6,6 +6,7 @@
 //   POST /api/disconnect                  (signed-in member)  -> { provider }
 //   POST /api/call                        (signed-in member)  -> { provider, action, input }
 //   POST /api/svc                         (scheduled tasks)   -> { key, action, input }; key must be in public.svc_keys
+//                                         actions: xero.create_bill, push.scan (every 10 min), push.test
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
@@ -404,6 +405,59 @@ async function xeroBill(p: any) {
 }
 
 /* ---------- router ---------- */
+/* ---------- push notifications to the Studio iPhone app ---------- */
+const APNS_TEAM = "P7B325A469", APNS_TOPIC = "je.halo.studio";
+let apnsJwt = { token: "", at: 0 };
+const b64url = (b: ArrayBuffer | Uint8Array | string) => { const s = typeof b === "string" ? b : String.fromCharCode(...new Uint8Array(b as ArrayBuffer)); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
+async function apnsToken(): Promise<string> {
+  if (apnsJwt.token && Date.now() - apnsJwt.at < 40 * 60_000) return apnsJwt.token;
+  const kid = (Deno.env.get("APNS_KEY_ID") || "").trim(), pem = Deno.env.get("APNS_KEY_P8") || "";
+  if (!kid || !pem) throw new ApiError("not_configured", "The Apple push key isn't set up yet.", 409);
+  const body = pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+  const der = Uint8Array.from(atob(body), (c) => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey("pkcs8", der, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  const head = b64url(JSON.stringify({ alg: "ES256", kid })), claims = b64url(JSON.stringify({ iss: APNS_TEAM, iat: Math.floor(Date.now() / 1000) }));
+  const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(`${head}.${claims}`));
+  apnsJwt = { token: `${head}.${claims}.${b64url(sig)}`, at: Date.now() };
+  return apnsJwt.token;
+}
+async function pushAll(title: string, body: string, extra: Record<string, unknown> = {}) {
+  const { data: devs } = await admin.from("docs").select("id,data").eq("collection", "pushdevices");
+  const jwt = await apnsToken(); const out: any[] = [];
+  for (const d of devs || []) {
+    const tok = String((d as any).data?.token || ""); if (!/^[0-9a-f]{32,}$/i.test(tok)) continue;
+    const payload = JSON.stringify({ aps: { alert: { title, body }, sound: "default" }, ...extra });
+    let r: Response | null = null, host = "api.push.apple.com";
+    for (const h of ["api.push.apple.com", "api.sandbox.push.apple.com"]) {
+      host = h; r = await fetch(`https://${h}/3/device/${tok}`, { method: "POST", headers: { authorization: `bearer ${jwt}`, "apns-topic": APNS_TOPIC, "apns-push-type": "alert", "apns-priority": "10" }, body: payload });
+      if (r.status !== 400) break; const why = await r.clone().json().catch(() => ({})); if ((why as any).reason !== "BadDeviceToken") break;
+    }
+    const why = r && !r.ok ? await r.json().catch(() => ({})) : {};
+    if (r && (r.status === 410 || (why as any).reason === "Unregistered")) await admin.from("docs").delete().eq("collection", "pushdevices").eq("id", (d as any).id);
+    out.push({ device: (d as any).id.slice(0, 8), host, status: r?.status, reason: (why as any).reason || "" });
+  }
+  return out;
+}
+const SUPPLIER_RX = /(netxl|habitech|rgbcomms|crestron|futureautomation|future-automation|wyrestorm|ui\.com|ubiquiti|polarbear|polar-bear|sonance|middleatlantic|legrand|penn-?elcom|dhl|dpd|ups\.com|fedex|parcelforce|royalmail|evri|hermes|jerseypost|amazon|cef|screwfix|toolstation)/i;
+const DISPATCH_RX = /(dispatch|despatch|shipped|has shipped|on (its|the) way|out for delivery|been delivered|delivered|ready for collection|tracking)/i;
+const ACCEPT_RX = /\baccept(ing|ed)?\b.*\b(quotation|quote|estimate|proposal)\b/i;
+async function pushScan() {
+  const { data: st } = await admin.from("docs").select("data").eq("collection", "settings").eq("id", "pushscan").maybeSingle();
+  const now = new Date().toISOString(), state: any = st?.data || {};
+  if (!state.last) { await admin.from("docs").upsert({ collection: "settings", id: "pushscan", data: { last: now, seen: [] }, updated_at: now }); return { started: now }; }
+  const j: any = await graph("GET", `/me/mailFolders/inbox/messages?$filter=receivedDateTime ge ${encodeURIComponent(state.last)}&$orderby=receivedDateTime asc&$top=50&$select=id,subject,from,receivedDateTime`);
+  const seen: string[] = state.seen || [], sent: any[] = []; let last = state.last;
+  for (const m of j.value || []) {
+    last = m.receivedDateTime > last ? m.receivedDateTime : last; if (seen.includes(m.id)) continue; seen.push(m.id);
+    const subj = String(m.subject || ""), addr = String(m.from?.emailAddress?.address || ""), name = String(m.from?.emailAddress?.name || addr);
+    if (/^info@halo\.je$/i.test(addr)) continue;
+    if (ACCEPT_RX.test(subj)) sent.push({ kind: "accept", res: await pushAll("Quote accepted", `${name}: ${subj.replace(/^(re|fw|fwd):\s*/i, "")}`.slice(0, 180), { kind: "accept", messageId: m.id }) });
+    else if (SUPPLIER_RX.test(addr) && DISPATCH_RX.test(subj)) sent.push({ kind: "dispatch", res: await pushAll(/delivered/i.test(subj) ? "Delivered" : "Order on its way", `${name}: ${subj}`.slice(0, 180), { kind: "dispatch", messageId: m.id }) });
+  }
+  await admin.from("docs").upsert({ collection: "settings", id: "pushscan", data: { last, seen: seen.slice(-300) }, updated_at: now });
+  return { checked: (j.value || []).length, sent };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   const url = new URL(req.url);
@@ -473,6 +527,8 @@ Deno.serve(async (req) => {
       if (!key) throw new ApiError("not_allowed", "Key required.", 401);
       const { data: k } = await admin.from("svc_keys").select("key").eq("key", key).maybeSingle();
       if (!k) throw new ApiError("not_allowed", "Unknown key.", 401);
+      if (action === "push.scan") return json({ result: await pushScan() });
+      if (action === "push.test") return json({ result: await pushAll(input?.title || "halo.je Studio", input?.body || "Notifications are working.", { kind: "test" }) });
       if (action !== "xero.create_bill") throw new ApiError("bad_request", "Unknown action.");
       return json({ result: await xeroBill(input || {}) });
     }

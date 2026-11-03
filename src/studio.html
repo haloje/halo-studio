@@ -5196,6 +5196,20 @@ if(PH()){ let v = "1"; try{ v = localStorage.getItem(LS + ".today") || "1"; }cat
     document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "hidden") sync(); });
   }
 })();
+
+/* ---- app 4: push alerts from the server (quote accepted, order on its way) ---- */
+(function(){
+  const P = capP(); if(!P || !P.PushNotifications) return; const PN = P.PushNotifications;
+  PN.addListener("registration", t=>{ const tok = t && t.value; if(!tok) return;
+    const save = async ()=>{ if(mode !== "db" || !db){ setTimeout(save, 2500); return; } try{ await db.collection("pushdevices").doc(tok.slice(0, 40)).set({ token: tok, platform: "ios", updated: Date.now() }); }catch(_){} };
+    save(); });
+  PN.addListener("pushNotificationActionPerformed", a=>{ const k = a && a.notification && a.notification.data && a.notification.data.kind;
+    const go = t=>{ if($("#app").classList.contains("todayon")) todayClose(); setTab(t); };
+    if(k === "dispatch") go("stock"); else if(k === "accept") go("proposals"); });
+  const ask = async ()=>{ if(mode === "loading"){ setTimeout(ask, 2000); return; }
+    try{ let p = await PN.checkPermissions(); if(p.receive === "prompt" || p.receive === "prompt-with-rationale") p = await PN.requestPermissions(); if(p.receive === "granted") await PN.register(); }catch(_){} };
+  setTimeout(ask, 9000);
+})();
 /* ---- section menu ---- */
 function navClose(){ const w=document.getElementById("navWrap"); if(!w) return; w.classList.remove("open"); document.getElementById("navBtn").setAttribute("aria-expanded","false"); }
 (function(){ const w=document.getElementById("navWrap"), b=document.getElementById("navBtn"); if(!w||!b) return;
