@@ -624,6 +624,45 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 
 /* to-do */
 .app[data-tab=todo] .pmode{display:none!important}
+.app[data-tab=planner] .pmode{display:none!important}
+.app:not([data-tab=planner]) .bmode{display:none!important}
+.plbar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}.plbar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.plsum{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);margin:8px 0 10px}.plsum b{color:var(--ink)}
+.plst{border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.plst>summary{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;list-style:none}.plst>summary::-webkit-details-marker{display:none}
+.plst>summary .num{font:500 11px/1 var(--f-mono);color:var(--accent);letter-spacing:.08em}
+.plst>summary .t{flex:1;font-weight:500;font-size:15px}
+.plst>summary .cnt{font:500 11px/1 var(--f-mono);color:var(--muted);padding:4px 8px;border-radius:10px;background:var(--bg)}.plst>summary .cnt.ok{color:#fff;background:#4c7a5a}
+.plst .body{padding:2px 16px 16px;display:grid;gap:10px}
+.plck{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.35;cursor:pointer}
+.plck input{width:18px;height:18px;margin:1px 0 0;flex:none;accent-color:var(--accent)}
+.plck small{display:block;color:var(--muted);font-size:12px;margin-top:2px}.plck em{font-style:normal;font:500 10px/1 var(--f-mono);letter-spacing:.06em;color:#4c7a5a;margin-left:6px;text-transform:uppercase}
+.plck.on>span{color:var(--muted)}
+.plsub{font:500 11px/1.3 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-top:10px}.plsub small{color:var(--muted);letter-spacing:.04em;text-transform:none;font-family:var(--f-body);margin-left:6px}
+.plgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.plsys{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px}
+.plsysr{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:8px 10px;border:1px solid var(--line);border-radius:10px}.plsysr.on{border-color:var(--accent)}.plsysr select{max-width:150px}
+.plfloors{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.plfl{display:inline-flex;align-items:center;gap:2px}.plfl input{width:120px;height:32px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--field)}
+.plrooms{overflow-x:auto;display:grid;gap:4px}
+.plrh,.plr{display:grid;grid-template-columns:var(--plcols);gap:4px;align-items:center;min-width:max-content}
+.plrh span{font:500 10px/1 var(--f-mono);color:var(--muted);letter-spacing:.06em;text-align:center}.plrh span:nth-child(2){text-align:left}
+.plr input,.plr select{height:32px;border:1px solid var(--line);border-radius:7px;padding:0 6px;background:var(--field);min-width:0;font-size:13px}
+.plr input.n,.plpl input.n,.plhrs input.n{text-align:center;padding:0 2px}
+.plr .pc{display:block;min-width:0}.plr .pc b{display:none}.plr .pc input{width:100%}
+.plr .hv{display:flex;gap:4px}.plr .hv select{width:130px}.plr .hv input{width:40px}
+.plpl{display:grid;grid-template-columns:44px minmax(120px,1fr) 56px minmax(150px,1.4fr) 80px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.plpl .tg{font:500 11px/1 var(--f-mono);color:var(--accent)}.plpl .nm{font-size:13px}.plpl .nm small{display:block;color:var(--muted);font-size:11px}.plpl .pr{text-align:right;font-variant-numeric:tabular-nums;font-size:13px}
+.plpl input.n{height:32px;border:1px solid var(--line);border-radius:7px;background:var(--field)}
+.plprod{text-align:left;border:1px solid var(--line);border-radius:8px;background:var(--field);padding:6px 8px;font-size:12.5px;color:var(--ink);cursor:pointer;min-width:0;overflow:hidden}.plprod small{display:block;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.plprod.none{border-style:dashed;color:var(--accent)}
+.plpick{display:grid;gap:6px;padding:8px;border:1px solid var(--accent);border-radius:10px;margin:4px 0 8px}.plpick input{height:36px;border:1px solid var(--line);border-radius:8px;padding:0 10px;background:var(--field)}
+.plpick .res{display:grid;max-height:260px;overflow:auto}.plpick .res button{display:flex;justify-content:space-between;gap:10px;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:8px 6px;color:var(--ink);cursor:pointer;font-size:13px}.plpick .res button:hover{background:var(--accent-soft)}.plpick .res small{display:block;color:var(--muted);font-size:11px}
+.plhrs{display:flex;align-items:center;gap:8px;justify-content:flex-end;font-size:13px;color:var(--muted);padding:6px 0 4px}.plhrs input{width:64px;height:32px;border:1px solid var(--line);border-radius:7px;background:var(--field)}.plhrs b{color:var(--ink)}
+.plq{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1.5fr) 28px;gap:6px;align-items:start}.plq textarea,.plq input{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--field);font:inherit;font-size:13px;min-width:0}.plq input{height:34px}
+.plresp{align-items:flex-start;line-height:1.35}
+@media (max-width:860px){ .plrooms{overflow:visible;gap:8px}.plrh{display:none}.plr{display:flex;flex-wrap:wrap;min-width:0;padding:8px;border:1px solid var(--line);border-radius:10px;gap:6px}.plr .no{width:46px}.plr input[data-pr$=".name"]{flex:1 1 150px}.plr select[data-preset]{width:96px}.plr .hv{flex:1 1 100%}.plr .hv select{flex:1;width:auto}
+  .plr .pc{display:flex;flex-direction:column;align-items:center;gap:3px;width:calc((100% - 30px) / 6)}.plr .pc b{display:block;font:500 10px/1 var(--f-mono);color:var(--muted);letter-spacing:.06em}.plr .pc input{height:34px;width:100%}.plr>button.icon{margin-left:auto}
+  .plpl{grid-template-columns:40px 1fr 56px;grid-template-areas:"tg nm q" "pd pd pr"}.plpl .tg{grid-area:tg}.plpl .nm{grid-area:nm}.plpl input.n{grid-area:q}.plpl .plprod{grid-area:pd}.plpl .pr{grid-area:pr}
+  .plq{grid-template-columns:1fr 28px}.plq textarea{grid-column:1}.plq input{grid-column:1}.plq button{grid-row:1;grid-column:2} }
 .app:not([data-tab=todo]) .tmode{display:none!important}
 .tdbadge{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--danger,#b0443a);color:#fff;font-size:10.5px;font-weight:600;margin-left:3px;vertical-align:1px}
 #tdAdd{height:42px!important;font-size:15px}
@@ -722,7 +761,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
   .tabbar button:active svg{transform:scale(.9)}
   .navwrap.open .tabs{position:fixed;left:10px;right:10px;top:auto;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:71;min-width:0;border-radius:14px;padding:8px}
   .navwrap .tabs button{height:46px;font-size:16px;padding:0 14px}
-  .navwrap .tabs #tabJ,.navwrap .tabs #tabP,.navwrap .tabs #tabT{display:none}
+  .navwrap .tabs #tabJ,.navwrap .tabs #tabP,.navwrap .tabs #tabT,.navwrap .tabs #tabB{display:none}
   .navwrap.open::before{content:"";position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:70}
   .toast{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
 }
@@ -737,9 +776,9 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 @media (max-width:860px){
   .app.anim-fwd .stage,.app.anim-fwd .dstage,.app.anim-fwd .jstage{animation:slInR .32s cubic-bezier(.2,.85,.25,1)}
   .app.anim-back .editor,.app.anim-back .jlist{animation:slInL .3s cubic-bezier(.2,.85,.25,1)}
-  .app:is([data-tab=jobs],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .bar .seg{display:none}
-  .app[data-pv=preview]:is([data-tab=jobs],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .backbtn{display:inline-flex}
-  .app[data-pv=preview]:is([data-tab=jobs],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .brand{display:none}
+  .app:is([data-tab=jobs],[data-tab=planner],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .bar .seg{display:none}
+  .app[data-pv=preview]:is([data-tab=jobs],[data-tab=planner],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .backbtn{display:inline-flex}
+  .app[data-pv=preview]:is([data-tab=jobs],[data-tab=planner],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .brand{display:none}
   .backbtn{align-items:center;gap:2px;height:36px;margin-left:-6px;padding:0 10px 0 2px;border:0;background:none;color:var(--accent);font:500 17px/1 var(--f-body);cursor:pointer}
   .backbtn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
   .app.swiping .jstage,.app.swiping .stage,.app.swiping .dstage{transition:none!important;box-shadow:-12px 0 24px rgba(0,0,0,.12)}
@@ -825,7 +864,7 @@ setTimeout(function(){location.href=u;},60);document.write("<plaintext hidden>")
 <div class="app" id="app" data-tab="proposals">
   <header class="bar">
     <div class="brand"><img class="bmark" src="icons/emblem-96.png" alt="" onerror="this.remove()"><b>halo<span>.je</span></b><small>Studio</small></div>
-    <div class="navwrap" id="navWrap"><button class="navbtn" id="navBtn" aria-haspopup="true" aria-expanded="false" aria-controls="navMenu"><span class="burger" aria-hidden="true"><i></i><i></i><i></i></span><span id="navLabel">Proposals</span><span class="chev" aria-hidden="true">▼</span></button><div class="tabs" id="navMenu" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabL" role="tab" aria-selected="false">Leads</button><button id="tabS" role="tab" aria-selected="false">Stock</button><button id="tabM" role="tab" aria-selected="false">Promotions</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div></div>
+    <div class="navwrap" id="navWrap"><button class="navbtn" id="navBtn" aria-haspopup="true" aria-expanded="false" aria-controls="navMenu"><span class="burger" aria-hidden="true"><i></i><i></i><i></i></span><span id="navLabel">Proposals</span><span class="chev" aria-hidden="true">▼</span></button><div class="tabs" id="navMenu" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabB" role="tab" aria-selected="false">Plan</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabL" role="tab" aria-selected="false">Leads</button><button id="tabS" role="tab" aria-selected="false">Stock</button><button id="tabM" role="tab" aria-selected="false">Promotions</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div></div>
     <div class="actions rmode" style="margin-left:auto">
       <span class="prsync" id="prStatus"></span>
       <button class="btn" id="prSyncBtn">Sync to Xero</button>
@@ -841,6 +880,10 @@ setTimeout(function(){location.href=u;},60);document.write("<plaintext hidden>")
     <div class="actions mmode" style="margin-left:auto">
       <span class="status" id="mpStatus"></span>
       <button class="btn primary" id="mpNew">New promotion</button>
+    </div>
+    <div class="actions bmode" style="margin-left:auto">
+      <span class="status" id="plStatus"></span>
+      <button class="btn primary" id="plNew">New plan</button>
     </div>
     <div class="actions tmode" style="margin-left:auto">
       <span class="status" id="tdStatus"></span>
@@ -913,6 +956,10 @@ setTimeout(function(){location.href=u;},60);document.write("<plaintext hidden>")
   <main class="jwork lmode" id="lwork" data-view="edit">
     <aside class="jlist" aria-label="Planning leads"><div class="top"><input type="search" id="ldSearch" placeholder="Search address, description, architect" autocomplete="off" aria-label="Search leads"><div class="chips" id="ldChips"></div><div class="ldbar" id="ldBar"></div></div><div class="jrows" id="ldRows"></div></aside>
     <section class="jstage" aria-label="Lead details"><div class="jscroll" id="ldScroll"></div></section>
+  </main>
+  <main class="jwork bmode" id="bwork" data-view="edit">
+    <aside class="jlist" aria-label="Plans"><div class="top"><input type="search" id="plSearch" placeholder="Search plans" autocomplete="off" aria-label="Search plans"></div><div class="jrows" id="plRows"></div></aside>
+    <section class="jstage" aria-label="Plan"><div class="jscroll" id="plScroll"></div></section>
   </main>
   <main class="jwork tmode" id="twork" data-view="edit">
     <aside class="jlist" aria-label="To-dos"><div class="top"><input type="text" id="tdAdd" placeholder="Add a to-do… e.g. chase deposit fri 10am" autocomplete="off" enterkeyhint="done" aria-label="Add a to-do"><div class="chips" id="tdChips"></div><input type="search" id="tdSearch" placeholder="Search to-dos" autocomplete="off" aria-label="Search to-dos" class="tdsearch"></div><div class="jrows" id="tdRows"></div></aside>
@@ -2176,7 +2223,7 @@ function askDel(){
   };
 }
 $("#btnDel").addEventListener("click", askDel);
-function setView(v){ $("#work").dataset.view = v; $("#dwork").dataset.view = v; $("#jwork").dataset.view = v; $("#cwork").dataset.view = v; const kw = $("#kwork"); if(kw) kw.dataset.view = v; const tw = $("#twork"); if(tw) tw.dataset.view = v; const mw = $("#mwork"); if(mw) mw.dataset.view = v; const sw = $("#swork"); if(sw) sw.dataset.view = v; const lw = $("#lwork"); if(lw) lw.dataset.view = v; $("#vEdit").setAttribute("aria-pressed", v==="edit"); $("#vPrev").setAttribute("aria-pressed", v==="preview"); if(v==="preview") fitZoom(); }
+function setView(v){ $("#work").dataset.view = v; $("#dwork").dataset.view = v; $("#jwork").dataset.view = v; $("#cwork").dataset.view = v; const kw = $("#kwork"); if(kw) kw.dataset.view = v; const tw = $("#twork"); if(tw) tw.dataset.view = v; const mw = $("#mwork"); if(mw) mw.dataset.view = v; const sw = $("#swork"); if(sw) sw.dataset.view = v; const bw = $("#bwork"); if(bw) bw.dataset.view = v; const lw = $("#lwork"); if(lw) lw.dataset.view = v; $("#vEdit").setAttribute("aria-pressed", v==="edit"); $("#vPrev").setAttribute("aria-pressed", v==="preview"); if(v==="preview") fitZoom(); }
 $("#vEdit").onclick = ()=>setView("edit"); $("#vPrev").onclick = ()=>setView("preview");
 
 /* ---------- boot ---------- */
@@ -2769,8 +2816,9 @@ $("#dwDel").addEventListener("click", async e=>{
 
 /* ---------- tabs ---------- */
 function setTab(t){
-  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge"); $("#tabT").setAttribute("aria-selected", t==="todo"); $("#tabM").setAttribute("aria-selected", t==="promos"); $("#tabS").setAttribute("aria-selected", t==="stock"); $("#tabL").setAttribute("aria-selected", t==="leads");
+  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge"); $("#tabT").setAttribute("aria-selected", t==="todo"); $("#tabM").setAttribute("aria-selected", t==="promos"); $("#tabS").setAttribute("aria-selected", t==="stock"); $("#tabL").setAttribute("aria-selected", t==="leads"); $("#tabB").setAttribute("aria-selected", t==="planner");
   if(t === "leads"){ if(mode !== "loading") ldStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); ldStart(); } }, 200); } }
+  if(t === "planner"){ const go = ()=>{ plStart(); if(typeof dwStart === "function") dwStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   if(t === "todo"){ if(mode !== "loading") tdStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); tdStart(); } }, 200); } }
   try{ const st = document.querySelector('.tabs [aria-selected="true"]'); if(st) $("#navLabel").textContent = st.textContent; navClose(); }catch(_){}
   if(t === "knowledge"){ if(mode !== "loading") kbStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); kbStart(); } }, 200); } }
@@ -2780,7 +2828,7 @@ function setTab(t){
   if(t === "customers"){ const go = ()=>{ jbStart(); kbStart(); cuStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   if(t === "jobs"){ const go = ()=>{ jbStart(); jbRender(); jbRenderList(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   try{ localStorage.setItem(LS+".tab", t); }catch(_){}
-  { const lbl = { proposals: ["Edit","Preview"], drawings: ["Edit","Plan"], jobs: ["List","Details"], customers: ["List","Details"], knowledge: ["List","Article"], todo: ["List","Details"], promos: ["List","Promotion"], stock: ["List","Details"], leads: ["List","Details"], prices: ["List","List"] }[t] || ["Edit","Preview"]; $("#vEdit").textContent = lbl[0]; $("#vPrev").textContent = lbl[1]; if(innerWidth <= 860) setView("edit"); }
+  { const lbl = { proposals: ["Edit","Preview"], drawings: ["Edit","Plan"], jobs: ["List","Details"], customers: ["List","Details"], knowledge: ["List","Article"], todo: ["List","Details"], planner: ["List","Plan"], promos: ["List","Promotion"], stock: ["List","Details"], leads: ["List","Details"], prices: ["List","List"] }[t] || ["Edit","Preview"]; $("#vEdit").textContent = lbl[0]; $("#vPrev").textContent = lbl[1]; if(innerWidth <= 860) setView("edit"); }
   if(t === "drawings"){ if(mode !== "loading") dwStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); dwStart(); } }, 200); } dwRender(); }
 }
 $("#tabP").addEventListener("click", ()=>setTab("proposals"));
@@ -5058,16 +5106,389 @@ async function nativeShare(filename, data){
   setTimeout(()=>{ try{ P.SplashScreen && P.SplashScreen.hide(); }catch(_){} }, 6000);
   document.addEventListener("click", e=>{ const b = e.target.closest(".btn.primary, button.primary, .seg button, [data-ja], [data-shipmode]"); if(b && !b.disabled) hap("tap"); }, true);
 })();
+/* ================= Planner: a tick list for a full home automation build that builds the proposal as you go ================= */
+const PL_SYS = [
+  { k:"light",   name:"Lighting control",        brands:["Lutron HomeWorks","Lutron RadioRA 3","Crestron","Control4"] },
+  { k:"shade",   name:"Blinds and curtains",     brands:["Lutron","Crestron","Somfy"] },
+  { k:"hvac",    name:"Heating and cooling",     brands:["Polar Bear","Heatmiser","Crestron","Other"] },
+  { k:"audio",   name:"Multi-room audio",        brands:["Sonos","Crestron DM-NAX","Other"] },
+  { k:"video",   name:"TV and video",            brands:["Just Add Power","WyreStorm","Crestron","Local sources only"] },
+  { k:"cinema",  name:"Cinema",                  brands:["Crestron","Other"] },
+  { k:"control", name:"Control and touch panels",brands:["Crestron Home","Control4","Savant"] },
+  { k:"net",     name:"Network and Wi-Fi",       brands:["UniFi","Other"] },
+  { k:"sec",     name:"Security and access",     brands:["UniFi Protect / Access","AES Global","Other"] }
+];
+/* Room devices (counted per room) and head-end equipment (worked out from the rooms). hrs = install hours each. */
+const PL_TYPES = [
+  { tag:"KP",  name:"Keypad",                       sys:"light",   hrs:.5 },
+  { tag:"MS",  name:"Occupancy sensor",             sys:"light",   hrs:.5 },
+  { tag:"WIN", name:"Motorised blind or curtain",   sys:"shade",   hrs:1 },
+  { tag:"TH",  name:"Wall thermostat",              sys:"hvac",    hrs:.5, hv:true },
+  { tag:"AP",  name:"Air probe (virtual zone)",     sys:"hvac",    hrs:.5, hv:true },
+  { tag:"IF",  name:"AC interface",                 sys:"hvac",    hrs:.75, hv:true },
+  { tag:"SPK", name:"Ceiling speaker pair",         sys:"audio",   hrs:1 },
+  { tag:"TV",  name:"TV / AV point",                sys:"video",   hrs:1.5 },
+  { tag:"TP",  name:"Touch panel",                  sys:"control", hrs:1 },
+  { tag:"WAP", name:"Wi-Fi access point",           sys:"net",     hrs:.5 },
+  { tag:"CAM", name:"Camera",                       sys:"sec",     hrs:1 },
+  { tag:"ACC", name:"Door reader or intercom",      sys:"sec",     hrs:1.5 },
+  { tag:"LPN", name:"Lighting processor / panel",   sys:"light",   hrs:4, head:true },
+  { tag:"PSU", name:"Shade power supply, 10 output",sys:"shade",   hrs:1, head:true },
+  { tag:"GW",  name:"Heating controls gateway",     sys:"hvac",    hrs:2, head:true },
+  { tag:"UMC", name:"Heating wiring centre",        sys:"hvac",    hrs:2, head:true },
+  { tag:"AMP", name:"Amplifier, 8 zone",            sys:"audio",   hrs:1.5, head:true },
+  { tag:"PROC",name:"Control processor",            sys:"control", hrs:2, head:true },
+  { tag:"RTR", name:"Router / gateway",             sys:"net",     hrs:1, head:true },
+  { tag:"SW",  name:"PoE switch, 24 port",          sys:"net",     hrs:1, head:true },
+  { tag:"RACK",name:"Equipment rack",               sys:"net",     hrs:3, head:true },
+  { tag:"UPS", name:"UPS for the rack",             sys:"net",     hrs:.5, head:true }
+];
+const plMoney = n => money(n, {});
+const plType = t => PL_TYPES.find(x=>x.tag === t);
+const PL_ROOM = PL_TYPES.filter(t=>!t.head && !t.hv);
+const PL_HV = [["none","None"],["vz","Heated, air probe (no thermostat on the wall)"],["th","Heated, wall thermostat"],["ac","Heating and AC, thermostat + interface"]];
+const PL_PRESETS = {
+  bed:    ["Bedroom",            { KP:2, WIN:1, SPK:1, TV:1 }, "ac"],
+  ensuite:["En-suite / bathroom",{ KP:1, MS:1 }, "vz"],
+  living: ["Living / family",    { KP:2, WIN:1, SPK:2, TV:1, TP:1, WAP:1 }, "ac"],
+  kitchen:["Kitchen / dining",   { KP:3, WIN:1, SPK:2, TP:1, WAP:1 }, "ac"],
+  hall:   ["Hall / landing",     { KP:2, MS:1 }, "vz"],
+  study:  ["Study / office",     { KP:1, WIN:1, SPK:1, TV:1, WAP:1 }, "th"],
+  cinema: ["Cinema / media",     { KP:1, TV:1, TP:1 }, "ac"],
+  gym:    ["Gym",                { KP:1, SPK:1, TV:1 }, "ac"],
+  utility:["Utility / cupboard", { MS:1 }, "none"],
+  outside:["Outside / garden",   { SPK:1, CAM:2, WAP:1 }, "none"]
+};
+/* The tick list. auto(p) ticks an item itself when the plan already shows it's done. */
+const PL_STAGES = [
+  { k:"brief", t:"Brief and scope", items:[
+    { k:"client", t:"Client, project name and site recorded", auto:p=>!!(p.name && p.client && p.site) },
+    { k:"arch",   t:"Architect's drawings received", h:"Note the drawing numbers and revision you are designing from." },
+    { k:"scope",  t:"Systems in scope agreed with the client", auto:p=>PL_SYS.some(s=>p.sys[s.k]) },
+    { k:"brands", t:"Brand chosen for each system", auto:p=>PL_SYS.filter(s=>p.sys[s.k]).every(s=>p.brand[s.k]) && PL_SYS.some(s=>p.sys[s.k]) },
+    { k:"budget", t:"Budget level and priorities discussed" },
+    { k:"walk",   t:"Site visit or walkthrough done" } ] },
+  { k:"rooms", t:"Rooms and devices", items:[
+    { k:"sched",  t:"Room schedule entered (numbers and names, per floor)", auto:p=>p.rooms.length > 0 },
+    { k:"each",   t:"Devices set for every room", auto:p=>p.rooms.length > 0 && p.rooms.every(r=>r.hv !== "none" || PL_ROOM.some(t=>num(r.n[t.tag]) > 0) || r.skip) },
+    { k:"tvs",    t:"TV sizes and positions confirmed with the client" },
+    { k:"spk",    t:"Speaker positions agreed with the lighting layout" },
+    { k:"blinds", t:"Blind and curtain types confirmed (fabric, recess or face fix)" } ] },
+  { k:"hvac", t:"Heating and cooling", sys:"hvac", items:[
+    { k:"source", t:"Heat source and emitters confirmed (underfloor, radiators)" },
+    { k:"units",  t:"AC indoor units per room taken from the mechanical drawings", auto:p=>p.rooms.some(r=>r.hv === "ac") },
+    { k:"mani",   t:"Manifolds counted and located", auto:p=>num(p.hvac.manifolds) > 0 },
+    { k:"zones",  t:"Each room set as thermostat, virtual zone or none", auto:p=>p.rooms.length > 0 && p.rooms.some(r=>r.hv !== "none") },
+    { k:"cab",    t:"Controls cabinet position agreed", auto:p=>!!p.head.hvac } ] },
+  { k:"head", t:"Head ends and infrastructure", items:[
+    { k:"rack",   t:"AV rack location agreed (ventilated, powered, near the incoming broadband)", auto:p=>!!p.head.rack },
+    { k:"lpanel", t:"Lighting panel location agreed", auto:p=>!!p.head.lighting },
+    { k:"psu",    t:"Shade power supply locations agreed", auto:p=>!!p.head.shades },
+    { k:"bb",     t:"Broadband provider and incoming line position confirmed", auto:p=>!!p.head.broadband },
+    { k:"power",  t:"Dedicated supplies requested for rack and cabinets" } ] },
+  { k:"price", t:"Products and pricing", items:[
+    { k:"prod",   t:"A product chosen for every device type", auto:p=>plLines(p).every(l=>l.pr) && plLines(p).length > 0 },
+    { k:"labour", t:"Install and programming hours checked" },
+    { k:"margin", t:"Costs and margin checked in the private view" } ] },
+  { k:"coord", t:"Coordination", items:[
+    { k:"qs",     t:"Outstanding questions listed with who answers each", auto:p=>p.qs.length > 0 },
+    { k:"resp",   t:"Who does what agreed (first fix, supplies, other trades)" },
+    { k:"cables", t:"Cable types and colours agreed with the electrician" },
+    { k:"sent",   t:"Questions sent to the other trades" } ] },
+  { k:"draw", t:"Drawings and schedules", items:[
+    { k:"set",    t:"Drawing set started with rooms and device types", auto:p=>!!p.drawingId },
+    { k:"placed", t:"Every device placed on the plans", auto:p=>{ const d = plDrawing(p); if(!d) return false; const placed = d.floors.reduce((a,f)=>a + f.devices.length, 0), need = PL_TYPES.filter(t=>!t.head).reduce((a,t)=>a + plCount(p, t.tag), 0); return need > 0 && placed >= need; } },
+    { k:"cs",     t:"Cable schedule issued to the electrician before first fix" },
+    { k:"strat",  t:"Control strategy and room schedule written" } ] },
+  { k:"prop", t:"Proposal", items:[
+    { k:"built",  t:"Proposal built from this plan", auto:p=>!!p.proposalId },
+    { k:"review", t:"Proposal read through and wording checked" },
+    { k:"sentc",  t:"Sent to the client", auto:p=>{ const q = plProposal(p); return !!(q && q.qStatus && q.qStatus !== "Draft"); } },
+    { k:"won",    t:"Accepted", auto:p=>{ const q = plProposal(p); return !!(q && q.qStatus === "Accepted"); } } ] }
+];
+const PL_QS = {
+  hvac:  [["Please reissue the underfloor heating layout to the current plan, with manifolds, ports and actuator count.","Heating contractor","Zones follow the room schedule, one valve output per room."],
+          ["Which AC indoor units serve each room, and where are the unit controllers?","AC contractor","Unit controllers are hidden in the plant space; my thermostat is the only device on the wall."]],
+  light: [["Please issue the lighting circuit schedule with load types and drivers.","Electrician","Dimmable LED with compatible drivers, one circuit per scene group."]],
+  shade: [["Confirm blind and curtain types, motors and fixing for each window.","Interior designer","Lutron compatible motors, recessed where the ceiling allows."]],
+  video: [["Confirm TV sizes and positions for each room.","Client","A TV point at 1400 mm to centre in each room shown."]],
+  audio: [["Confirm which rooms need music and any outside zones.","Client","One stereo zone per room shown with speakers."]],
+  net:   [["Who is the broadband provider, and where does the line come in?","Client","Fibre to the AV rack location."]],
+  sec:   [["Confirm camera coverage and the gate or door entry requirements.","Client","Cameras on each entrance and the drive."]]
+};
+const PL_RESP = [
+  ["fix",   "All first fix cabling, back boxes and containment by the electrical contractor, to my cable schedule.", true],
+  ["supply","230 V supplies to the rack, panels and cabinets by the electrical contractor, on dedicated circuits.", true],
+  ["build", "Builders' work, making good and decoration by others.", true],
+  ["ac",    "AC indoor units, pipework and mounting of interfaces at each unit by the AC contractor.", true],
+  ["heat",  "Manifolds, valve bodies, pump and heat source by the heating contractor.", true],
+  ["blind", "Blind and curtain fabrics, tracks and fitting by the blind supplier.", false],
+  ["tv",    "TVs and brackets supplied by the client.", false]
+];
+
+let plList = [], plCur = null, plDirty = false, plStarted = false, plSaveT = null, plBuildT = null, plDefaults = {}, plPick = null, plPickQ = "", plOpen = new Set(["brief","rooms"]);
+function plNorm(p){
+  const o = Object.assign({ id: uid(), updated: Date.now(), name: "", client: "", clientId: "", site: "", arch: "", budget: "", floors: ["Ground", "First"], rooms: [], sys: {}, brand: {}, checks: {}, notes: {},
+    hvac: { manifolds: "" }, head: { rack: "", lighting: "", shades: "", hvac: "", broadband: "" }, qty: {}, prod: {}, prog: {}, qs: [], resp: {}, proposalId: "", drawingId: "", auto: true, last: {} }, p || {});
+  o.rooms = (o.rooms || []).map(r=>Object.assign({ id: uid(), no: "", name: "", floor: o.floors[0] || "Ground", hv: "none", ac: 0, n: {}, skip: false }, r));
+  ["sys","brand","checks","notes","qty","prod","prog","resp","last"].forEach(k=>{ o[k] = Object.assign({}, o[k] || {}); });
+  o.hvac = Object.assign({ manifolds: "" }, o.hvac || {}); o.head = Object.assign({ rack: "", lighting: "", shades: "", hvac: "", broadband: "" }, o.head || {});
+  PL_RESP.forEach(([k,,on])=>{ if(o.resp[k] === undefined) o.resp[k] = on; });
+  return o;
+}
+function plSetStatus(t, warn){ const s = $("#plStatus"); if(s){ s.textContent = t; s.classList.toggle("warn", !!warn); } }
+function plStart(){
+  if(!plStarted){
+    plStarted = true;
+    if(mode === "db"){
+      db.collection("plans").onSnapshot(snap=>{ plList = snap.docs.map(d=>plNorm(Object.assign({ id: d.id }, d.data()))).filter(x=>!x.deleted);
+        if(plCur && !plDirty){ const f = plList.find(x=>x.id === plCur.id); if(f && f.updated > plCur.updated){ const ae = document.activeElement; plCur = clone(f); if(!(ae && $("#plScroll").contains(ae) && /INPUT|TEXTAREA|SELECT/.test(ae.tagName))) plRender(); } }
+        if($("#app").dataset.tab === "planner"){ plRenderList(); if(!plCur) plRender(); } }, ()=>plSetStatus("Couldn't load", true));
+      db.doc("settings/planner").onSnapshot(d=>{ plDefaults = (d.exists && d.data().prod) || {}; }, ()=>{});
+      plSetStatus("Saved");
+    } else { try{ plList = JSON.parse(localStorage.getItem(LS + ".plans") || "[]").map(plNorm); }catch(_){ plList = []; } plSetStatus("On this device only"); }
+  }
+  if($("#app").dataset.tab === "planner"){ plRenderList(); plRender(); }
+}
+function plSchedule(){ if(!plCur) return; plDirty = true; plSetStatus("Unsaved"); clearTimeout(plSaveT); plSaveT = setTimeout(plSave, 800); if(plCur.auto && plCur.proposalId){ clearTimeout(plBuildT); plBuildT = setTimeout(()=>plBuild(true), 2500); } else if(plCur.auto && !plCur.proposalId && plCur.name && plLines(plCur).length){ clearTimeout(plBuildT); plBuildT = setTimeout(()=>plBuild(true), 2500); } }
+async function plSave(){
+  if(!plCur) return; plCur.updated = Date.now(); const snap = clone(plCur);
+  const i = plList.findIndex(x=>x.id === snap.id); if(i >= 0) plList[i] = snap; else plList.unshift(snap);
+  if(mode === "db"){ try{ await db.collection("plans").doc(snap.id).set(snap); plDirty = false; plSetStatus("Saved"); }catch(_){ plSetStatus("Not saved, retrying", true); setTimeout(plSave, 4000); } }
+  else { try{ localStorage.setItem(LS + ".plans", JSON.stringify(plList)); }catch(_){} plDirty = false; plSetStatus("Saved on this device"); }
+  plRenderList();
+}
+function plNew(){
+  const p = plNorm({ sys: { light: true, shade: true, hvac: true, audio: true, video: true, control: true, net: true } });
+  plList.unshift(p); plCur = clone(p); plOpen = new Set(["brief"]); plSave(); plRenderList(); plRender(); if(PH()) setView("preview");
+  setTimeout(()=>{ const n = $("#pl_name"); n && n.focus(); }, 350);
+}
+
+/* ---------- counts ---------- */
+function plRoomN(p, r, tag){
+  const t = plType(tag); if(!t || !p.sys[t.sys]) return 0;
+  if(tag === "TH") return r.hv === "th" || r.hv === "ac" ? 1 : 0;
+  if(tag === "AP") return r.hv === "vz" ? 1 : 0;
+  if(tag === "IF") return r.hv === "ac" ? Math.max(1, num(r.ac) || 1) : 0;
+  return Math.max(0, num(r.n[tag]) || 0);
+}
+function plDerived(p, tag){
+  const sum = t => p.rooms.reduce((a,r)=>a + plRoomN(p, r, t), 0), on = k => !!p.sys[k];
+  switch(tag){
+    case "LPN": return on("light") && sum("KP") + sum("MS") > 0 ? 1 : 0;
+    case "PSU": return on("shade") ? p.floors.reduce((a,f)=>a + Math.ceil(p.rooms.filter(r=>r.floor === f).reduce((b,r)=>b + plRoomN(p, r, "WIN"), 0) / 10), 0) : 0;
+    case "GW":  return on("hvac") && sum("TH") + sum("AP") > 0 ? 1 : 0;
+    case "UMC": return on("hvac") && sum("TH") + sum("AP") > 0 ? Math.max(1, num(p.hvac.manifolds) || 0) : 0;
+    case "AMP": return on("audio") && !/sonos/i.test(p.brand.audio || "") ? Math.ceil(p.rooms.filter(r=>plRoomN(p, r, "SPK") > 0).length / 8) : 0;
+    case "PROC":return on("control") ? 1 : 0;
+    case "RTR": return on("net") ? 1 : 0;
+    case "SW":  { if(!on("net")) return 0; const ports = sum("WAP") + sum("TP") + sum("MS") + sum("CAM") + sum("ACC") + sum("TV") * 2 + (on("control") ? 1 : 0) + (plDerived(p, "AMP") ? 1 : 0) + (sum("TH") + sum("AP") ? 1 : 0) + (plDerived(p, "LPN") ? 1 : 0); return ports ? Math.ceil(ports / 22) : 0; }
+    case "RACK":
+    case "UPS": return (on("net") || on("audio") || on("video") || on("control")) && PL_SYS.some(s=>p.sys[s.k]) ? 1 : 0;
+  }
+  return 0;
+}
+function plCount(p, tag){ const t = plType(tag); if(!t || !p.sys[t.sys]) return 0; if(p.qty[tag] !== undefined && p.qty[tag] !== "") return Math.max(0, num(p.qty[tag])); return t.head ? plDerived(p, tag) : p.rooms.reduce((a,r)=>a + plRoomN(p, r, tag), 0); }
+function plProdFor(p, tag){ const id = p.prod[tag] || plDefaults[tag]; return id ? products.find(x=>x.id === id) || null : null; }
+function plLines(p){ return PL_TYPES.map(t=>({ t, q: plCount(p, t.tag), pr: plProdFor(p, t.tag) })).filter(l=>l.q > 0); }
+function plSysHours(p, k){ const inst = plLines(p).filter(l=>l.t.sys === k).reduce((a,l)=>a + l.q * l.t.hrs, 0); const prog = p.prog[k] !== undefined && p.prog[k] !== "" ? num(p.prog[k]) : plProgDefault(p, k); return { inst, prog, total: Math.round((inst + prog) * 2) / 2 }; }
+function plProgDefault(p, k){ const n = plLines(p).filter(l=>l.t.sys === k && !l.t.head).reduce((a,l)=>a + l.q, 0); if(!n && !plLines(p).some(l=>l.t.sys === k)) return 0; return Math.max(2, Math.round(n * .25 * 2) / 2) + ({ light: 4, control: 6, hvac: 3, cinema: 6, net: 2 }[k] || 1); }
+function plProposal(p){ return p && p.proposalId ? (typeof list !== "undefined" ? list.find(x=>x.id === p.proposalId) : null) : null; }
+function plDrawing(p){ return p && p.drawingId && typeof dwList !== "undefined" ? dwList.find(x=>x.id === p.drawingId) : null; }
+function plDone(p, it){ return it.auto ? !!it.auto(p) || !!p.checks[it.k] : !!p.checks[it.k]; }
+function plStageItems(p, st){ return st.sys && !p.sys[st.sys] ? [] : st.items; }
+function plProgress(p){ let d = 0, n = 0; PL_STAGES.forEach(st=>plStageItems(p, st).forEach(it=>{ n++; if(plDone(p, it)) d++; })); return { d, n, pct: n ? Math.round(d / n * 100) : 0 }; }
+
+/* ---------- build the proposal ---------- */
+async function plBuild(quiet){
+  const p = plCur; if(!p) return;
+  if(!p.name){ if(!quiet) toast("Give the plan a project name first."); return; }
+  let q = plProposal(p); const isNew = !q;
+  q = normalise(clone(q || Object.assign(blankProposal(), { titleA: p.name, preparedFor: p.client || "Client", client: p.client, site: p.site || "Address, Jersey", ref: "HQ-" + (p.name.replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "XXX") + "-001", systems: [] })));
+  const old = new Map(); q.systems.filter(s=>s.fromPlan).forEach(s=>s.items.forEach(it=>{ if(it.plTag) old.set(it.plTag, it); }));
+  const sysOut = PL_SYS.filter(s=>p.sys[s.k]).map(s=>{
+    const lines = plLines(p).filter(l=>l.t.sys === s.k); if(!lines.length) return null;
+    const items = lines.map(l=>{ const pr = l.pr, prev = old.get(l.t.tag), same = prev && (prev.libId || "") === (pr ? pr.id : "");
+      const it = Object.assign(newItem(), { plTag: l.t.tag, qty: l.q, item: pr ? pr.item : l.t.name, model: pr ? (pr.model || "") : "", price: pr ? num(pr.price) : 0, libId: pr ? pr.id : "", desc: pr ? "" : "Product to be confirmed" });
+      if(same){ it.price = prev.price; it.desc = prev.desc; it.img = prev.img; it.tag = prev.tag; if(prev.item) it.item = prev.item; }
+      return it; });
+    const rooms = p.rooms.filter(r=>PL_TYPES.some(t=>t.sys === s.k && !t.head && plRoomN(p, r, t.tag) > 0)).length;
+    const h = plSysHours(p, s.k), prevSys = q.systems.find(x=>x.fromPlan === s.k);
+    return { name: s.name, desc: prevSys && prevSys.desc && prevSys.descMan ? prevSys.desc : `${p.brand[s.k] ? p.brand[s.k] + ", " : ""}${rooms ? `across ${rooms} room${rooms === 1 ? "" : "s"}` : "head end"}.`, descMan: prevSys ? prevSys.descMan : false, hours: h.total, work: prevSys ? prevSys.work : "", items, fromPlan: s.k };
+  }).filter(Boolean);
+  q.systems = sysOut.concat(q.systems.filter(s=>!s.fromPlan));
+  const text = {
+    next: p.qs.filter(x=>x.q).map(x=>`${x.q}${x.who ? ` (${x.who})` : ""}${x.assume ? ` Until I hear otherwise: ${x.assume}` : ""}`).join("\n"),
+    excluded: PL_RESP.filter(([k])=>p.resp[k]).map(([,t])=>t).join("\n")
+  };
+  Object.entries(text).forEach(([k,v])=>{ if(!v) return; if(isNew || !q[k] || q[k] === (p.last[k] || "")) q[k] = v; p.last[k] = v; });
+  if(isNew){ q.lede = `Smart home systems for ${p.name}: ${PL_SYS.filter(s=>p.sys[s.k]).map(s=>s.name.toLowerCase()).join(", ")}, designed room by room and set up so everything works from one app.`; }
+  q.updated = Date.now();
+  const i = list.findIndex(x=>x.id === q.id); if(i >= 0) list[i] = clone(q); else list.unshift(clone(q));
+  if(mode === "db"){ try{ await db.collection("proposals").doc(q.id).set({ title: q.titleA, ref: q.ref, updated: q.updated, data: q }); }catch(_){ if(!quiet) toast("Couldn't save the proposal."); return; } } else lsWrite();
+  if(current && current.id === q.id && !dirty){ current = normalise(clone(q)); buildEditor(); renderPreview(); }
+  fillPicker();
+  if(isNew){ p.proposalId = q.id; plDirty = true; plSave(); toast(`Proposal ${q.ref} started. It updates as you work through the plan.`); }
+  else if(!quiet) toast("Proposal updated.");
+  plSetStatus("Proposal updated " + new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }));
+  if($("#app").dataset.tab === "planner") plRenderHead();
+}
+function plOpenProposal(){ const p = plCur; if(!p || !p.proposalId) return; setTab("proposals"); open(p.proposalId); if(PH()) setView("preview"); }
+
+/* ---------- drawings ---------- */
+async function plMakeDrawings(){
+  const p = plCur; if(!p) return;
+  if(p.drawingId){ try{ localStorage.setItem(LSD + ".last", p.drawingId); }catch(_){} setTab("drawings"); const go = ()=>{ if(dwList.some(x=>x.id === p.drawingId)) dwOpen(p.drawingId); }; setTimeout(go, 600); return; }
+  if(!p.rooms.length){ toast("Add the rooms first."); return; }
+  const d = dwNorm(dwBlank()); d.name = p.name || "Project"; d.address = p.site; d.client = p.client; d.clientId = p.clientId;
+  d.prefix = "HJ-" + ((p.name || "XXX").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "XXX"); if(p.arch) d.base = p.arch;
+  d.floors = p.floors.map((f, i)=>({ id: uid(), name: f, number: "LX-" + (101 + i), size: "A1", img: "", iw: 0, ih: 0, fade: .55, devices: [] }));
+  d.rooms = p.rooms.filter(r=>r.no || r.name).map(r=>({ no: r.no, name: r.name, floor: (d.floors[Math.max(0, p.floors.indexOf(r.floor))] || d.floors[0]).id }));
+  const used = new Set(PL_TYPES.filter(t=>!t.head && plCount(p, t.tag) > 0).map(t=>t.tag));
+  const extra = [{ tag:"CAM", name:"Camera", system:"Security", color:"#3d5a80", mount:"W", height:2400, cables:" | Cat6 | Blue | AV rack, PoE switch" }, { tag:"ACC", name:"Door reader / intercom", system:"Security", color:"#3d5a80", mount:"W", height:1200, cables:" | Cat6 | Blue | AV rack, PoE switch" }];
+  d.types = DW_TYPES.concat(extra).filter(t=>used.has(t.tag)).map(t=>Object.assign({}, t, t.tag === "KP" && p.brand.light ? { name: p.brand.light.split(" ")[0] + " keypad" } : {}));
+  d.updated = Date.now();
+  if(mode === "db"){ try{ await db.collection("drawings").doc(d.id).set({ name: d.name, updated: d.updated, data: d }); }catch(_){ toast("Couldn't create the drawing set."); return; } }
+  else { try{ const l = JSON.parse(localStorage.getItem(LSD) || "[]"); l.unshift(d); localStorage.setItem(LSD, JSON.stringify(l)); }catch(_){} }
+  p.drawingId = d.id; plDirty = true; await plSave(); plRender();
+  toast(`Drawing set started with ${d.rooms.length} rooms. Upload each floor plan and place the devices.`);
+}
+
+/* ---------- list ---------- */
+function plRenderList(){
+  const el = $("#plRows"); if(!el) return; const q = ($("#plSearch") || {}).value || "", ql = q.toLowerCase();
+  const rows = plList.slice().sort((a,b)=>b.updated - a.updated).filter(p=>!ql || [p.name, p.client, p.site].join(" ").toLowerCase().includes(ql));
+  el.innerHTML = rows.length ? rows.map(p=>{ const g = plProgress(p), cur = plCur && plCur.id === p.id;
+    return `<button class="jrow ${cur ? "on" : ""}" data-pl="${esc(p.id)}" style="--js:${g.pct === 100 ? "#4c7a5a" : "var(--accent)"}"><span class="jbar"></span><span class="jm"><span class="n">${g.pct}% · ${g.d} OF ${g.n}</span><span class="c">${esc(p.name || "New plan")}</span><small>${esc([p.client, p.site].filter(Boolean).join(" · ") || "No client yet")}</small></span><span class="when">${p.rooms.length} room${p.rooms.length === 1 ? "" : "s"}</span></button>`; }).join("")
+    : `<div class="planempty" style="padding:24px"><p>${q ? "Nothing matches." : "No plans yet. Start one for each new project and tick through it."}</p></div>`;
+}
+
+/* ---------- detail ---------- */
+const plF = (k, label, ph = "", list = "") => `<label class="f"><span>${label}</span><input type="text" data-pk="${k}" value="${esc(String(k.split(".").reduce((o,x)=>o == null ? "" : o[x], plCur) ?? ""))}" placeholder="${esc(ph)}" ${list ? `list="${list}"` : ""} ${k === "name" ? 'id="pl_name"' : ""}></label>`;
+function plRenderHead(){
+  const h = $("#plHead"); if(!h || !plCur) return; const p = plCur, g = plProgress(p), q = plProposal(p), tot = q ? plQuoteTotal(q) : null;
+  h.innerHTML = `<div class="plbar"><i style="width:${g.pct}%"></i></div>
+    <div class="plsum"><span><b>${g.pct}%</b> ${g.d} of ${g.n} ticked</span>${tot !== null ? `<span>Proposal <b>${esc(q.ref)}</b> · ${plMoney(tot)}</span>` : ""}</div>
+    <div class="adds">${p.proposalId ? `<button class="btn small primary" data-pla="open">Open proposal</button><button class="btn small" data-pla="build">Update now</button>` : `<button class="btn small primary" data-pla="build">Start the proposal</button>`}
+      <button class="btn small" data-pla="draw">${p.drawingId ? "Open drawings" : "Start drawing set"}</button>
+      <label class="check" style="margin-left:4px"><input type="checkbox" data-pk="auto" data-bool="1" ${p.auto ? "checked" : ""}> Keep the proposal updated as I go</label></div>`;
+}
+function plQuoteTotal(q){ try{ return q.systems.reduce((a,s)=>a + s.items.reduce((b,it)=>b + num(it.qty) * sellUnit(q, it), 0) + num(s.hours) * num(q.rate), 0); }catch(_){ return null; } }
+function plCheck(p, it){ const on = plDone(p, it), auto = it.auto && it.auto(p);
+  return `<label class="plck ${on ? "on" : ""}"><input type="checkbox" data-pc="${it.k}" ${on ? "checked" : ""} ${auto ? "disabled" : ""}><span>${esc(it.t)}${auto ? ` <em>done</em>` : ""}${it.h ? `<small>${esc(it.h)}</small>` : ""}</span></label>`; }
+function plRender(){
+  const sc = $("#plScroll"); if(!sc) return;
+  if(!plCur){ sc.innerHTML = `<div class="planempty"><h2>Plan a build.</h2><p>Tick through the brief, rooms, heating, head ends, pricing, coordination and drawings. The proposal builds itself as you go.</p><div class="adds" style="justify-content:center"><button class="btn primary" data-pla="new">New plan</button></div></div>`; return; }
+  const p = plCur, top = sc.scrollTop;
+  const stage = (st, i, body)=>{ const its = plStageItems(p, st); if(st.sys && !p.sys[st.sys]) return ""; const d = its.filter(it=>plDone(p, it)).length;
+    return `<details class="plst" data-ps="${st.k}" ${plOpen.has(st.k) ? "open" : ""}><summary><span class="num">${String(i + 1).padStart(2, "0")}</span><span class="t">${esc(st.t)}</span><span class="cnt ${d === its.length && its.length ? "ok" : ""}">${d} of ${its.length}</span></summary><div class="body">${its.map(it=>plCheck(p, it)).join("")}${body || ""}</div></details>`; };
+  const clientOpts = `<datalist id="plClients">${clients.slice(0, 400).map(c=>`<option value="${esc(c.name)}">`).join("")}</datalist>`;
+  const brief = `<div class="plgrid">${plF("name","Project name","e.g. Baymont House")}${plF("client","Client","Name","plClients")}${plF("site","Site address","Address, Jersey")}${plF("arch","Architect's drawings","e.g. CWA25001 008 P5, 010 P2")}${plF("budget","Budget or level","e.g. high end, phase 1 only")}</div>${clientOpts}
+    <div class="plsub">Systems in scope and brand</div><div class="plsys">${PL_SYS.map(s=>`<div class="plsysr ${p.sys[s.k] ? "on" : ""}"><label class="check"><input type="checkbox" data-psys="${s.k}" ${p.sys[s.k] ? "checked" : ""}> ${esc(s.name)}</label>${p.sys[s.k] ? `<select class="in" data-pk="brand.${s.k}"><option value="">Brand…</option>${s.brands.map(b=>`<option ${p.brand[s.k] === b ? "selected" : ""}>${esc(b)}</option>`).join("")}</select>` : ""}</div>`).join("")}</div>`;
+  const roomTags = PL_ROOM.filter(t=>p.sys[t.sys]);
+  const rooms = `<div class="plsub">Floors</div><div class="plfloors">${p.floors.map((f,i)=>`<span class="plfl"><input type="text" value="${esc(f)}" data-pfl="${i}" aria-label="Floor name">${p.floors.length > 1 ? `<button class="icon" data-pla="rmfloor" data-i="${i}" title="Remove floor" aria-label="Remove floor">×</button>` : ""}</span>`).join("")}<button class="btn small ghost" data-pla="addfloor">Add floor</button></div>
+    ${p.floors.map(f=>{ const rs = p.rooms.map((r,i)=>[r,i]).filter(([r])=>r.floor === f);
+      return `<div class="plsub">${esc(f)} floor <small>${rs.length} room${rs.length === 1 ? "" : "s"}</small></div>
+      ${rs.length ? `<div class="plrooms" style="--plcols:48px minmax(110px,1fr) 84px ${p.sys.hvac ? "176px " : ""}repeat(${roomTags.length || 1},44px) 28px"><div class="plrh"><span>No.</span><span>Room</span><span>Type</span>${p.sys.hvac ? `<span>Heating / AC</span>` : ""}${roomTags.map(t=>`<span title="${esc(t.name)}">${t.tag}</span>`).join("")}<span></span></div>
+        ${rs.map(([r,i])=>`<div class="plr"><input type="text" value="${esc(r.no)}" data-pr="${i}.no" aria-label="Room number" class="no"><input type="text" value="${esc(r.name)}" data-pr="${i}.name" aria-label="Room name"><select class="in" data-preset="${i}" aria-label="Fill from a room type"><option value="">Fill…</option>${Object.entries(PL_PRESETS).map(([k,[l]])=>`<option value="${k}">${esc(l)}</option>`).join("")}</select>
+          ${p.sys.hvac ? `<span class="hv"><select class="in" data-pr="${i}.hv" aria-label="Heating and cooling">${PL_HV.map(([k,l])=>`<option value="${k}" ${r.hv === k ? "selected" : ""} title="${esc(l)}">${({ none: "None", vz: "Heated, probe", th: "Heated, stat", ac: "Heat + AC" })[k]}</option>`).join("")}</select>${r.hv === "ac" ? `<input type="number" min="1" value="${esc(r.ac || 1)}" data-pr="${i}.ac" title="AC indoor units" aria-label="AC indoor units" class="n">` : ""}</span>` : ""}
+          ${roomTags.map(t=>`<label class="pc"><b>${t.tag}</b><input type="number" min="0" inputmode="numeric" value="${num(r.n[t.tag]) || ""}" placeholder="0" data-prn="${i}.${t.tag}" aria-label="${esc(t.name)}" title="${esc(t.name)}" class="n"></label>`).join("")}
+          <button class="icon" data-pla="rmroom" data-i="${i}" title="Remove room" aria-label="Remove room">×</button></div>`).join("")}</div>` : ""}
+      <div class="adds"><button class="btn small" data-pla="addroom" data-f="${esc(f)}">Add room</button><button class="btn small ghost" data-pla="paste" data-f="${esc(f)}">Paste room schedule</button></div>
+      ${plPaste === f ? `<label class="f"><span>One room per line: number then name</span><textarea id="plPasteBox" rows="6" placeholder="01 Entrance Hall&#10;02 Gym&#10;05 Alfie's Bedroom"></textarea></label><div class="adds"><button class="btn small primary" data-pla="pasteok" data-f="${esc(f)}">Add these rooms</button><button class="btn small ghost" data-pla="pastex">Cancel</button></div>` : ""}`; }).join("")}
+    <p class="note">Type sets the counts from a typical room; change any number after. ${roomTags.map(t=>`${t.tag} ${esc(t.name.toLowerCase())}`).join(" · ")}.</p>`;
+  const hv = `<div class="plgrid">${plF("hvac.manifolds","Manifolds (one wiring centre each)","e.g. 2")}${plF("head.hvac","Controls cabinet position","e.g. plant room, near manifolds")}</div>
+    <p class="note">Thermostats ${plCount(p,"TH")} · air probes ${plCount(p,"AP")} · AC interfaces ${plCount(p,"IF")} · wiring centres ${plCount(p,"UMC")}. Rooms with AC get one thermostat for heating and cooling, interlocked so a room never calls for both.</p>`;
+  const head = `<div class="plgrid">${plF("head.rack","AV rack location","e.g. Elec cupboard, room 18")}${p.sys.light ? plF("head.lighting","Lighting panel location","e.g. next to the rack") : ""}${p.sys.shade ? plF("head.shades","Shade power supplies","e.g. loft void, first floor") : ""}${plF("head.broadband","Broadband provider and line in","e.g. JT fibre, garage")}</div>`;
+  const lines = plLines(p);
+  const price = `<div class="pltab">${PL_SYS.filter(s=>p.sys[s.k]).map(s=>{ const ls = lines.filter(l=>l.t.sys === s.k); if(!ls.length) return ""; const h = plSysHours(p, s.k);
+      return `<div class="plsub">${esc(s.name)}${p.brand[s.k] ? ` <small>${esc(p.brand[s.k])}</small>` : ""}</div>${ls.map(l=>`<div class="plpl"><span class="tg">${l.t.tag}</span><span class="nm">${esc(l.t.name)}${l.t.head ? `<small>worked out from the rooms</small>` : ""}</span>
+        <input type="number" min="0" class="n" value="${l.q}" data-pq="${l.t.tag}" aria-label="Quantity" title="Quantity${l.t.head ? ", change to override" : ""}">
+        <button class="plprod ${l.pr ? "" : "none"}" data-pla="pick" data-t="${l.t.tag}">${l.pr ? `${esc(l.pr.item)}<small>${esc([l.pr.model, l.pr.supplier].filter(Boolean).join(" · "))}</small>` : "Choose product"}</button>
+        <span class="pr">${l.pr && num(l.pr.price) ? plMoney(num(l.pr.price) * l.q) : "–"}</span></div>
+        ${plPick === l.t.tag ? `<div class="plpick"><input type="search" id="plPickQ" placeholder="Search your price list" value="${esc(plPickQ)}" autocomplete="off"><div class="res" id="plPickR">${plPickHtml()}</div></div>` : ""}`).join("")}
+        <div class="plhrs"><span>Install ${h.inst.toFixed(1)} h + programming</span><input type="number" min="0" step="0.5" class="n" value="${esc(p.prog[s.k] !== undefined && p.prog[s.k] !== "" ? p.prog[s.k] : plProgDefault(p, s.k))}" data-pk="prog.${s.k}" data-num="1" aria-label="Programming hours"><span>h = <b>${h.total} h</b></span></div>`; }).join("") || `<p class="note">Add rooms and devices first.</p>`}</div>
+    <p class="note">The product you choose for a device type is remembered for your next plan.</p>`;
+  const coord = `<div class="plsub">Outstanding questions <small>go into the proposal's next steps</small></div>
+    ${p.qs.map((x,i)=>`<div class="plq"><textarea rows="2" data-pqs="${i}.q" placeholder="Question">${esc(x.q)}</textarea><input type="text" data-pqs="${i}.who" value="${esc(x.who)}" placeholder="Who answers"><input type="text" data-pqs="${i}.assume" value="${esc(x.assume)}" placeholder="What I'll assume until then"><button class="icon" data-pla="rmq" data-i="${i}" aria-label="Remove question">×</button></div>`).join("")}
+    <div class="adds"><button class="btn small" data-pla="addq">Add question</button><button class="btn small ghost" data-pla="stdq">Add the usual questions</button></div>
+    <div class="plsub">Who does what <small>goes into the proposal's exclusions</small></div>
+    ${PL_RESP.map(([k,t])=>`<label class="check plresp"><input type="checkbox" data-presp="${k}" ${p.resp[k] ? "checked" : ""}> ${esc(t)}</label>`).join("")}`;
+  const d = plDrawing(p);
+  const draw = `<p class="note">${p.drawingId ? (d ? `${d.floors.reduce((a,f)=>a + f.devices.length, 0)} of ${PL_TYPES.filter(t=>!t.head).reduce((a,t)=>a + plCount(p, t.tag), 0)} devices placed so far.` : "Linked to a drawing set.") : "Starting the drawing set copies your floors, rooms and device types into Drawings, ready to upload the plans and place devices. The cable schedule builds from there."}</p>
+    <div class="adds"><button class="btn small" data-pla="draw">${p.drawingId ? "Open drawings" : "Start drawing set"}</button></div>`;
+  const q = plProposal(p);
+  const prop = `<p class="note">${q ? `${esc(q.ref)} · ${esc(q.qStatus || "Draft")}. Lines in the systems this plan made are rebuilt as you change the plan; your own prices, descriptions and extra systems are kept.` : "The proposal starts as soon as the plan has a name and its first devices."}</p>`;
+  sc.innerHTML = `<div class="jdetail pldetail"><div class="jhead"><span class="num">PLAN</span><h2>${esc(p.name || "New plan")}</h2></div><div id="plHead"></div>
+    ${stage(PL_STAGES[0], 0, brief)}${stage(PL_STAGES[1], 1, rooms)}${stage(PL_STAGES[2], 2, hv)}${stage(PL_STAGES[3], 3, head)}${stage(PL_STAGES[4], 4, price)}${stage(PL_STAGES[5], 5, coord)}${stage(PL_STAGES[6], 6, draw)}${stage(PL_STAGES[7], 7, prop)}
+    <div class="adds" style="margin-top:22px"><button class="btn small ghost danger" data-pla="del">Delete plan</button></div></div>`;
+  plRenderHead(); sc.scrollTop = top;
+  const pq = $("#plPickQ"); if(pq && plPick){ pq.focus(); pq.setSelectionRange(pq.value.length, pq.value.length); }
+}
+let plPaste = null;
+function plPickHtml(){ const res = plPickQ.trim() ? searchProducts(plPickQ.trim(), 10) : []; return res.length ? res.map(pr=>`<button type="button" data-plprod="${esc(pr.id)}"><span>${esc(pr.item)}<small>${esc([pr.model, pr.supplier].filter(Boolean).join(" · "))}</small></span><b>${num(pr.price) ? plMoney(pr.price) : ""}</b></button>`).join("") : `<div class="note" style="padding:8px">${plPickQ.trim() ? "Nothing found." : "Type a model, brand or name."}</div>`; }
+function plRefresh(full){ plSchedule(); if(full) plRender(); else plRenderHead(); }
+
+/* ---------- events ---------- */
+$("#plRows").addEventListener("click", async e=>{ const b = e.target.closest("[data-pl]"); if(!b) return; if(plDirty) await plSave(); const f = plList.find(x=>x.id === b.dataset.pl); if(!f) return; plCur = clone(f); plPick = null; plPaste = null; plRenderList(); plRender(); if(PH()) setView("preview"); });
+$("#plSearch").addEventListener("input", plRenderList);
+$("#plNew").addEventListener("click", plNew);
+$("#plScroll").addEventListener("toggle", e=>{ const d = e.target.closest && e.target.closest("details[data-ps]"); if(d){ d.open ? plOpen.add(d.dataset.ps) : plOpen.delete(d.dataset.ps); } }, true);
+$("#plScroll").addEventListener("input", e=>{
+  const p = plCur, t = e.target; if(!p) return;
+  if(t.id === "plPickQ"){ plPickQ = t.value; const r = $("#plPickR"); if(r) r.innerHTML = plPickHtml(); return; }
+  if(t.dataset.pk){ const ks = t.dataset.pk.split("."); let o = p; ks.slice(0,-1).forEach(k=>o = o[k]); let v = t.dataset.bool ? t.checked : t.value; if(t.dataset.num) v = v === "" ? "" : num(v); o[ks.at(-1)] = v;
+    if(t.dataset.pk === "client"){ const c = clients.find(x=>x.name === v); if(c){ p.clientId = c.id; const s = (c.sites || []).filter(Boolean)[0]; if(s && !p.site){ p.site = s; const si = document.querySelector('#plScroll [data-pk="site"]'); if(si) si.value = s; } } }
+    if(t.dataset.pk === "name"){ const h = $("#plScroll .jhead h2"); if(h) h.textContent = v || "New plan"; }
+    plRefresh(t.tagName === "SELECT"); return; }
+  if(t.dataset.pr){ const [i,k] = t.dataset.pr.split("."); p.rooms[+i][k] = k === "ac" ? num(t.value) : t.value; plRefresh(k === "hv" || k === "ac"); return; }
+  if(t.dataset.prn){ const [i,k] = t.dataset.prn.split("."); p.rooms[+i].n[k] = Math.max(0, num(t.value)); plRefresh(false); return; }
+  if(t.dataset.pq){ const tg = t.dataset.pq, ty = plType(tg); if(ty.head) p.qty[tg] = t.value === "" ? "" : num(t.value); else { p.qty[tg] = t.value === "" ? "" : num(t.value); } plRefresh(false); return; }
+  if(t.dataset.pfl !== undefined){ const i = +t.dataset.pfl, old = p.floors[i]; p.floors[i] = t.value; p.rooms.forEach(r=>{ if(r.floor === old) r.floor = t.value; }); plSchedule(); return; }
+  if(t.dataset.pqs){ const [i,k] = t.dataset.pqs.split("."); p.qs[+i][k] = t.value; plSchedule(); return; }
+});
+$("#plScroll").addEventListener("change", e=>{
+  const p = plCur, t = e.target; if(!p) return;
+  if(t.dataset.pc){ p.checks[t.dataset.pc] = t.checked; hap(t.checked ? "ok" : "sel"); plRefresh(true); return; }
+  if(t.dataset.psys){ p.sys[t.dataset.psys] = t.checked; plRefresh(true); return; }
+  if(t.dataset.presp){ p.resp[t.dataset.presp] = t.checked; plSchedule(); return; }
+  if(t.dataset.preset !== undefined){ const r = p.rooms[+t.dataset.preset], ps = PL_PRESETS[t.value]; if(!ps) return; r.n = Object.assign({}, ps[1]); if(p.sys.hvac) r.hv = ps[2]; if(r.hv === "ac" && !num(r.ac)) r.ac = 1; if(!r.name) r.name = ps[0].split(" /")[0]; plRefresh(true); return; }
+  if(t.dataset.pr || t.dataset.pq || (t.dataset.pk && /^(hvac\.|prog\.|brand\.)/.test(t.dataset.pk))) plRender();
+});
+$("#plScroll").addEventListener("click", async e=>{
+  const pp = e.target.closest("[data-plprod]"); if(pp && plCur && plPick){ const tg = plPick; plCur.prod[tg] = pp.dataset.plprod; plDefaults[tg] = pp.dataset.plprod; if(mode === "db"){ db.doc("settings/planner").set({ prod: plDefaults, updated: Date.now() }).catch(()=>{}); } plPick = null; plPickQ = ""; plRefresh(true); return; }
+  const b = e.target.closest("[data-pla]"); if(!b) return; const a = b.dataset.pla, p = plCur;
+  if(a === "new"){ plNew(); return; } if(!p) return;
+  if(a === "build"){ await plSave(); plBuild(false); return; }
+  if(a === "open"){ plOpenProposal(); return; }
+  if(a === "draw"){ plMakeDrawings(); return; }
+  if(a === "addfloor"){ p.floors.push(["Ground","First","Second","Third","Basement","Garden building"].find(x=>!p.floors.includes(x)) || "Floor " + (p.floors.length + 1)); plRefresh(true); return; }
+  if(a === "rmfloor"){ const f = p.floors[+b.dataset.i]; if(p.rooms.some(r=>r.floor === f) && !confirm(`Remove ${f} and its rooms?`)) return; p.floors.splice(+b.dataset.i, 1); p.rooms = p.rooms.filter(r=>r.floor !== f); plRefresh(true); return; }
+  if(a === "addroom"){ const f = b.dataset.f, nos = p.rooms.map(r=>parseInt(r.no, 10)).filter(n=>!isNaN(n)); p.rooms.push({ id: uid(), no: String((nos.length ? Math.max(...nos) : 0) + 1).padStart(2, "0"), name: "", floor: f, hv: "none", ac: 0, n: {} }); plRefresh(true); setTimeout(()=>{ const ins = [...document.querySelectorAll("#plScroll [data-pr$='.name']")]; const l = ins[ins.length - 1]; l && l.focus(); }, 50); return; }
+  if(a === "rmroom"){ p.rooms.splice(+b.dataset.i, 1); plRefresh(true); return; }
+  if(a === "paste"){ plPaste = b.dataset.f; plRender(); setTimeout(()=>{ const x = $("#plPasteBox"); x && x.focus(); }, 50); return; }
+  if(a === "pastex"){ plPaste = null; plRender(); return; }
+  if(a === "pasteok"){ const f = b.dataset.f, txt = ($("#plPasteBox") || {}).value || ""; txt.split("\n").map(l=>l.trim()).filter(Boolean).forEach(l=>{ const m = l.match(/^(\S+)\s+(.+)$/), no = m && /\d/.test(m[1]) ? m[1] : "", name = no ? m[2] : l; const low = name.toLowerCase(), key = /bed/.test(low) ? "bed" : /en.?suite|bath|wet room|shower|w\.?c/.test(low) ? "ensuite" : /kitchen|dining/.test(low) ? "kitchen" : /living|lounge|family|snug/.test(low) ? "living" : /hall|landing|stair|entrance/.test(low) ? "hall" : /study|office/.test(low) ? "study" : /cinema|media/.test(low) ? "cinema" : /gym/.test(low) ? "gym" : /cupboard|utility|plant|store|boot|cloak|dresser|dressing|elec/.test(low) ? "utility" : "";
+      const ps = PL_PRESETS[key]; p.rooms.push({ id: uid(), no, name, floor: f, hv: ps && p.sys.hvac ? ps[2] : "none", ac: ps && ps[2] === "ac" ? 1 : 0, n: ps ? Object.assign({}, ps[1]) : {} }); }); plPaste = null; plRefresh(true); toast("Rooms added with typical devices for each type of room. Check the numbers on each row."); return; }
+  if(a === "pick"){ plPick = plPick === b.dataset.t ? null : b.dataset.t; const pr = plProdFor(p, b.dataset.t); plPickQ = pr ? "" : (plType(b.dataset.t).name.split(",")[0] + (p.brand[plType(b.dataset.t).sys] ? " " + p.brand[plType(b.dataset.t).sys].split(" ")[0] : "")); plRender(); return; }
+  if(a === "addq"){ p.qs.push({ q: "", who: "", assume: "" }); plRefresh(true); return; }
+  if(a === "rmq"){ p.qs.splice(+b.dataset.i, 1); plRefresh(true); return; }
+  if(a === "stdq"){ let n = 0; Object.entries(PL_QS).forEach(([k, qs])=>{ if(!p.sys[k]) return; qs.forEach(([q, who, assume])=>{ if(!p.qs.some(x=>x.q === q)){ p.qs.push({ q, who, assume }); n++; } }); }); plRefresh(true); toast(n ? `Added ${n} question${n === 1 ? "" : "s"}.` : "They're already in."); return; }
+  if(a === "del"){ if(!confirm(`Delete the plan for ${p.name || "this project"}? The proposal and drawings it made are kept.`)) return; const id = p.id; plList = plList.filter(x=>x.id !== id); plCur = null; if(mode === "db"){ try{ await db.collection("plans").doc(id).delete(); }catch(_){ toast("Couldn't delete it."); } } else { try{ localStorage.setItem(LS + ".plans", JSON.stringify(plList)); }catch(_){} } plRenderList(); plRender(); if(PH()) setView("edit"); return; }
+});
+$("#plScroll").addEventListener("keydown", e=>{ if(e.target.id === "plPickQ" && e.key === "Enter"){ e.preventDefault(); const b = $("#plPickR [data-plprod]"); b && b.click(); } if(e.target.id === "plPickQ" && e.key === "Escape"){ plPick = null; plRender(); } });
+$("#tabB").addEventListener("click", ()=>setTab("planner"));
 (function(){
   const ic = {
     jobs: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
     proposals: '<svg viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5M9 13h6M9 16.5h4"/></svg>',
     stock: '<svg viewBox="0 0 24 24"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>',
     todo: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m8.3 12.2 2.5 2.5 4.9-5"/></svg>',
+    planner: '<svg viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M9 3.5V5h6V3.5M8.5 10l1.3 1.3 2.4-2.4M8.5 15.5l1.3 1.3 2.4-2.4M14 10.5h2M14 16h2"/></svg>',
     today: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>',
     more: '<svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg>'
   };
-  const items = [["jobs","tabJ","Jobs"],["proposals","tabP","Proposals"],["todo","tabT","To-do"]];
+  const items = [["jobs","tabJ","Jobs"],["planner","tabB","Plan"],["proposals","tabP","Proposals"],["todo","tabT","To-do"]];
   const bar = document.createElement("nav"); bar.className = "tabbar"; bar.setAttribute("aria-label", "Sections");
   bar.innerHTML = `<button type="button" data-tb="today">${ic.today}<span>Today</span></button>` + items.map(([t,id,l])=>`<button type="button" data-tb="${id}" data-tt="${t}">${ic[t]}<span>${l}</span></button>`).join("") + `<button type="button" data-tb="more">${ic.more}<span>More</span></button>`;
   document.body.appendChild(bar);
@@ -5090,8 +5511,8 @@ async function nativeShare(filename, data){
 
 /* ---- app feel 2: slide-in screens, back button, swipe back, pull to refresh, quick sheets, Today ---- */
 const PH = ()=>innerWidth <= 860;
-const DRILL = { jobs: "Jobs", customers: "Customers", leads: "Leads", todo: "To-do", stock: "Stock", promos: "Promotions", knowledge: "Knowledge" };
-const WORK = { proposals: "work", drawings: "dwork", jobs: "jwork", customers: "cwork", leads: "lwork", todo: "twork", stock: "swork", promos: "mwork", knowledge: "kwork" };
+const DRILL = { planner: "Plans", jobs: "Jobs", customers: "Customers", leads: "Leads", todo: "To-do", stock: "Stock", promos: "Promotions", knowledge: "Knowledge" };
+const WORK = { planner: "bwork", proposals: "work", drawings: "dwork", jobs: "jwork", customers: "cwork", leads: "lwork", todo: "twork", stock: "swork", promos: "mwork", knowledge: "kwork" };
 (function(){
   const app = $("#app"); app.dataset.pv = $("#work").dataset.view || "edit";
   const base = setView;
