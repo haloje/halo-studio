@@ -436,6 +436,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .jcard h3 small{font-family:var(--f-mono);font-size:10px;letter-spacing:.12em;color:var(--muted);font-weight:400}
 .vrow{display:grid;grid-template-columns:1.3fr 1fr 1fr 1.4fr 32px;gap:8px;align-items:end}
 .trow{display:grid;grid-template-columns:1.3fr 1fr 1fr 70px 32px;gap:8px;align-items:end}
+.trow .tnote{grid-column:1 / -1}.tnote textarea{width:100%;min-height:44px;resize:vertical}
 .vrow input,.trow input,.vrow select{padding:7px 8px;font-size:13px}
 .trow .hrs{font-variant-numeric:tabular-nums;font-size:13px;padding-bottom:9px;text-align:right}
 .note-log{display:grid;gap:10px}
@@ -3341,12 +3342,14 @@ function jbDetailHtml(j){
     ${typeof tdCardHtml === "function" ? tdCardHtml({ jobId: j.id }) : ""}
     <div class="jcard"><h3>Time <small>${hrs.toFixed(2)} hrs · ${money(hrs*jxRate(j), {showPence:false})} at £${jxRate(j)}</small></h3>
       <div class="clock">${j.clock ? `<span class="run">On the clock since ${esc(j.clock.slice(11,16))}</span><button class="btn small primary" data-ja="clockOff">Clock off</button>` : `<button class="btn small" data-ja="clockOn">Clock on</button>`}</div>
+      ${j.clock ? `<label class="f tnote"><span>Work done this visit</span><textarea rows="3" id="jbClockNote" data-jclock="1" placeholder="What you did today. Saved with the time when you clock off.">${esc(j.clockNote || "")}</textarea></label>` : ""}
       ${j.time.slice().sort((a,b)=>(b.date+b.start).localeCompare(a.date+a.start)).map(t=>`<div class="trow">
         <label class="f"><span>Date</span><input type="date" data-jt-id="${esc(t.id)}" data-jt-k="date" value="${esc(t.date)}"></label>
         <label class="f"><span>Start</span><input type="time" step="300" data-jt-id="${esc(t.id)}" data-jt-k="start" value="${esc(t.start)}"></label>
         <label class="f"><span>End</span><input type="time" step="300" data-jt-id="${esc(t.id)}" data-jt-k="end" value="${esc(t.end)}"></label>
         <span class="hrs" id="th_${esc(t.id)}">${(num(t.hours)||0).toFixed(2)} h</span>
-        <button class="icon" title="Remove" data-ja="rmTime" data-id="${esc(t.id)}">×</button></div>`).join("")}
+        <button class="icon" title="Remove" data-ja="rmTime" data-id="${esc(t.id)}">×</button>
+        <label class="f tnote"><span>Work done</span><textarea rows="2" data-jt-id="${esc(t.id)}" data-jt-k="note" placeholder="What was done on this visit">${esc(t.note || "")}</textarea></label></div>`).join("")}
       <div class="adds"><button class="btn small ghost" data-ja="addTime">Add time</button></div>
     </div>
     ${jxCardsHtml(j)}
@@ -3391,7 +3394,7 @@ $("#jbScroll").addEventListener("click", async e=>{
   else if(act === "addTime"){ jbCur.time.push({ id: uid(), date: jbToday(), start: "09:00", end: "10:00", hours: 1, staff: jbCur.staff, note: "" }); }
   else if(act === "rmTime"){ jbCur.time = jbCur.time.filter(t=>t.id!==id); }
   else if(act === "clockOn"){ jbCur.clock = nowIso; if(jbCur.status === "Scheduled") jbCur.status = "In Progress"; }
-  else if(act === "clockOff"){ const s = jbCur.clock, sm = jbMins(s.slice(11)), em = now.getHours()*60 + now.getMinutes(), sameDay = s.slice(0,10) === jbIso(now); const mins = sameDay ? Math.max(0, em - sm) : 0; jbCur.time.push({ id: uid(), date: s.slice(0,10), start: s.slice(11,16), end: sameDay ? jbHM(em) : "", hours: Math.round(mins/60*100)/100, staff: jbCur.staff, note: "" }); jbCur.clock = null; toast(sameDay ? `Logged ${(mins/60).toFixed(2)} hours.` : "Clocked off. Check the end time, the clock ran past midnight."); }
+  else if(act === "clockOff"){ const s = jbCur.clock, sm = jbMins(s.slice(11)), em = now.getHours()*60 + now.getMinutes(), sameDay = s.slice(0,10) === jbIso(now); const mins = sameDay ? Math.max(0, em - sm) : 0; jbCur.time.push({ id: uid(), date: s.slice(0,10), start: s.slice(11,16), end: sameDay ? jbHM(em) : "", hours: Math.round(mins/60*100)/100, staff: jbCur.staff, note: (jbCur.clockNote || "").trim() }); jbCur.clock = null; jbCur.clockNote = ""; toast(sameDay ? `Logged ${(mins/60).toFixed(2)} hours.` : "Clocked off. Check the end time, the clock ran past midnight."); }
   else if(act === "addNote"){ const t = ($("#jbNote")||{}).value || ""; if(!t.trim()) return; jbCur.notes.push({ at: nowIso, by: jbCur.staff || "Ian Lamont", text: t.trim() }); }
   else if(act === "complete"){ jbCur.status = "Completed"; jxMaybeRecur(jbCur); }
   else if(act === "openCust"){ if(jbDirty) await jbSave(); cuFromJob(jbCur); return; }
@@ -3428,6 +3431,7 @@ $("#jbScroll").addEventListener("input", e=>{
     if(k === "status" || k === "proposalId"){ jbRender(); }
     jbSchedule(); jbRenderList(); return; }
   const vid = e.target.dataset.jvId; if(vid){ const v = jbCur.visits.find(x=>x.id===vid); if(v){ v[e.target.dataset.jvK] = e.target.value; jbSchedule(); jbRenderList(); } return; }
+  if(e.target.dataset.jclock){ jbCur.clockNote = e.target.value; jbSchedule(); return; }
   const tid = e.target.dataset.jtId; if(tid){ const t = jbCur.time.find(x=>x.id===tid); if(t){ t[e.target.dataset.jtK] = e.target.value; const s = jbMins(t.start), en = jbMins(t.end); if(s != null && en != null && en > s){ t.hours = Math.round((en-s)/60*100)/100; const el = $("#th_"+tid); if(el) el.textContent = t.hours.toFixed(2) + " h"; } jbSchedule(); } }
 });
 $("#jbNew").addEventListener("click", async ()=>{ if(jbDirty) await jbSave(); const j = jbBlank(); jbList.unshift(j); jbCur = jbNorm(clone(j)); jbView = "job"; jbRenderList(); jbRender(); jbSave(); if(innerWidth <= 860) setView("preview"); const el = $("#jf_customer"); el && el.focus(); });
@@ -3791,8 +3795,8 @@ async function jxSheetPdf(j, sigDataUrl){
 /* invoicing a job */
 function jxLines(j){
   const u = jxUninv(j), out = [], rate = jxRate(j);
-  if(j.invTime !== false){ const byDay = new Map(); u.t.forEach(t=>byDay.set(t.date, (byDay.get(t.date) || 0) + num(t.hours)));
-    [...byDay.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([d, h])=>out.push({ desc: `Labour – ${jbNice(d)} (${(Math.round(h*100)/100)} hrs)`, qty: Math.round(h * 10000) / 10000, unit: rate, kind: "time" })); }
+  if(j.invTime !== false){ const byDay = new Map(), notes = new Map(); u.t.forEach(t=>{ byDay.set(t.date, (byDay.get(t.date) || 0) + num(t.hours)); const n = String(t.note || "").trim(); if(n){ notes.set(t.date, (notes.get(t.date) || []).concat(n)); } });
+    [...byDay.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([d, h])=>{ const n = (notes.get(d) || []).join(". ").replace(/\.\./g, "."); out.push({ desc: `Labour on ${jbNice(d)} (${(Math.round(h*100)/100)} hrs)${n ? ": " + n : ""}`, qty: Math.round(h * 10000) / 10000, unit: rate, kind: "time" }); }); }
   if(j.invMat !== false) u.m.forEach(x=>out.push({ desc: [x.item, x.model].filter(Boolean).join(" – "), qty: num(x.qty) || 1, unit: Math.round(num(x.price) * 100) / 100, kind: "mat" }));
   return out;
 }
