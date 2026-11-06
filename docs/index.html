@@ -5111,6 +5111,9 @@ async function nativeShare(filename, data){
   const b64 = await new Promise((res, rej)=>{ const r = new FileReader(); r.onload = ()=>res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(blob); });
   const name = String(filename || "file").replace(/[\\/:*?"<>|]+/g, "-");
   const w = await P.Filesystem.writeFile({ path: name, data: b64, directory: "CACHE" });
+  /* On a Mac (and an iPad with a mouse) the share sheet has no Save option, so offer a proper Save dialog instead. */
+  const desk = !/iPhone/.test(navigator.userAgent) && window.matchMedia && matchMedia("(pointer: fine)").matches;
+  if(desk && P.SiteWatch){ let r = null; try{ r = await P.SiteWatch.exportFile({ path: w.uri }); }catch(_){ r = null; } if(r){ if(r.saved) toast("Saved " + name); return true; } }
   await P.Share.share({ title: name, files: [w.uri] });
   return true;
 }
