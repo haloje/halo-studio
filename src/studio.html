@@ -436,7 +436,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .jcard h3 small{font-family:var(--f-mono);font-size:10px;letter-spacing:.12em;color:var(--muted);font-weight:400}
 .vrow{display:grid;grid-template-columns:1.3fr 1fr 1fr 1.4fr 32px;gap:8px;align-items:end}
 .trow{display:grid;grid-template-columns:1.3fr 1fr 1fr 70px 32px;gap:8px;align-items:end}
-.trow .tnote{grid-column:1 / -1}.tnote textarea{width:100%;min-height:44px;resize:vertical}
+.trow .tnote,.vrow .tnote{grid-column:1 / -1}.tnote textarea{width:100%;min-height:44px;resize:vertical}
 .vrow input,.trow input,.vrow select{padding:7px 8px;font-size:13px}
 .trow .hrs{font-variant-numeric:tabular-nums;font-size:13px;padding-bottom:9px;text-align:right}
 .note-log{display:grid;gap:10px}
@@ -3336,7 +3336,7 @@ function jbDetailHtml(j){
         <label class="f"><span>Start</span><input type="time" step="900" data-jv-id="${esc(v.id)}" data-jv-k="start" value="${esc(v.start)}"></label>
         <label class="f"><span>End</span><input type="time" step="900" data-jv-id="${esc(v.id)}" data-jv-k="end" value="${esc(v.end)}"></label>
         <label class="f"><span>Who</span><input type="text" data-jv-id="${esc(v.id)}" data-jv-k="staff" value="${esc(v.staff)}"></label>
-        <button class="icon" title="Remove visit" data-ja="rmVisit" data-id="${esc(v.id)}">×</button><div class="olchip ${v.olErr?"err":v.outlookId?"ok":""}" id="olc_${esc(v.id)}">${olChip(v)}</div><div class="emchip ${emChanged(v)?"warn":""}" id="emc_${esc(v.id)}">${emChip(j, v)}</div>${emOpen === v.id ? emPanel(j, v) : ""}</div>`).join("") : `<p class="note">No visits booked. Add one here, or click a time on the schedule.</p>`}
+        <button class="icon" title="Remove visit" data-ja="rmVisit" data-id="${esc(v.id)}">×</button><div class="olchip ${v.olErr?"err":v.outlookId?"ok":""}" id="olc_${esc(v.id)}">${olChip(v)}</div><div class="emchip ${emChanged(v)?"warn":""}" id="emc_${esc(v.id)}">${emChip(j, v)}</div><label class="f tnote"><span>Works planned for this visit</span><textarea rows="2" data-jv-id="${esc(v.id)}" data-jv-k="note" placeholder="e.g. Second fix keypads on the ground floor, bring the Lutron programming laptop">${esc(v.note || "")}</textarea></label>${emOpen === v.id ? emPanel(j, v) : ""}</div>`).join("") : `<p class="note">No visits booked. Add one here, or click a time on the schedule.</p>`}
       <div class="adds"><button class="btn small" data-ja="addVisit">Add visit</button><button class="btn small ghost" data-ja="toWeek">Show on schedule</button></div>
     </div>
     ${typeof tdCardHtml === "function" ? tdCardHtml({ jobId: j.id }) : ""}
@@ -3534,7 +3534,7 @@ function olPayload(j, v){
   return { subject: `${j.customer || "Job"}${first ? " – " + first : ""} · ${j.number}`.slice(0, 255),
     start: { dateTime: `${v.date}T${v.start}`, timeZone: OL_TZ }, end: { dateTime: `${v.date}T${end}`, timeZone: OL_TZ },
     location: loc,
-    body: [`Client: ${j.customer || ""}`, `Job: ${j.number}`, j.site ? `Site: ${j.site}` : "", loc ? `Address: ${loc}` : "", (j.contact || j.phone) ? `Contact: ${[j.contact, j.phone].filter(Boolean).join(" ")}` : "", v.staff ? `Who: ${v.staff}` : "", ].filter(Boolean).join("\n") + (j.description ? "\n\n" + j.description : "") + `\n\nBooked in halo.je Studio · ${j.number}`,
+    body: [`Client: ${j.customer || ""}`, `Job: ${j.number}`, j.site ? `Site: ${j.site}` : "", loc ? `Address: ${loc}` : "", (j.contact || j.phone) ? `Contact: ${[j.contact, j.phone].filter(Boolean).join(" ")}` : "", v.staff ? `Who: ${v.staff}` : "", v.note ? `\nThis visit: ${v.note}` : "" ].filter(Boolean).join("\n") + (j.description ? "\n\n" + j.description : "") + `\n\nBooked in halo.je Studio · ${j.number}`,
     bodyType: "text", showAs: "busy" };
 }
 function olSig(p){ const t = JSON.stringify(p); let h = 0; for(let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return String(h); }
@@ -5596,7 +5596,7 @@ function qaVisit(){
   sheetOpen(`<h3>Add a visit</h3><p class="sub">${esc(jbCur.number)} ${esc(jbCur.customer || "")}</p>
     <label>Date<input type="date" id="qaD" value="${qaNextWeekday()}"></label>
     <div class="two"><label>Start<input type="time" id="qaS" value="09:00"></label><label>Finish<input type="time" id="qaE" value="12:00"></label></div>
-    <label>Note<textarea id="qaN" rows="2" placeholder="Optional"></textarea></label>
+    <label>Works planned<textarea id="qaN" rows="2" placeholder="What this visit is for (optional)"></textarea></label>
     <div class="acts"><button data-x>Cancel</button><button class="go" data-ok>Book visit</button></div>`, p=>{
     p.querySelector("[data-x]").onclick = sheetClose;
     p.querySelector("[data-ok]").onclick = ()=>{ const d = $("#qaD").value; if(!d) return; jbCur.visits.push({ id: uid(), date: d, start: $("#qaS").value || "09:00", end: $("#qaE").value || "", staff: jbCur.staff || "Ian Lamont", note: $("#qaN").value.trim(), studio: true });
