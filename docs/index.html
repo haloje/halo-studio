@@ -2044,7 +2044,7 @@ function shipHtml(p, m){
 }
 $("#stage").addEventListener("click", e=>{
   const sm = e.target.closest("[data-shipmode]"); if(sm && current){ current.shipMode = sm.dataset.shipmode; scheduleSave(); renderPreview(); return; }
-  const b = e.target.closest("[data-pv]"); if(b){ pvMode = b.dataset.pv; try{ localStorage.setItem(LS + ".pv", pvMode); }catch(_){} renderPreview(); return; }
+  const b = e.target.closest(".pvbar [data-pv]"); if(b){ pvMode = b.dataset.pv; try{ localStorage.setItem(LS + ".pv", pvMode); }catch(_){} renderPreview(); return; }
   if(e.target.closest("[data-ccsv]") && current){
     const p = current, q = v => { const t = String(v ?? ""); return /[",\n]/.test(t) ? `"${t.replace(/"/g,'""')}"` : t; };
     const out = [["System","Item","Model","Qty","Retail each","Quoted each","Quoted total",`Cost each (incl. ${costGst(p)}% GST on equipment)`,"Cost total","Profit"].join(",")];
