@@ -139,6 +139,14 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .items{display:grid;gap:6px}
 .item{display:grid;grid-template-columns:52px 1fr 86px 28px;gap:6px;align-items:start;padding-bottom:6px;border-bottom:1px dashed var(--line)}
 .galrow{display:grid;gap:8px;padding:10px 0 14px;border-bottom:1px dashed var(--line)}
+.pdfv{position:fixed;inset:0;z-index:300;background:#1d1b19;display:grid;grid-template-rows:auto 1fr}
+.pdfvbar{display:flex;align-items:center;gap:8px;padding:calc(var(--safe-top,env(safe-area-inset-top,0px)) + 10px) 14px 10px;background:var(--panel);border-bottom:1px solid var(--line)}
+.pdfvt{flex:1;min-width:0;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdfvz{display:flex;gap:2px}
+.pdfvpages{overflow:auto;-webkit-overflow-scrolling:touch;padding:16px 12px calc(env(safe-area-inset-bottom,0px) + 24px);display:flex;flex-direction:column;align-items:center;gap:14px}
+.pdfvpages canvas{background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.45);max-width:none}
+.pdfvpages .note{color:#bbb}
+body.pdfvon .tabbar{display:none}
 .item .imove{display:flex;gap:2px;justify-content:center}.item .imove .icon{width:24px;height:30px;font-size:13px}.item .imove .icon:disabled{opacity:.25}
 .item .wide{grid-column:2 / 4;display:grid;grid-template-columns:1fr 120px;gap:6px}
 .item input,.item select{padding:6px 8px;font-size:13px}
@@ -2251,8 +2259,34 @@ async function mobileShare(filename, data){
     return true;
   }
 }
+/* PDFs open in a viewer first, with Save and Share from there. Works the same in the browser, on the phone and on the Mac. */
+async function pdfView(filename, blob){
+  document.querySelectorAll(".pdfv").forEach(x=>x.remove());
+  const v = document.createElement("div"); v.className = "pdfv"; v.setAttribute("role", "dialog"); v.setAttribute("aria-label", filename);
+  v.innerHTML = `<div class="pdfvbar"><button class="btn small" data-pv-x>Close</button><span class="pdfvt">${esc(filename)}</span><span class="pdfvz"><button class="icon" data-pv-z="-1" aria-label="Zoom out">−</button><button class="icon" data-pv-z="1" aria-label="Zoom in">+</button></span><button class="btn small" data-pv-share>Share</button><button class="btn small primary" data-pv-save>Save</button></div><div class="pdfvpages"><p class="note">Opening…</p></div>`;
+  document.body.appendChild(v); document.body.classList.add("pdfvon");
+  const pagesEl = v.querySelector(".pdfvpages"); let zoom = 1, doc = null;
+  const close = ()=>{ v.remove(); document.body.classList.remove("pdfvon"); };
+  const draw = async ()=>{ if(!doc) return; pagesEl.innerHTML = ""; const w = Math.min(pagesEl.clientWidth - 24, 1400) * zoom;
+    for(let n = 1; n <= doc.numPages; n++){ const pg = await doc.getPage(n), vp1 = pg.getViewport({ scale: 1 }), sc = w / vp1.width, dpr = Math.min(2, window.devicePixelRatio || 1), vp = pg.getViewport({ scale: sc * dpr });
+      const c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height; c.style.width = (vp.width / dpr) + "px"; c.style.height = (vp.height / dpr) + "px"; pagesEl.appendChild(c);
+      await pg.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise; if(!document.body.contains(v)) return; } };
+  v.addEventListener("click", async e=>{
+    if(e.target.closest("[data-pv-x]")){ close(); return; }
+    const z = e.target.closest("[data-pv-z]"); if(z){ zoom = Math.max(.5, Math.min(3, zoom * (z.dataset.pvZ === "1" ? 1.25 : .8))); draw(); return; }
+    if(e.target.closest("[data-pv-save]")){ await offerSave(filename, blob, "save"); return; }
+    if(e.target.closest("[data-pv-share]")){ await offerSave(filename, blob, "share"); return; } });
+  const esc1 = e=>{ if(e.key === "Escape" && document.body.contains(v)){ close(); removeEventListener("keydown", esc1); } }; addEventListener("keydown", esc1);
+  if(!window.pdfjsLib){ pagesEl.innerHTML = `<p class="note">The PDF viewer didn't load. Use Save to keep the file.</p>`; return; }
+  try{ doc = await pdfjsLib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()), isEvalSupported: false }).promise; await draw(); }
+  catch(err){ pagesEl.innerHTML = `<p class="note">This PDF couldn't be shown here. Use Save to keep it.</p>`; }
+}
 async function offer(filename, data){
-  if(capP()){ try{ if(await nativeShare(filename, data)){ hap("ok"); return; } }catch(e){ if(!/cancel/i.test(String((e && e.message) || e))) toast("That file couldn't be shared."); return; } }
+  if(/\.pdf$/i.test(filename) && data instanceof Blob && !offer.direct){ return pdfView(filename, data); }
+  return offerSave(filename, data);
+}
+async function offerSave(filename, data, how){
+  if(capP()){ try{ if(await nativeShare(filename, data, how)){ hap("ok"); return; } }catch(e){ if(!/cancel/i.test(String((e && e.message) || e))) toast("That file couldn't be shared."); return; } }
   if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))){ if(await mobileShare(filename, data)) return; }
   const dl = await getDownloads();
   if(!dl){ toast("Downloads aren't available in this view. Open the page in claude.ai to save files."); return; }
@@ -5255,7 +5289,7 @@ function hap(k){ const P = capP(); if(!P || !P.Haptics) return; try{
   else if(k === "warn") P.Haptics.notification({ type: "WARNING" });
   else P.Haptics.impact({ style: k === "tap" ? "MEDIUM" : "LIGHT" });
 }catch(_){} }
-async function nativeShare(filename, data){
+async function nativeShare(filename, data, how){
   const P = capP(); if(!P || !P.Filesystem || !P.Share) return false;
   const blob = data instanceof Blob ? data : new Blob([data], { type: "text/plain" });
   const b64 = await new Promise((res, rej)=>{ const r = new FileReader(); r.onload = ()=>res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(blob); });
@@ -5263,7 +5297,7 @@ async function nativeShare(filename, data){
   const w = await P.Filesystem.writeFile({ path: name, data: b64, directory: "CACHE" });
   /* On a Mac (and an iPad with a mouse) the share sheet has no Save option, so offer a proper Save dialog instead. */
   const desk = !/iPhone/.test(navigator.userAgent) && window.matchMedia && matchMedia("(pointer: fine)").matches;
-  if(desk && P.SiteWatch){ let r = null; try{ r = await P.SiteWatch.exportFile({ path: w.uri }); }catch(_){ r = null; } if(r){ if(r.saved) toast("Saved " + name); return true; } }
+  if(how !== "share" && (desk || how === "save") && P.SiteWatch){ let r = null; try{ r = await P.SiteWatch.exportFile({ path: w.uri }); }catch(_){ r = null; } if(r){ if(r.saved) toast("Saved " + name); return true; } }
   await P.Share.share({ title: name, files: [w.uri] });
   return true;
 }
