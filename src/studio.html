@@ -225,6 +225,11 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .sheet .prod{border:1px solid var(--d-line);border-radius:10px;overflow:hidden;break-inside:avoid}
 .sheet .prod .pic{height:150px;background:#f6f3ee;display:flex;align-items:center;justify-content:center;padding:14px}
 .sheet .prod .pic img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.sheet .prod.isz-s .pic{height:96px;padding:12px}.sheet .prod.isz-s .pic img{max-width:60%}
+.sheet .prod.isz-l .pic{height:220px;padding:10px}
+.sheet.compact .prod.isz-s .pic{height:72px}.sheet.compact .prod.isz-l .pic{height:150px}
+.sheet .prod.solo.isz-s{grid-template-columns:26% 1fr}.sheet .prod.solo.isz-s .pic{min-height:110px}
+.sheet .prod.solo.isz-l{grid-template-columns:55% 1fr}.sheet .prod.solo.isz-l .pic{min-height:230px}
 .sheet .prod .txt{padding:14px 16px 16px}
 .sheet .prod .mono{color:var(--d-brown);font-size:7.6px}
 .sheet .prod h4{font-family:var(--f-display);font-weight:400;font-size:15.5px;color:var(--d-ink);margin:6px 0 6px;line-height:1.25}
@@ -1321,7 +1326,7 @@ function renderDoc(p){
       + (oneTail || `<tr class="sub"><td></td><td colspan="2">${esc(s.name)} total</td><td class="r">${money(t.sys[i].total,p)}</td></tr>`);
     const work = lines(s.work);
     const feat = items.filter(it => (it.desc && it.desc.trim()) || it.img);
-    const cards = feat.length ? `<div class="prods">${feat.map(it=>`<div class="prod${feat.length===1?" solo":""}">${it.img?`<div class="pic"><img src="${esc(it.img)}" alt="${esc(it.item)}" crossorigin="anonymous"></div>`:""}<div class="txt">${it.model?`<div class="mono">${esc(it.model)}</div>`:""}<h4>${esc(it.item)}</h4>${paras(it.desc).map(x=>`<p>${inline(x)}</p>`).join("")}</div></div>`).join("")}</div>` : "";
+    const cards = feat.length ? `<div class="prods">${feat.map(it=>`<div class="prod${feat.length===1?" solo":""}${it.img && it.imgSize && it.imgSize !== "M" ? " isz-" + esc(String(it.imgSize).toLowerCase()) : ""}">${it.img?`<div class="pic"><img src="${esc(it.img)}" alt="${esc(it.item)}" crossorigin="anonymous"></div>`:""}<div class="txt">${it.model?`<div class="mono">${esc(it.model)}</div>`:""}<h4>${esc(it.item)}</h4>${paras(it.desc).map(x=>`<p>${inline(x)}</p>`).join("")}</div></div>`).join("")}</div>` : "";
     const sysHtml = `${i===0?`<div class="mono kick">Scope</div><h2>What's <em>included.</em></h2>`:""}
       <h3>${esc(s.name)}</h3>${s.desc?paras(s.desc).map(x=>`<p>${inline(x)}</p>`).join(""):""}
       <table><tr><th>Qty</th><th>Item</th><th>Item description</th><th class="r">Price</th></tr>${body}</table>${cards}
@@ -1619,7 +1624,7 @@ function sysBlock(s,i){
         <label class="check"><input type="checkbox" id="s${i}i${j}pb" data-k="systems.${i}.items.${j}.pb" ${it.pb?"checked":""}> Start a new page from this line</label>
         <div class="imgrow"><span class="thumb" style="${it.img?`background-image:url('${esc(it.img)}')`:""}"></span>
           <span class="btn small filebtn">${it.img?"Replace photo":"Add photo"}<input type="file" accept="image/*" data-img="${i}-${j}" aria-label="Upload a product photo"></span>
-          ${it.img?`<button class="btn small ghost" data-act="rmImg" data-i="${i}" data-j="${j}">Remove</button>`:""}
+          ${it.img?`<button class="btn small ghost" data-act="rmImg" data-i="${i}" data-j="${j}">Remove</button><select class="in" id="s${i}i${j}is" data-k="systems.${i}.items.${j}.imgSize" aria-label="Photo size on the proposal" style="width:auto">${[["S","Small photo"],["M","Medium photo"],["L","Large photo"]].map(([v,l])=>`<option value="${v}" ${(it.imgSize||"M")===v?"selected":""}>${l}</option>`).join("")}</select>`:""}
           <button class="btn small ghost" data-act="saveLib" data-i="${i}" data-j="${j}" ${it.item?"":"disabled"}>Save to library</button></div>
       </div>`:""}
     </div>`).join("")}</div>
