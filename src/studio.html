@@ -659,11 +659,15 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .cxconv{display:grid;grid-template-columns:150px 1fr 170px 28px;gap:6px;margin-bottom:6px}.cxconv input,.cxconv textarea{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--field);font:inherit;font-size:13px;min-width:0}
 .cxgrp h3{display:flex;align-items:center;gap:8px}.cxgt{flex:1;font:inherit;font-size:16px;border:1px solid transparent;background:none;padding:4px 6px;border-radius:6px;color:var(--ink)}.cxgt:hover,.cxgt:focus{border-color:var(--line);background:var(--field)}
 .cxtab{overflow-x:auto;margin-top:8px}
-.cxr{display:grid;grid-template-columns:110px 46px minmax(130px,1.4fr) 70px minmax(90px,1fr) 90px 100px 80px minmax(120px,1.2fr) 26px 26px;gap:4px;align-items:center;min-width:1000px;margin-bottom:3px}
+.cxr{display:grid;grid-template-columns:110px 46px minmax(130px,1.4fr) 70px minmax(90px,1fr) 90px 100px 80px minmax(120px,1.2fr) 58px 26px 26px;gap:4px;align-items:center;min-width:1000px;margin-bottom:3px}
 .cxr input[type=text]{height:30px;border:1px solid var(--line);border-radius:6px;padding:0 6px;background:var(--field);font-size:12.5px;min-width:0}
 .cxr input[data-xr$=".cid"]{font-family:var(--f-mono);font-size:12px;color:var(--accent)}
 .cxh span{font:500 9.5px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .cxsheets{--dz:1}
+.cxfl{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}.cxflh{display:flex;flex-wrap:wrap;align-items:end;gap:8px}.cxflh b{margin-right:4px}.cxflh .note{flex:1;min-width:160px;margin:0}
+.cxex{width:150px}.cxhint{color:var(--accent)}
+.cxplan{position:relative;margin-top:8px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;max-width:760px}.cxplan img{display:block;width:100%;opacity:.8}.cxplan.on{cursor:crosshair;outline:2px solid var(--accent)}
+.cxplan i{position:absolute;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none}.cxplan .hd{width:16px;height:16px;background:#b0443a;border:2px solid #fff;box-shadow:0 0 0 1px #b0443a}.cxplan .pt{width:10px;height:10px;background:var(--accent);border:2px solid #fff}
 .cxa3{width:1587px;height:1123px;background:#fff;color:#2c2926;position:relative;overflow:hidden;font-family:var(--f-body);display:grid;grid-template-columns:1fr 300px;box-shadow:0 1px 3px rgba(0,0,0,.18),0 10px 30px rgba(0,0,0,.12)}
 .cxa3 *{box-sizing:border-box}
 .cxmain{padding:40px 36px 30px 44px;overflow:hidden;border:1px solid #d9d3c9;margin:20px 0 20px 20px}
@@ -5302,11 +5306,12 @@ const cxSw = c => String(c || "").split(/[\/,&+]| and /i).map(x=>x.trim().toLowe
 const cxFloor = f => { const s = String(f || "").toLowerCase(); return /^ground|^gf/.test(s) ? "GF" : /^first|^ff/.test(s) ? "FF" : /^second|^sf|^2/.test(s) ? "SF" : /^third/.test(s) ? "3F" : /^base|^lower/.test(s) ? "LG" : /ext|garden|outside/.test(s) ? "EXT" : (f || "").slice(0, 3).toUpperCase(); };
 let cxList = [], cxCur = null, cxDirty = false, cxStarted = false, cxT = null, cxView = "edit";
 function cxBlank(){ return { id: uid(), updated: Date.now(), name: "", client: "", site: "", number: "HJ-XXX-CS", rev: "A", date: isoDay(new Date()), drawn: "IL", checked: "", status: "Preliminary", drawingId: "", revNote: "First issue for coordination",
-  notes: "Cable ID = device tag on the drawings, labelled at both ends.\nEC ✓ = electrical contractor ticks each line once pulled, labelled and tested.\nItems marked TBC to be confirmed before first fix.\nNo cable lengths given. Lengths are measured on site against the route.",
+  notes: "Cable ID = device tag on the drawings, labelled at both ends.\nEC ✓ = electrical contractor ticks each line once pulled, labelled and tested.\nItems marked TBC to be confirmed before first fix.\nAny lengths given are estimates for ordering. Measure on site against the route before cutting.",
   conv: [{ item: "Device refs", text: "Room-Type-Number, as tagged on the drawings. Room numbers per the room schedule.", src: "" }, { item: "EC tick", text: "Electrical contractor ticks each cable once it is pulled, labelled at both ends with its cable ID and tested.", src: "" }],
-  issues: [], groups: [] }; }
+  issues: [], groups: [], len: { factor: 1.3, ends: 3, spare: 10, print: false, floors: {}, drums: {} } }; }
 function cxNorm(o){ const b = Object.assign(cxBlank(), o || {}); b.conv = (b.conv || []).map(c=>Object.assign({ item: "", text: "", src: "" }, c)); b.issues = (b.issues || []).map(c=>Object.assign({ ref: "", text: "", owner: "" }, c));
-  b.groups = (b.groups || []).map(g=>Object.assign({ id: uid(), title: "", system: "", cable: "", colour: "", from: "", term: "", rows: [] }, g, { rows: (g.rows || []).map(r=>Object.assign({ id: uid(), cid: "", floor: "", room: "", mount: "", cable: "", conn: "", colour: "", dwg: "", notes: "", ec: false }, r)) })); return b; }
+  b.groups = (b.groups || []).map(g=>Object.assign({ id: uid(), title: "", system: "", cable: "", colour: "", from: "", term: "", rows: [] }, g, { rows: (g.rows || []).map(r=>Object.assign({ id: uid(), cid: "", floor: "", room: "", mount: "", cable: "", conn: "", colour: "", dwg: "", notes: "", ec: false, x: null, y: null, fl: "", len: "" }, r)) }));
+  b.len = Object.assign({ factor: 1.3, ends: 3, spare: 10, print: false, floors: {}, drums: {} }, b.len || {}); return b; }
 function cxSetStatus(t, w){ const s = $("#cxStatus"); if(s){ s.textContent = t; s.classList.toggle("warn", !!w); } }
 function cxStart(){
   if(!cxStarted){ cxStarted = true;
@@ -5330,10 +5335,48 @@ function cxFromDrawing(d){
   d.types.forEach(t=>{
     const devs = dwAllDevices(d).filter(x=>x.type === t.tag); if(!devs.length) return;
     const cs = dwCables(t), first = cs[0] || { cable: "", colour: "", to: "" }, fl = Object.fromEntries(d.floors.map(f=>[f.name, f.number || ""]));
-    const rows = []; devs.forEach(dv=>{ (cs.length ? cs : [first]).forEach(c=>rows.push({ id: uid(), cid: dwTag(dv) + (c.sfx ? "/" + c.sfx : ""), floor: cxFloor(dv.floor), room: dwRoomName(d, dv.room).replace(/^(\S+)\s+/, "$1 · "), mount: dwMountStr(dv), cable: cs.length > 1 ? c.cable : "", conn: "", colour: c.colour || "", dwg: fl[dv.floor] || "", notes: dv.notes || "", ec: false })); });
+    const rows = []; devs.forEach(dv=>{ (cs.length ? cs : [first]).forEach(c=>rows.push({ id: uid(), cid: dwTag(dv) + (c.sfx ? "/" + c.sfx : ""), floor: cxFloor(dv.floor), room: dwRoomName(d, dv.room).replace(/^(\S+)\s+/, "$1 · "), mount: dwMountStr(dv), cable: cs.length > 1 ? c.cable : "", conn: "", colour: c.colour || "", dwg: fl[dv.floor] || "", notes: dv.notes || "", ec: false, x: dv.x, y: dv.y, fl: dv.floor, len: "" })); });
     groups.push({ id: uid(), title: t.name, system: t.system || "", cable: cs.length > 1 ? cs.map(c=>c.cable).filter(Boolean).filter((v,i,a)=>a.indexOf(v) === i).join(", ") : first.cable, colour: cs.length > 1 ? "" : first.colour, from: "", term: first.to, rows });
   });
   return groups;
+}
+
+/* ---------- cable lengths: plan scale and head end per floor, then route length = (across + along) × route factor + drops at each end, plus spare ---------- */
+let cxCal = null; /* { fl, mode: "head"|"scale", pts: [] } */
+function cxDw(s){ return (typeof dwList !== "undefined" ? dwList : []).find(x=>x.id === s.drawingId) || null; }
+function cxLen(s, r){
+  if(r.len !== "" && r.len != null && !isNaN(num(r.len)) && num(r.len) > 0) return { m: num(r.len), manual: true };
+  const L = s.len, f = L.floors[r.fl]; if(!f || f.hx == null || !f.w || r.x == null) return null;
+  const d = cxDw(s), fl = d && d.floors.find(x=>x.name === r.fl), ar = fl && fl.iw ? fl.ih / fl.iw : .7;
+  const run = (Math.abs(r.x - f.hx) * f.w + Math.abs(r.y - f.hy) * f.w * ar) * num(L.factor || 1) + num(L.ends || 0) + num(f.extra || 0);
+  return { m: Math.round(run * 10) / 10, manual: false };
+}
+function cxTotals(s){
+  const by = new Map(); let missing = 0;
+  s.groups.forEach(g=>g.rows.forEach(r=>{ const c = (r.cable || g.cable || "Unspecified").trim(), l = cxLen(s, r); if(!l){ missing++; return; } const o = by.get(c) || { cable: c, m: 0, n: 0 }; o.m += l.m; o.n++; by.set(c, o); }));
+  const sp = 1 + num(s.len.spare || 0) / 100;
+  return { rows: [...by.values()].map(o=>{ const total = Math.ceil(o.m * sp), dr = num(s.len.drums[o.cable]) || (/cat|utp|ftp/i.test(o.cable) ? 305 : 100); return Object.assign(o, { total, drum: dr, drums: Math.ceil(total / dr) }); }).sort((a,b)=>b.total - a.total), missing };
+}
+function cxLenCard(s){
+  const d = cxDw(s);
+  if(!d) return `<div class="jcard"><h3>Cable lengths</h3><p class="note">Build this schedule from a drawing set first. Lengths are worked out from where each device sits on the plans.</p></div>`;
+  if(s.groups.some(g=>g.rows.some(r=>r.x == null))) return `<div class="jcard"><h3>Cable lengths</h3><p class="note">Click <b>Rebuild from drawings</b> above once, so each cable knows where its device sits on the plan. Your notes and ticks are kept.</p></div>`;
+  const T = cxTotals(s), used = [...new Set(s.groups.flatMap(g=>g.rows.map(r=>r.fl)))], floors = d.floors.filter(f=>used.includes(f.name));
+  return `<div class="jcard"><h3>Cable lengths <small>estimates for ordering, measure on site before cutting</small></h3>
+    <div class="plgrid"><label class="f"><span>Route factor</span><input type="number" step="0.05" min="1" data-xl="factor" value="${esc(s.len.factor)}" title="Straight-line distance across and along the building, times this for going round walls and up into ceilings"></label>
+      <label class="f"><span>Drops and tails per cable (m)</span><input type="number" step="0.5" min="0" data-xl="ends" value="${esc(s.len.ends)}"></label>
+      <label class="f"><span>Spare (%)</span><input type="number" step="1" min="0" data-xl="spare" value="${esc(s.len.spare)}"></label>
+      <label class="check" style="align-self:end"><input type="checkbox" data-xl="print" ${s.len.print ? "checked" : ""}> Print lengths on the schedule</label></div>
+    ${floors.map(f=>{ const c = s.len.floors[f.name] || {}, cal = cxCal && cxCal.fl === f.name;
+      return `<div class="cxfl"><div class="cxflh"><b>${esc(f.name)}</b><span class="note">${c.w ? `Plan is ${c.w.toFixed(1)} m wide` : "Scale not set"} · ${c.hx != null ? "head end set" : "head end not set"}</span>
+        <button class="btn small ${cal && cxCal.mode === "scale" ? "primary" : ""}" data-xa="calscale" data-f="${esc(f.name)}">Set scale</button><button class="btn small ${cal && cxCal.mode === "head" ? "primary" : ""}" data-xa="calhead" data-f="${esc(f.name)}">Set head end</button>
+        <label class="f cxex"><span>Then to the rack (m)</span><input type="number" step="0.5" min="0" data-xlf="${esc(f.name)}" value="${esc(c.extra || 0)}" title="On a floor without the rack, put the head end at the riser and enter the run from there to the rack"></label></div>
+        ${cal ? `<p class="note cxhint">${cxCal.mode === "head" ? "Click where the rack is on this floor, or the riser the cables go down." : cxCal.pts.length < 2 ? `Click ${cxCal.pts.length ? "the second" : "the first"} end of something you know the length of, such as a wall with a dimension.` : `How long is that in metres? <input type="number" step="0.01" id="cxCalM" style="width:90px"> <button class="btn small primary" data-xa="calok">Set scale</button>`}</p>` : ""}
+        ${f.img ? `<div class="cxplan ${cal ? "on" : ""}" data-xplan="${esc(f.name)}"><img src="${esc(f.img)}" alt="">${c.hx != null ? `<i class="hd" style="left:${c.hx * 100}%;top:${c.hy * 100}%" title="Head end"></i>` : ""}${cal ? cxCal.pts.map(p=>`<i class="pt" style="left:${p.x * 100}%;top:${p.y * 100}%"></i>`).join("") : ""}</div>` : `<p class="note">No plan image on this floor.</p>`}</div>`; }).join("")}
+    ${T.rows.length ? `<div class="ctable" style="margin-top:12px"><table style="min-width:520px"><tr><th>Cable</th><th class="r">Runs</th><th class="r">Metres</th><th class="r">With ${esc(s.len.spare)}% spare</th><th class="r">Drum (m)</th><th class="r">Drums</th></tr>
+      ${T.rows.map(o=>`<tr><td>${esc(o.cable)}</td><td class="r">${o.n}</td><td class="r">${Math.round(o.m)}</td><td class="r"><b>${o.total}</b></td><td class="r"><input type="number" min="1" data-xdrum="${esc(o.cable)}" value="${o.drum}" style="width:70px;text-align:right"></td><td class="r"><b>${o.drums}</b></td></tr>`).join("")}</table></div>` : ""}
+    ${T.missing ? `<p class="note">${T.missing} cable${T.missing === 1 ? "" : "s"} not counted yet: set the scale and head end on ${T.missing === cxCount(s) ? "each floor" : "the remaining floors"}.</p>` : ""}
+    <p class="note">Each run is measured across and along the plan from the head end to the device, times the route factor, plus the drops. Type a length on any cable to override it. Keypad loops are daisy chained on site, so their real total is usually lower than these home runs.</p></div>`;
 }
 
 /* ---------- list ---------- */
@@ -5349,12 +5392,14 @@ function cxRender(){
   if(!cxCur){ sc.innerHTML = `<div class="planempty"><h2>Cable schedules.</h2><p>Grouped by device, with cable type, colour, where it runs from and to, and a tick box for the electrician. Build one from a drawing set in a click, then print it as A3 sheets.</p><div class="adds" style="justify-content:center"><button class="btn primary" data-xa="new">New cable schedule</button></div></div>`; return; }
   if(cxView === "sheets"){ sc.innerHTML = `<div class="cxbar"><button class="btn small" data-xa="edit">Back to editing</button><button class="btn small primary" data-xa="pdf">Download PDF</button></div><div class="dsheets cxsheets" id="cxSheets">${cxSheets(cxCur)}</div>`; cxFit(); return; }
   const s = cxCur, top = sc.scrollTop, dws = (typeof dwList !== "undefined" ? dwList : []);
+  const ae = document.activeElement, keepSel = ae && sc.contains(ae) && ae.tagName === "INPUT" ? ["xl","xlf","xdrum","xr","xk","xg"].map(k=>ae.dataset[k] !== undefined ? `[data-${k}="${ae.dataset[k]}"]` : "").find(Boolean) : null, caret = keepSel && ae.type !== "checkbox" ? ae.selectionStart : null;
   sc.innerHTML = `<div class="jdetail cxdetail"><div class="jhead"><span class="num">CABLE SCHEDULE · ${cxCount(s)} CABLES</span><h2>${esc(s.name || "New cable schedule")}</h2></div>
     <div class="adds"><button class="btn small primary" data-xa="sheets">Preview sheets</button><button class="btn small" data-xa="pdf">Download PDF</button><button class="btn small" data-xa="csv">Download CSV</button></div>
     <div class="jcard"><h3>Project</h3><div class="plgrid">${cxF("name","Project","e.g. Baymont House")}${cxF("client","Client")}${cxF("site","Site")}${cxF("number","Drawing number","HJ-BAY-CS")}${cxF("rev","Rev")}${cxF("date","Date")}${cxF("drawn","Drawn")}${cxF("checked","Checked")}${cxF("revNote","Revision note")}
       <label class="f"><span>Status</span><select class="in" data-xk="status">${["Preliminary","Tender","Construction","As built"].map(o=>`<option ${s.status === o ? "selected" : ""}>${o}</option>`).join("")}</select></label></div>
       <div class="adds" style="margin-top:10px"><select class="in" id="cxDw" style="width:auto"><option value="">Build from a drawing set…</option>${dws.map(d=>`<option value="${esc(d.id)}" ${s.drawingId === d.id ? "selected" : ""}>${esc(d.name)} (${d.floors.reduce((a,f)=>a + f.devices.length, 0)} devices)</option>`).join("")}</select><button class="btn small" data-xa="import">${s.groups.length ? "Rebuild from drawings" : "Build"}</button></div>
       <p class="note">Building takes every device and its cables from the drawing set. Rebuilding keeps the notes, connection and ticks you've added to cables with the same ID.</p></div>
+    ${cxLenCard(s)}
     <div class="jcard"><h3>How this schedule works <small>conventions, printed on the first sheet</small></h3>
       ${s.conv.map((c,i)=>`<div class="cxconv"><input type="text" data-xc="${i}.item" value="${esc(c.item)}" placeholder="Item"><textarea rows="2" data-xc="${i}.text" placeholder="Convention">${esc(c.text)}</textarea><input type="text" data-xc="${i}.src" value="${esc(c.src)}" placeholder="Source, e.g. Jon 26.09.26"><button class="icon" data-xa="rmconv" data-i="${i}" aria-label="Remove">×</button></div>`).join("")}
       <div class="adds"><button class="btn small ghost" data-xa="addconv">Add convention</button></div></div>
@@ -5364,13 +5409,14 @@ function cxRender(){
     ${s.groups.map((g,gi)=>`<div class="jcard cxgrp"><h3><input type="text" data-xg="${gi}.title" value="${esc(g.title)}" class="cxgt" aria-label="Group title"><small>${g.rows.length} cable${g.rows.length === 1 ? "" : "s"}</small>
         <button class="icon" data-xa="gup" data-i="${gi}" ${gi === 0 ? "disabled" : ""} title="Move up">↑</button><button class="icon" data-xa="gdown" data-i="${gi}" ${gi === s.groups.length - 1 ? "disabled" : ""} title="Move down">↓</button><button class="icon" data-xa="rmgroup" data-i="${gi}" title="Remove group">×</button></h3>
       <div class="plgrid">${[["system","System"],["cable","Cable"],["colour","Colour"],["from","From"],["term","Terminates"]].map(([k,l])=>`<label class="f"><span>${l}</span><input type="text" data-xg="${gi}.${k}" value="${esc(g[k])}"></label>`).join("")}</div>
-      <div class="cxtab"><div class="cxr cxh"><span>Cable ID</span><span>Floor</span><span>Room</span><span>Mount</span><span>Cable</span><span>Connection</span><span>Colour</span><span>Drawing</span><span>Notes</span><span>EC</span><span></span></div>
-        ${g.rows.map((r,ri)=>`<div class="cxr">${["cid","floor","room","mount","cable","conn","colour","dwg","notes"].map(k=>`<input type="text" data-xr="${gi}.${ri}.${k}" value="${esc(r[k])}" ${k === "cable" && !r.cable ? `placeholder="${esc(g.cable)}"` : k === "colour" && !r.colour ? `placeholder="${esc(g.colour)}"` : ""} aria-label="${k}">`).join("")}<input type="checkbox" data-xr="${gi}.${ri}.ec" ${r.ec ? "checked" : ""} aria-label="Pulled and tested"><button class="icon" data-xa="rmrow" data-i="${gi}" data-j="${ri}" aria-label="Remove cable">×</button></div>`).join("")}</div>
+      <div class="cxtab"><div class="cxr cxh"><span>Cable ID</span><span>Floor</span><span>Room</span><span>Mount</span><span>Cable</span><span>Connection</span><span>Colour</span><span>Drawing</span><span>Notes</span><span>Est. m</span><span>EC</span><span></span></div>
+        ${g.rows.map((r,ri)=>`<div class="cxr">${["cid","floor","room","mount","cable","conn","colour","dwg","notes"].map(k=>`<input type="text" data-xr="${gi}.${ri}.${k}" value="${esc(r[k])}" ${k === "cable" && !r.cable ? `placeholder="${esc(g.cable)}"` : k === "colour" && !r.colour ? `placeholder="${esc(g.colour)}"` : ""} aria-label="${k}">`).join("")}${(()=>{ const l = cxLen(s, r); return `<input type="text" inputmode="decimal" data-xr="${gi}.${ri}.len" value="${r.len !== "" && r.len != null ? esc(r.len) : ""}" placeholder="${l && !l.manual ? l.m : ""}" aria-label="Length in metres" title="Estimated metres. Type a length to override.">`; })()}<input type="checkbox" data-xr="${gi}.${ri}.ec" ${r.ec ? "checked" : ""} aria-label="Pulled and tested"><button class="icon" data-xa="rmrow" data-i="${gi}" data-j="${ri}" aria-label="Remove cable">×</button></div>`).join("")}</div>
       <div class="adds"><button class="btn small ghost" data-xa="addrow" data-i="${gi}">Add cable</button></div></div>`).join("")}
     <div class="adds"><button class="btn small" data-xa="addgroup">Add group</button></div>
     <div class="jcard"><h3>General notes <small>title block, one per line</small></h3><textarea rows="4" data-xk="notes" style="width:100%">${esc(s.notes)}</textarea></div>
     <div class="adds" style="margin-top:20px"><button class="btn small ghost danger" data-xa="del">Delete schedule</button></div></div>`;
   sc.scrollTop = top;
+  if(keepSel){ try{ const el = sc.querySelector(keepSel); if(el){ el.focus({ preventScroll: true }); if(caret != null) el.setSelectionRange(caret, caret); } }catch(_){} }
 }
 
 /* ---------- printed sheets (A3 landscape, 1587 × 1123) ---------- */
@@ -5398,7 +5444,8 @@ function cxSheets(s){
   const sumRows = s.groups.map(g=>`<tr><td>${esc(g.title)}</td>${floors.map(f=>`<td class="r">${g.rows.filter(r=>r.floor === f).length || "–"}</td>`).join("")}<td class="r b">${g.rows.length}</td></tr>`).join("");
   const sheet1 = `<article class="cxa3"><div class="cxmain"><div class="cxh1"><h1>Cable schedule, summary <em>${cxCount(s)} cables</em></h1><span>${esc(sys.join(" · "))}</span></div>
     <div class="cxcols"><div><div class="cxk">How this schedule works</div><table class="cxconvt">${s.conv.filter(c=>c.item || c.text).map(c=>`<tr><td class="it">${esc(c.item)}</td><td>${esc(c.text)}${c.src ? ` <i>${esc(c.src)}</i>` : ""}</td></tr>`).join("")}</table>
-      ${s.issues.length ? `<div class="cxk" style="margin-top:22px">Open issues</div>${s.issues.filter(c=>c.text).map(c=>`<div class="cxiss"><b>${esc(c.ref)}</b> <i>${esc(c.owner)}</i><p>${esc(c.text)}</p></div>`).join("")}` : ""}</div>
+      ${s.issues.length ? `<div class="cxk" style="margin-top:22px">Open issues</div>${s.issues.filter(c=>c.text).map(c=>`<div class="cxiss"><b>${esc(c.ref)}</b> <i>${esc(c.owner)}</i><p>${esc(c.text)}</p></div>`).join("")}` : ""}
+      ${(()=>{ const T = cxTotals(s); return T.rows.length ? `<div class="cxk" style="margin-top:22px">Estimated cable quantities <small>for ordering, measure on site</small></div><table class="cxsum"><tr><th>Cable</th><th class="r">Runs</th><th class="r">Metres incl. ${esc(s.len.spare)}% spare</th><th class="r">Drums</th></tr>${T.rows.map(o=>`<tr><td>${esc(o.cable)}</td><td class="r">${o.n}</td><td class="r">${o.total}</td><td class="r b">${o.drums} × ${o.drum} m</td></tr>`).join("")}</table>` : ""; })()}</div>
       <div><div class="cxk">Summary <small>cables by device</small></div><table class="cxsum"><tr><th>Device</th>${floors.map(f=>`<th class="r">${esc(f)}</th>`).join("")}<th class="r">Total</th></tr>${sumRows}<tr class="tot"><td>Total cables</td>${floors.map(f=>`<td class="r">${s.groups.reduce((a,g)=>a + g.rows.filter(r=>r.floor === f).length, 0)}</td>`).join("")}<td class="r b">${cxCount(s)}</td></tr></table>
       <div class="cxk" style="margin-top:22px">The set <small>${total} sheets at A3</small></div><table class="cxsum">${[["001","Summary, conventions and open issues"]].concat(pages.map((pg,i)=>[String(i + 2).padStart(3,"0"), pageTitle(pg).replace(/^Cable schedule, /, "").replace(/^./, c=>c.toUpperCase())])).map(([n,t])=>`<tr><td class="cid">${esc(s.number)}-${n}</td><td>${esc(t)}</td></tr>`).join("")}</table></div></div></div>
     ${cxTitle(s, "Cable schedule, summary", sys.join(" · "), 1, total)}</article>`;
@@ -5406,8 +5453,8 @@ function cxSheets(s){
     return `<article class="cxa3"><div class="cxmain"><div class="cxh1"><h1>${esc(pageTitle(pg))} <em>${cables} cables</em></h1><span>TBC = to be confirmed</span></div>
       ${pg.map(x=>{ const g = x.g; return `<div class="cxk g">${esc(g.title)}${x.cont ? " (cont.)" : ""} <small>${g.rows.length} cables</small></div>
         <div class="cxmeta">${g.cable ? `CABLE <b>${esc(g.cable)}</b>` : ""}${g.from ? ` · FROM <b>${esc(g.from)}</b>` : ""}${g.term ? ` · TERMINATES <b>${esc(g.term)}</b>` : ""}</div>
-        <table class="cxt"><tr><th>Cable ID</th><th>Floor</th><th>Room</th><th>Mount</th><th>Cable type</th><th>Connection</th><th>Colour</th><th>Drawing</th><th>Notes</th><th class="c">EC ✓</th></tr>
-        ${x.rows.map(r=>{ const col = r.colour || g.colour, sw = cxSw(col); return `<tr><td class="cid">${esc(r.cid)}</td><td>${esc(r.floor)}</td><td>${esc(r.room)}</td><td>${esc(r.mount)}</td><td>${esc(r.cable || g.cable)}</td><td>${esc(r.conn)}</td><td>${sw.map(c=>`<i class="sw" style="background:${c}"></i>`).join("")}${esc(col)}</td><td>${esc(r.dwg)}</td><td>${esc(r.notes).replace(/TBC/g, '<b class="tbc">TBC</b>')}</td><td class="c"><span class="bx">${r.ec ? "✓" : ""}</span></td></tr>`; }).join("")}</table>`; }).join("")}
+        <table class="cxt"><tr><th>Cable ID</th><th>Floor</th><th>Room</th><th>Mount</th><th>Cable type</th><th>Connection</th><th>Colour</th><th>Drawing</th><th>Notes</th>${s.len.print ? `<th class="r">Est. m</th>` : ""}<th class="c">EC ✓</th></tr>
+        ${x.rows.map(r=>{ const col = r.colour || g.colour, sw = cxSw(col); return `<tr><td class="cid">${esc(r.cid)}</td><td>${esc(r.floor)}</td><td>${esc(r.room)}</td><td>${esc(r.mount)}</td><td>${esc(r.cable || g.cable)}</td><td>${esc(r.conn)}</td><td>${sw.map(c=>`<i class="sw" style="background:${c}"></i>`).join("")}${esc(col)}</td><td>${esc(r.dwg)}</td><td>${esc(r.notes).replace(/TBC/g, '<b class="tbc">TBC</b>')}</td>${s.len.print ? `<td class="r">${(()=>{ const l = cxLen(s, r); return l ? l.m.toFixed(0) : ""; })()}</td>` : ""}<td class="c"><span class="bx">${r.ec ? "✓" : ""}</span></td></tr>`; }).join("")}</table>`; }).join("")}
       </div>${cxTitle(s, pageTitle(pg), [...new Set(pg.map(x=>x.g.system).filter(Boolean))].join(" · "), n, total)}</article>`; }).join("");
   return sheet1 + rest;
 }
@@ -5422,8 +5469,8 @@ async function cxPdf(){
   }catch(err){ busy.remove(); console.error(err); toast("The cable schedule couldn't be built."); }
 }
 function cxCsv(){ const s = cxCur; if(!s) return; const q = v => { const t = String(v ?? ""); return /[",\n]/.test(t) ? `"${t.replace(/"/g,'""')}"` : t; };
-  const out = [["Cable ID","Group","System","Floor","Room","Mount","Cable type","Connection","Colour","From","Terminates","Drawing","Notes","EC ticked"].map(q).join(",")];
-  s.groups.forEach(g=>g.rows.forEach(r=>out.push([r.cid, g.title, g.system, r.floor, r.room, r.mount, r.cable || g.cable, r.conn, r.colour || g.colour, g.from, g.term, r.dwg, r.notes, r.ec ? "Yes" : ""].map(q).join(","))));
+  const out = [["Cable ID","Group","System","Floor","Room","Mount","Cable type","Connection","Colour","From","Terminates","Drawing","Notes","Est. metres","EC ticked"].map(q).join(",")];
+  s.groups.forEach(g=>g.rows.forEach(r=>out.push([r.cid, g.title, g.system, r.floor, r.room, r.mount, r.cable || g.cable, r.conn, r.colour || g.colour, g.from, g.term, r.dwg, r.notes, (cxLen(s, r) || {}).m ?? "", r.ec ? "Yes" : ""].map(q).join(","))));
   offer(`${s.number || "Cable schedule"} ${s.name || ""}.csv`.trim(), out.join("\r\n") + "\r\n"); }
 
 /* ---------- events ---------- */
@@ -5435,16 +5482,28 @@ $("#cxScroll").addEventListener("input", e=>{ const s = cxCur, t = e.target; if(
   if(t.dataset.xc){ const [i,k] = t.dataset.xc.split("."); s.conv[+i][k] = t.value; cxSchedule(); return; }
   if(t.dataset.xi){ const [i,k] = t.dataset.xi.split("."); s.issues[+i][k] = t.value; cxSchedule(); return; }
   if(t.dataset.xg){ const [i,k] = t.dataset.xg.split("."); s.groups[+i][k] = t.value; cxSchedule(); return; }
-  if(t.dataset.xr){ const [gi,ri,k] = t.dataset.xr.split("."); s.groups[+gi].rows[+ri][k] = k === "ec" ? t.checked : t.value; cxSchedule(); return; } });
+  if(t.dataset.xr){ const [gi,ri,k] = t.dataset.xr.split("."); s.groups[+gi].rows[+ri][k] = k === "ec" ? t.checked : t.value; cxSchedule(); return; }
+  if(t.dataset.xl){ s.len[t.dataset.xl] = t.type === "checkbox" ? t.checked : t.value; cxSchedule(); clearTimeout(cxLenT); cxLenT = setTimeout(cxRender, 600); return; }
+  if(t.dataset.xlf !== undefined){ const f = s.len.floors[t.dataset.xlf] = s.len.floors[t.dataset.xlf] || {}; f.extra = num(t.value); cxSchedule(); clearTimeout(cxLenT); cxLenT = setTimeout(cxRender, 600); return; }
+  if(t.dataset.xdrum !== undefined){ s.len.drums[t.dataset.xdrum] = num(t.value); cxSchedule(); clearTimeout(cxLenT); cxLenT = setTimeout(cxRender, 800); return; } });
+let cxLenT = null;
+$("#cxScroll").addEventListener("click", e=>{ const pl = e.target.closest("[data-xplan]"); if(!pl || !cxCal || !cxCur || cxCal.fl !== pl.dataset.xplan) return;
+  const rc = pl.getBoundingClientRect(), x = (e.clientX - rc.left) / rc.width, y = (e.clientY - rc.top) / rc.height, f = cxCur.len.floors[cxCal.fl] = cxCur.len.floors[cxCal.fl] || {};
+  if(cxCal.mode === "head"){ f.hx = x; f.hy = y; cxCal = null; cxSchedule(); cxRender(); toast("Head end set."); return; }
+  if(cxCal.pts.length < 2){ cxCal.pts.push({ x, y }); cxRender(); if(cxCal && cxCal.pts.length === 2) setTimeout(()=>{ const m = $("#cxCalM"); m && m.focus(); }, 50); } });
 $("#cxScroll").addEventListener("click", async e=>{ const b = e.target.closest("[data-xa]"); if(!b) return; const a = b.dataset.xa, s = cxCur, i = +b.dataset.i, j = +b.dataset.j;
   if(a === "new"){ $("#cxNew").click(); return; } if(!s) return;
   if(a === "sheets"){ cxView = "sheets"; cxRender(); return; } if(a === "edit"){ cxView = "edit"; cxRender(); return; }
   if(a === "pdf"){ cxPdf(); return; } if(a === "csv"){ cxCsv(); return; }
   if(a === "import"){ const id = ($("#cxDw") || {}).value; const d = (typeof dwList !== "undefined" ? dwList : []).find(x=>x.id === id); if(!d){ toast("Choose a drawing set first."); return; }
     const keep = new Map(); s.groups.forEach(g=>g.rows.forEach(r=>keep.set(r.cid, r))); const old = new Map(s.groups.map(g=>[g.title, g]));
-    s.groups = cxFromDrawing(d).map(g=>{ const o = old.get(g.title); if(o){ g.from = o.from || g.from; g.term = o.term || g.term; } g.rows.forEach(r=>{ const k = keep.get(r.cid); if(k){ r.conn = k.conn; r.notes = k.notes || r.notes; r.ec = k.ec; } }); return g; });
+    s.groups = cxFromDrawing(d).map(g=>{ const o = old.get(g.title); if(o){ g.from = o.from || g.from; g.term = o.term || g.term; } g.rows.forEach(r=>{ const k = keep.get(r.cid); if(k){ r.conn = k.conn; r.notes = k.notes || r.notes; r.ec = k.ec; if(k.len !== "" && k.len != null) r.len = k.len; } }); return g; });
     s.drawingId = d.id; if(!s.name) s.name = d.name; if(!s.client) s.client = d.client; if(!s.site) s.site = d.address; if(!s.number || s.number === "HJ-XXX-CS") s.number = (d.prefix || "HJ-XXX") + "-CS";
     cxSchedule(); cxRender(); toast(`${cxCount(s)} cables in ${s.groups.length} groups.`); return; }
+  if(a === "calhead" || a === "calscale"){ cxCal = cxCal && cxCal.fl === b.dataset.f && cxCal.mode === (a === "calhead" ? "head" : "scale") ? null : { fl: b.dataset.f, mode: a === "calhead" ? "head" : "scale", pts: [] }; cxRender(); return; }
+  if(a === "calok"){ const m = num(($("#cxCalM") || {}).value); if(!(m > 0) || !cxCal || cxCal.pts.length < 2){ toast("Enter the length in metres."); return; }
+    const d = cxDw(s), fl = d && d.floors.find(x=>x.name === cxCal.fl), ar = fl && fl.iw ? fl.ih / fl.iw : .7, [p1, p2] = cxCal.pts, du = Math.hypot(p2.x - p1.x, (p2.y - p1.y) * ar);
+    if(!(du > 0)){ toast("Pick two different points."); return; } const f = s.len.floors[cxCal.fl] = s.len.floors[cxCal.fl] || {}; f.w = m / du; cxCal = null; cxSchedule(); cxRender(); toast(`Scale set: the plan is ${f.w.toFixed(1)} m wide.`); return; }
   if(a === "addconv"){ s.conv.push({ item: "", text: "", src: "" }); } else if(a === "rmconv"){ s.conv.splice(i, 1); }
   else if(a === "addissue"){ s.issues.push({ ref: "", text: "", owner: "" }); } else if(a === "rmissue"){ s.issues.splice(i, 1); }
   else if(a === "addgroup"){ s.groups.push({ id: uid(), title: "New group", system: "", cable: "", colour: "", from: "", term: "", rows: [] }); }
