@@ -912,6 +912,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
   .today .kick{font:500 11px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
   .today h1{font:300 34px/1.1 var(--f-display);margin:6px 0 18px}
   .today .tdtop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .today .tdr{display:flex;align-items:flex-start;gap:10px}
   .today .wx{display:flex;align-items:center;gap:10px;color:var(--ink);text-align:right;min-height:52px}
   .today .wx svg{width:34px;height:34px;flex:none;stroke:var(--accent);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
   .today .wx b{display:block;font:300 28px/1 var(--f-display)}
@@ -950,12 +951,52 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .bkl input[type=number]{width:64px;height:38px;text-align:center;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--ink)}
 .bkl em{font-style:normal;color:var(--muted);font-size:12px;white-space:nowrap}
 .bkl.hit{background:var(--accent-soft);border-radius:10px;padding-inline:10px;margin-inline:-10px}
+
+/* calculator */
+.calcbtn{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;padding:0}
+.calcbtn svg{width:19px;height:19px}
+.calcbtn[aria-expanded=true]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.calc{position:fixed;right:22px;bottom:22px;z-index:120;width:300px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.22);display:none;flex-direction:column;overflow:hidden;font-variant-numeric:tabular-nums}
+.calc.open{display:flex}
+.calch{display:flex;align-items:center;gap:8px;padding:9px 10px 6px 14px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}
+.calch b{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-right:auto}
+.calch button{border:0;background:none;color:var(--muted);font-size:13px;cursor:pointer;padding:4px 6px;border-radius:6px}
+.calch button:hover{color:var(--ink);background:var(--bg)}
+.calch .x{font-size:20px;line-height:1}
+.calcd{padding:2px 16px 10px;text-align:right}
+.calce{min-height:20px;font-size:14px;color:var(--muted);word-break:break-all}
+.calcr{font-size:34px;font-weight:600;line-height:1.15;color:var(--ink);word-break:break-all}
+.calcr.err{color:var(--danger);font-size:18px}
+.calck{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 10px 10px}
+.calck button{height:46px;border-radius:11px;border:1px solid var(--line);background:var(--field);color:var(--ink);font-size:19px;cursor:pointer;font-family:inherit;touch-action:manipulation}
+.calck button:active{transform:scale(.96)}
+.calck .op{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.calck .fn{background:var(--bg);color:var(--muted);font-size:15px}
+.calck .eq{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.calck .sm{height:34px;font-size:12.5px;background:var(--bg);color:var(--ink)}
+.calcf{display:flex;gap:6px;padding:0 10px 10px}
+.calcf button{flex:1;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:12.5px;cursor:pointer;font-family:inherit}
+.calcf .use{background:var(--accent);border-color:var(--accent);color:#fff}
+.calcf .use:disabled{opacity:.4;cursor:default}
+.calchist{max-height:150px;overflow:auto;border-top:1px solid var(--line);display:none}
+.calc.hist .calchist{display:block}
+.calchist button{display:flex;justify-content:space-between;gap:10px;width:100%;border:0;border-bottom:1px solid var(--line);background:none;padding:8px 14px;font-size:13px;color:var(--muted);cursor:pointer;text-align:left;font-family:inherit}
+.calchist button b{color:var(--ink);font-weight:600}
+.calchist p{margin:0;padding:12px 14px;font-size:13px;color:var(--muted)}
+@media (max-width:760px){
+  .calc{left:0;right:0;bottom:0;width:auto;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom,0px);transform:none!important}
+  .calch{cursor:default}
+  .calck button{height:54px;font-size:22px}
+  .calck .sm{height:38px;font-size:13px}
+}
+@media print{.calc,.calcbtn{display:none!important}}
 </style>
 
 <div class="app" id="app" data-tab="proposals">
   <header class="bar">
     <div class="brand"><img class="bmark" src="icons/emblem-96.png" alt="" onerror="this.remove()"><b>halo<span>.je</span></b><small>Studio</small></div>
     <div class="navwrap" id="navWrap"><button class="navbtn" id="navBtn" aria-haspopup="true" aria-expanded="false" aria-controls="navMenu"><span class="burger" aria-hidden="true"><i></i><i></i><i></i></span><span id="navLabel">Proposals</span><span class="chev" aria-hidden="true">▼</span></button><div class="tabs" id="navMenu" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabX" role="tab" aria-selected="false">Cables</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabB" role="tab" aria-selected="false">Plan</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabL" role="tab" aria-selected="false">Leads</button><button id="tabS" role="tab" aria-selected="false">Stock</button><button id="tabM" role="tab" aria-selected="false">Promotions</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div></div>
+    <button class="calcbtn" id="calcBtn" aria-label="Calculator" title="Calculator (press C on the keyboard)" aria-expanded="false" aria-controls="calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4.5" y="2.5" width="15" height="19" rx="2.5"/><rect x="7.5" y="5.5" width="9" height="4" rx="1"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></svg></button>
     <div class="actions rmode" style="margin-left:auto">
       <span class="prsync" id="prStatus"></span>
       <button class="btn" id="prSyncBtn">Sync to Xero</button>
@@ -6124,7 +6165,7 @@ function todayRender(force){
     return `<div class="card"><div class="tm">${esc(x.v.start)}${x.v.end ? " – " + esc(x.v.end) : ""} · ${esc(j.number)}</div><div class="nm">${esc(j.customer || j.site || "Job")}</div>${addr ? `<div class="ad">${esc(addr)}</div>` : ""}${x.v.note ? `<div class="nt">${esc(x.v.note)}</div>` : ""}
       <div class="row">${addr ? `<a href="https://maps.apple.com/?daddr=${encodeURIComponent(addr)}" target="_blank" rel="noopener">${IC2.nav}Navigate</a>` : ""}${ph ? `<a href="tel:${esc(ph)}">${IC2.call}Call</a>` : ""}<button data-tj="${esc(j.id)}">${IC2.open}Open job</button></div></div>`; };
   const todayItems = items.filter(x=>x.v.date === t), tomItems = items.filter(x=>x.v.date === tm);
-  todayEl.innerHTML = `<div class="tdtop"><div><div class="kick">${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</div><h1>Today</h1></div><div class="wx" id="tdWx">${wxHtml()}</div></div>
+  todayEl.innerHTML = `<div class="tdtop"><div><div class="kick">${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</div><h1>Today</h1></div><div class="tdr"><div class="wx" id="tdWx">${wxHtml()}</div><button class="calcbtn" data-calc aria-label="Calculator">${document.getElementById("calcBtn").innerHTML}</button></div></div>
     ${mode === "loading" ? `<p class="empty">Loading your day…</p>` : `
     <h2>Visits today</h2>${todayItems.length ? todayItems.map(card).join("") : `<p class="empty">Nothing booked today.</p>`}
     ${tomItems.length ? `<h2>Tomorrow</h2>${tomItems.map(card).join("")}` : ""}
@@ -6323,6 +6364,108 @@ function navClose(){ const w=document.getElementById("navWrap"); if(!w) return; 
   document.addEventListener("keydown", e=>{ if(e.key==="Escape" && w.classList.contains("open")){ navClose(); b.focus(); } });
 })();
 </script>
+<div class="calc" id="calc" role="dialog" aria-label="Calculator">
+  <div class="calch" id="calcH"><b>Calculator</b><button data-c="hist" title="History">History</button><button class="x" data-c="close" aria-label="Close">×</button></div>
+  <div class="calcd"><div class="calce" id="calcE"></div><div class="calcr" id="calcR">0</div></div>
+  <div class="calck">
+    <button class="sm" data-c="gst+" title="Add 5% GST">+ GST</button><button class="sm" data-c="gst-" title="Take 5% GST off">− GST</button><button class="sm" data-c="margin" title="Price for a margin: cost ÷ (1 − margin%)">Margin</button><button class="sm" data-c="(">( )</button>
+    <button class="fn" data-c="AC">AC</button><button class="fn" data-c="back" aria-label="Delete">⌫</button><button class="fn" data-c="%">%</button><button class="op" data-c="/">÷</button>
+    <button data-c="7">7</button><button data-c="8">8</button><button data-c="9">9</button><button class="op" data-c="*">×</button>
+    <button data-c="4">4</button><button data-c="5">5</button><button data-c="6">6</button><button class="op" data-c="-">−</button>
+    <button data-c="1">1</button><button data-c="2">2</button><button data-c="3">3</button><button class="op" data-c="+">+</button>
+    <button data-c="neg">±</button><button data-c="0">0</button><button data-c=".">.</button><button class="eq" data-c="=">=</button>
+  </div>
+  <div class="calcf"><button data-c="copy">Copy</button><button class="use" data-c="use" id="calcUse" disabled title="Put the answer into the box you were typing in">Use answer</button></div>
+  <div class="calchist" id="calcHist"></div>
+</div>
+<script>
+(function(){
+  const el = document.getElementById("calc"), btn = document.getElementById("calcBtn"), E = document.getElementById("calcE"), R = document.getElementById("calcR"), H = document.getElementById("calcHist"), U = document.getElementById("calcUse");
+  let ex = "", last = null, target = null, marginMode = false;
+  let hist = []; try{ hist = JSON.parse(localStorage.getItem("halo.calc") || "[]"); }catch(_){}
+  const SYM = { "*": "×", "/": "÷", "-": "−" };
+  const show = s => s.replace(/[*/-]/g, m=>SYM[m]);
+  const fmt = n => { if(!isFinite(n)) return "Error"; const r = Math.round(n * 1e10) / 1e10; return Math.abs(r) >= 1e15 ? r.toExponential(6) : r.toLocaleString("en-GB", { maximumFractionDigits: 10 }); };
+  // safe parser: + - * / % ( ), unary minus, "a + b%" means a plus b% of a
+  function calc(src){
+    const t = src.replace(/\s+/g, "").match(/\d*\.?\d+(?:e[+-]?\d+)?|\d+\.|[()+\-*/%]/gi) || []; let i = 0;
+    if(t.join("") !== src.replace(/\s+/g, "")) throw 0;
+    const peek = () => t[i], take = () => t[i++];
+    function prim(){ const k = take(); if(k === undefined) throw 0;
+      if(k === "-") { const p = prim(); return { v: -p.v, pct: p.pct }; } if(k === "+") return prim();
+      let v; if(k === "("){ v = add(); if(peek() === ")") take(); } else { v = parseFloat(k); if(isNaN(v)) throw 0; }
+      let pct = false; while(peek() === "%"){ take(); v = v / 100; pct = true; } return { v, pct }; }
+    function mul(){ let a = prim(), v = a.v, pct = a.pct; while(peek() === "*" || peek() === "/"){ const o = take(), b = prim(); v = o === "*" ? v * b.v : v / b.v; pct = false; } return { v, pct }; }
+    function add(){ let v = mul().v; while(peek() === "+" || peek() === "-"){ const o = take(), b = mul(); const d = b.pct ? v * b.v : b.v; v = o === "+" ? v + d : v - d; } return v; }
+    if(!t.length) return 0; const v = add(); if(i < t.length) throw 0; return v;
+  }
+  function closeOpen(s){ const n = (s.match(/\(/g) || []).length - (s.match(/\)/g) || []).length; return s + ")".repeat(Math.max(0, n)); }
+  function draw(){
+    E.textContent = ex ? show(ex) : (last != null && hist[0] ? show(hist[0].e) + " =" : "");
+    R.classList.remove("err");
+    if(marginMode){ E.textContent = "Cost " + show(ex.split("|")[0] || "") + " · margin %"; }
+    let v = null; try{ v = ex ? calc(closeOpen(ex.replace(/[+\-*/(]+$/, ""))) : (last ?? 0); }catch(_){ v = null; }
+    if(marginMode){ R.textContent = ex.split("|")[1] || "0"; return; }
+    R.textContent = v == null ? (ex ? R.textContent : "0") : fmt(v);
+    U.disabled = !target;
+  }
+  function result(){ try{ return ex ? calc(closeOpen(ex)) : (last ?? 0); }catch(_){ return null; } }
+  function pushHist(e, v){ hist.unshift({ e, v }); hist = hist.slice(0, 20); try{ localStorage.setItem("halo.calc", JSON.stringify(hist)); }catch(_){} drawHist(); }
+  function drawHist(){ H.innerHTML = hist.length ? hist.map((h,k)=>`<button data-h="${k}"><span>${show(h.e).replace(/[<>&]/g,"")}</span><b>${fmt(h.v)}</b></button>`).join("") : `<p>Your last 20 sums show here.</p>`; }
+  function equals(){ if(!ex) return; const v = result(); if(v == null || !isFinite(v)){ R.textContent = "Can't work that out"; R.classList.add("err"); return; } pushHist(closeOpen(ex), v); last = v; ex = ""; draw(); }
+  const base = () => { if(ex) return ex; return last != null ? String(last) : ""; };
+  function press(c){
+    if(marginMode){ const [cost, m = ""] = ex.split("|");
+      if(/^[0-9.]$/.test(c)){ ex = cost + "|" + m + c; } else if(c === "back"){ ex = cost + "|" + m.slice(0, -1); } else if(c === "AC" || c === "margin"){ marginMode = false; ex = cost; }
+      else if(c === "=" ){ const mm = parseFloat(m); marginMode = false; if(mm > 0 && mm < 100){ ex = `${cost}/(1-${mm}%)`; equals(); } else ex = cost; }
+      draw(); return; }
+    if(/^[0-9]$/.test(c)){ if(!ex && last != null) last = null; ex += c; }
+    else if(c === "."){ const seg = ex.split(/[+\-*/()%]/).pop(); if(!seg.includes(".")) ex += seg ? "." : "0."; }
+    else if("+-*/".includes(c)){ let b = base(); last = null; if(!b && c !== "-") return; b = b.replace(/[+\-*/]+$/, ""); ex = b + c; if(!b) ex = "-"; }
+    else if(c === "%"){ if(/[\d)]$/.test(ex)) ex += "%"; else if(!ex && last != null){ ex = String(last) + "%"; last = null; } }
+    else if(c === "("){ const open = (ex.match(/\(/g) || []).length - (ex.match(/\)/g) || []).length; if(open > 0 && /[\d)%]$/.test(ex)) ex += ")"; else { if(/[\d)%]$/.test(ex)) ex += "*"; ex += "("; } }
+    else if(c === ")"){ ex += ")"; }
+    else if(c === "back"){ ex = ex.slice(0, -1); }
+    else if(c === "AC"){ if(ex) ex = ""; else last = null; }
+    else if(c === "neg"){ if(!ex && last != null){ last = -last; } else { const m = ex.match(/(^|[+\-*/(])(-?)(\d*\.?\d*%?)$/); if(m && m[3]){ const pre = ex.slice(0, ex.length - m[2].length - m[3].length); ex = pre + (m[2] ? "" : "-") + m[3]; } } }
+    else if(c === "=") { equals(); return; }
+    else if(c === "gst+" || c === "gst-"){ const v = result(); if(v == null) return; ex = `(${closeOpen(base())})${c === "gst+" ? "*1.05" : "/1.05"}`; equals(); return; }
+    else if(c === "margin"){ const v = result(); if(v == null) return; ex = closeOpen(base()) + "|"; marginMode = true; }
+    else if(c === "copy"){ const v = result(); if(v == null) return; const s = String(Math.round(v * 100) / 100); (navigator.clipboard ? navigator.clipboard.writeText(s) : Promise.reject()).then(()=>typeof toast === "function" && toast("Copied " + s)).catch(()=>{}); return; }
+    else if(c === "use"){ useIt(); return; }
+    else if(c === "hist"){ el.classList.toggle("hist"); drawHist(); return; }
+    else if(c === "close"){ toggle(false); return; }
+    draw();
+  }
+  function useIt(){ const v = result(); if(v == null || !target || !document.body.contains(target)) return; if(ex) equals();
+    const s = String(Math.round((last ?? v) * 100) / 100); target.focus(); target.value = s;
+    target.dispatchEvent(new Event("input", { bubbles: true })); target.dispatchEvent(new Event("change", { bubbles: true }));
+    if(typeof toast === "function") toast("Put " + s + " in"); }
+  function toggle(on){ on = on ?? !el.classList.contains("open"); el.classList.toggle("open", on); btn.setAttribute("aria-expanded", on); if(on){ drawHist(); draw(); } if(typeof hap === "function") try{ hap("light"); }catch(_){} }
+  document.addEventListener("focusin", e=>{ const t = e.target; if(el.contains(t)) return; if(t.matches && t.matches('input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=date]):not([type=time]):not([readonly]), textarea')){ target = t; U.disabled = false; } });
+  btn.addEventListener("mousedown", e=>e.preventDefault());
+  btn.addEventListener("click", ()=>toggle());
+  document.addEventListener("click", e=>{ if(e.target.closest("[data-calc]")) toggle(); });
+  el.addEventListener("mousedown", e=>{ if(e.target.closest("button")) e.preventDefault(); });
+  el.addEventListener("click", e=>{ const b = e.target.closest("[data-c],[data-h]"); if(!b) return; if(b.dataset.h != null){ const h = hist[+b.dataset.h]; if(h){ ex = ""; last = h.v; el.classList.remove("hist"); draw(); } return; } press(b.dataset.c); });
+  document.addEventListener("keydown", e=>{
+    const a = document.activeElement, typing = a && a !== document.body && !el.contains(a) && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+    if(!el.classList.contains("open")){ if(!typing && !e.metaKey && !e.ctrlKey && !e.altKey && (e.key === "c" || e.key === "C") && !document.querySelector(".pdfv")){ e.preventDefault(); toggle(true); } return; }
+    if(typing || e.metaKey || e.ctrlKey || e.altKey) { if((e.metaKey || e.ctrlKey) && e.key === "c" && !typing && !getSelection().toString()){ e.preventDefault(); press("copy"); } return; }
+    const k = e.key, map = { Enter: "=", "=": "=", Backspace: "back", Delete: "AC", Escape: "close", x: "*", X: "*", "×": "*", "÷": "/" };
+    const c = map[k] || (/^[0-9.+\-*/%()]$/.test(k) ? k : null);
+    if(c){ e.preventDefault(); if(c === "(" ) { ex += "("; draw(); } else press(c); }
+    else if(k === "c" || k === "C"){ e.preventDefault(); press("AC"); }
+  });
+  // drag by the header on desktop
+  const hd = document.getElementById("calcH"); let dr = null;
+  hd.addEventListener("pointerdown", e=>{ if(e.target.closest("button") || matchMedia("(max-width:760px)").matches) return; const r = el.getBoundingClientRect(); dr = { x: e.clientX - r.left, y: e.clientY - r.top }; hd.setPointerCapture(e.pointerId); });
+  hd.addEventListener("pointermove", e=>{ if(!dr) return; const x = Math.min(innerWidth - 60, Math.max(0, e.clientX - dr.x)), y = Math.min(innerHeight - 40, Math.max(0, e.clientY - dr.y)); Object.assign(el.style, { left: x + "px", top: y + "px", right: "auto", bottom: "auto" }); });
+  hd.addEventListener("pointerup", ()=>{ dr = null; });
+  window.haloCalc = { calc, press, toggle };
+})();
+</script>
+
 
 <script>if("serviceWorker" in navigator){addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").then(reg=>{
  /* Pick up new versions: check when the app comes back to the front, and reload straight away if one arrives then. */
