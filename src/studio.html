@@ -77,6 +77,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .ctable .cin{width:150px}.ctable .cin input{width:120px;padding:5px 8px}
 .ctable .csrc{color:var(--accent)!important}
 .ctable .ctot td{font-weight:600;border-bottom:0}
+.ctable .csub td{font-weight:600;font-size:12.5px;border-bottom:2px solid var(--line)}
 .cshipopts{display:grid;gap:8px}
 .cscen{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .cscen>div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:2px;background:var(--field)}
@@ -2112,16 +2113,21 @@ function costsHtml(p){
   rows.forEach(r=>{ sell += r.qty * r.sell; if(r.cost === null) missing++; else cost += r.qty * r.cost; });
   sell += num(p.allowance) + t.ship - t.disc; cost += shipCostTotal(p);
   const profit = sell - cost, margin = sell ? profit / sell * 100 : NaN, markup = cost ? profit / cost * 100 : NaN, m = v => money(v, { showPence: true });
-  let lastSys = null;
+  let lastSys = null, acc = null;
+  const subRow = a => a && a.n > 1 ? `<tr class="csub"><td></td><td>${esc(a.sys || "System")} total</td><td></td><td></td><td class="r">${m(a.sell)}</td><td></td><td class="r">${a.miss ? `${m(a.cost)}<small>${a.miss} not costed</small>` : m(a.cost)}</td><td></td><td class="r ${a.sell - a.cost < 0 ? "neg" : ""}">${a.miss ? "–" : m(a.sell - a.cost) + `<small>${pctTxt(a.sell ? (a.sell - a.cost) / a.sell * 100 : NaN)}</small>`}</td></tr>` : "";
   const body = rows.map(r=>{
-    const head = r.kind !== "contr" && r.sys !== lastSys ? `<tr class="csys"><td colspan="8">${esc(r.sys || "System")}</td></tr>` : ""; if(r.kind !== "contr") lastSys = r.sys;
+    let head = "";
+    if(r.kind !== "contr" && r.sys !== lastSys){ head = subRow(acc) + `<tr class="csys"><td colspan="9">${esc(r.sys || "System")}</td></tr>`; acc = { sys: r.sys, sell: 0, cost: 0, miss: 0, n: 0 }; }
+    else if(r.kind === "contr" && acc){ head = subRow(acc); acc = null; }
+    if(r.kind !== "contr") lastSys = r.sys;
+    if(acc){ acc.n++; acc.sell += r.qty * r.sell; if(r.cost === null) acc.miss++; else acc.cost += r.qty * r.cost; }
     const lineSell = r.qty * r.sell, lineCost = r.cost === null ? null : r.qty * r.cost, pr = lineCost === null ? null : lineSell - lineCost;
     const name = r.kind === "item" ? esc(r.it.item || r.it.model) + (r.it.model && r.it.item ? `<small>${esc(r.it.model)}</small>` : "") : r.kind === "labour" ? `Labour <small>${r.qty} h at ${m(r.sell)}</small>` : `${esc(r.c.who || "Contractor")} <small>${esc(r.c.work || "")}</small>`;
     const costIn = r.kind === "item" ? `<input type="text" inputmode="decimal" data-ck2="i${r.i}_${r.j}" value="${r.base === null ? "" : esc(r.base)}" placeholder="Your cost" aria-label="Your cost each, before GST">${r.base !== null && costGst(p) ? `<small class="csrc">${m(r.cost)} with ${costGst(p)}% GST</small>` : ""}${r.src ? `<small class="csrc">${r.src}</small>` : ""}`
       : r.kind === "labour" ? `<input type="text" inputmode="decimal" data-ck2="lab" value="${esc(p.labourCost || 0)}" aria-label="Your labour cost per hour"><small class="csrc">per hour</small>`
       : `<input type="text" inputmode="decimal" data-ck2="c${r.k}" value="${r.cost === null ? "" : esc(r.cost)}" placeholder="Their price to you" aria-label="Contractor cost">`;
-    return head + `<tr${r.cost === null ? ' class="cmiss"' : ""}><td class="r">${r.kind === "labour" ? "" : esc(r.qty)}</td><td>${name}</td><td class="r">${r.kind === "item" ? m(r.retail) : ""}</td><td class="r">${r.kind === "labour" ? "" : m(r.sell)}</td><td class="r"><b>${m(lineSell)}</b></td><td class="cin">${costIn}</td><td class="r">${lineCost === null ? "–" : m(lineCost)}</td><td class="r ${pr !== null && pr < 0 ? "neg" : ""}">${pr === null ? "–" : m(pr) + `<small>${pctTxt(lineSell ? pr / lineSell * 100 : NaN)}</small>`}</td></tr>`;
-  }).join("");
+    return head + `<tr${r.cost === null ? ' class="cmiss"' : ""}><td class="r">${r.kind === "labour" ? "" : esc(r.qty)}</td><td>${name}</td><td class="r">${r.kind === "item" ? m(r.retail) : ""}</td><td class="r">${r.kind === "labour" ? "" : m(r.sell)}</td><td class="r"><b>${m(lineSell)}</b></td><td class="cin">${costIn}</td><td class="r">${lineCost === null ? "–" : m(lineCost)}</td><td class="r ${pr !== null && pr < 0 ? "neg" : ""}">${pr === null || r.kind === "labour" || !r.qty ? (pr !== null && r.kind === "labour" ? m(r.sell - r.cost) + "<small>per hour</small>" : "–") : m(pr / r.qty)}</td><td class="r ${pr !== null && pr < 0 ? "neg" : ""}">${pr === null ? "–" : m(pr) + `<small>${pctTxt(lineSell ? pr / lineSell * 100 : NaN)}</small>`}</td></tr>`;
+  }).join("") + subRow(acc);
   return `<div class="costs">
     <div class="ckpis">
       <div><small>Client pays</small><b>${m(t.grand)}</b><span>${p.gst ? "includes the GST line" : "as quoted"}</span></div>
@@ -2136,12 +2142,12 @@ function costsHtml(p){
     </div>
     ${shipHtml(p, m)}
     <div class="ctable"><table>
-      <tr><th class="r">Qty</th><th>Item</th><th class="r">Retail each</th><th class="r">Quoted each</th><th class="r">Quoted total</th><th>Your cost each (before GST)</th><th class="r">Cost total</th><th class="r">Profit</th></tr>
-      ${body || `<tr><td colspan="8" class="note">Add some lines to the proposal first.</td></tr>`}
-      ${num(p.allowance) ? `<tr><td></td><td>${esc(p.allowanceLabel || "Allowance")}</td><td></td><td></td><td class="r"><b>${m(num(p.allowance))}</b></td><td></td><td class="r">–</td><td class="r">–</td></tr>` : ""}
-      ${num(p.shipCost) || t.ship ? `<tr class="csys"><td colspan="8">Shipping</td></tr><tr><td></td><td>${esc(p.shipLabel || "Delivery to Jersey")}<small>${({ absorb: "You cover it", spread: "Built into equipment prices", line: "Separate line on the proposal" })[p.shipMode || "absorb"]}</small></td><td></td><td></td><td class="r"><b>${t.ship ? m(t.ship) : p.shipMode === "spread" ? "in prices" : m(0)}</b></td><td></td><td class="r">${m(shipCostTotal(p))}</td><td class="r"></td></tr>` : ""}
-      ${t.disc ? `<tr><td></td><td>${esc(discText(p))}<small>Comes straight off your profit</small></td><td></td><td></td><td class="r"><b>−${m(t.disc)}</b></td><td></td><td class="r">–</td><td class="r">−${m(t.disc)}</td></tr>` : ""}
-      <tr class="ctot"><td></td><td>Totals${p.gst ? " (before the GST line)" : ""}</td><td></td><td></td><td class="r">${m(sell)}</td><td></td><td class="r">${m(cost)}</td><td class="r ${profit < 0 ? "neg" : ""}">${m(profit)}<small>${pctTxt(margin)}</small></td></tr>
+      <tr><th class="r">Qty</th><th>Item</th><th class="r">Retail each</th><th class="r">Quoted each</th><th class="r">Quoted total</th><th>Your cost each (before GST)</th><th class="r">Cost total</th><th class="r">Profit each</th><th class="r">Profit total</th></tr>
+      ${body || `<tr><td colspan="9" class="note">Add some lines to the proposal first.</td></tr>`}
+      ${num(p.allowance) ? `<tr><td></td><td>${esc(p.allowanceLabel || "Allowance")}</td><td></td><td></td><td class="r"><b>${m(num(p.allowance))}</b></td><td></td><td class="r">–</td><td></td><td class="r">–</td></tr>` : ""}
+      ${num(p.shipCost) || t.ship ? `<tr class="csys"><td colspan="9">Shipping</td></tr><tr><td></td><td>${esc(p.shipLabel || "Delivery to Jersey")}<small>${({ absorb: "You cover it", spread: "Built into equipment prices", line: "Separate line on the proposal" })[p.shipMode || "absorb"]}</small></td><td></td><td></td><td class="r"><b>${t.ship ? m(t.ship) : p.shipMode === "spread" ? "in prices" : m(0)}</b></td><td></td><td class="r">${m(shipCostTotal(p))}</td><td></td><td class="r"></td></tr>` : ""}
+      ${t.disc ? `<tr><td></td><td>${esc(discText(p))}<small>Comes straight off your profit</small></td><td></td><td></td><td class="r"><b>−${m(t.disc)}</b></td><td></td><td class="r">–</td><td></td><td class="r">−${m(t.disc)}</td></tr>` : ""}
+      <tr class="ctot"><td></td><td>Totals${p.gst ? " (before the GST line)" : ""}</td><td></td><td></td><td class="r">${m(sell)}</td><td></td><td class="r">${m(cost)}</td><td></td><td class="r ${profit < 0 ? "neg" : ""}">${m(profit)}<small>${pctTxt(margin)}</small></td></tr>
     </table></div>
     <p class="note">Only you see this. It's never in the PDF, HTML or email. A cost you type on a line from your price list is saved to that product, so it's filled in next time. <button class="btn small ghost" data-ccsv="1">Download costing (CSV)</button></p>
   </div>`;
@@ -2167,10 +2173,10 @@ $("#stage").addEventListener("click", e=>{
   const b = e.target.closest(".pvbar [data-pv]"); if(b){ pvMode = b.dataset.pv; try{ localStorage.setItem(LS + ".pv", pvMode); }catch(_){} renderPreview(); return; }
   if(e.target.closest("[data-ccsv]") && current){
     const p = current, q = v => { const t = String(v ?? ""); return /[",\n]/.test(t) ? `"${t.replace(/"/g,'""')}"` : t; };
-    const out = [["System","Item","Model","Qty","Retail each","Quoted each","Quoted total",`Cost each (incl. ${costGst(p)}% GST on equipment)`,"Cost total","Profit"].join(",")];
-    costRows(p).forEach(r=>{ const ls = r.qty * r.sell, lc = r.cost === null ? null : r.qty * r.cost; out.push([r.kind === "contr" ? "Contractors" : r.sys, r.kind === "item" ? r.it.item : r.kind === "labour" ? "Labour" : (r.c.who || "Contractor"), r.kind === "item" ? r.it.model : "", r.qty, r.kind === "item" ? r.retail.toFixed(2) : "", r.sell.toFixed(2), ls.toFixed(2), r.cost === null ? "" : num(r.cost).toFixed(2), lc === null ? "" : lc.toFixed(2), lc === null ? "" : (ls - lc).toFixed(2)].map(q).join(",")); });
-    if(num(p.shipCost) || totals(p).ship){ const sc = shipCostTotal(p), sv = totals(p).ship; out.push(["Shipping", p.shipLabel || "Delivery to Jersey", ({ absorb: "You cover it", spread: "Built into prices", line: "Separate line" })[p.shipMode || "absorb"], 1, "", sv.toFixed(2), sv.toFixed(2), sc.toFixed(2), sc.toFixed(2), (sv - sc).toFixed(2)].map(q).join(",")); }
-    { const td = totals(p).disc; if(td) out.push(["Discount", discText(p), "", 1, "", (-td).toFixed(2), (-td).toFixed(2), "", "", (-td).toFixed(2)].map(q).join(",")); }
+    const out = [["System","Item","Model","Qty","Retail each","Quoted each","Quoted total",`Cost each (incl. ${costGst(p)}% GST on equipment)`,"Cost total","Profit each","Profit total"].join(",")];
+    costRows(p).forEach(r=>{ const ls = r.qty * r.sell, lc = r.cost === null ? null : r.qty * r.cost; out.push([r.kind === "contr" ? "Contractors" : r.sys, r.kind === "item" ? r.it.item : r.kind === "labour" ? "Labour" : (r.c.who || "Contractor"), r.kind === "item" ? r.it.model : "", r.qty, r.kind === "item" ? r.retail.toFixed(2) : "", r.sell.toFixed(2), ls.toFixed(2), r.cost === null ? "" : num(r.cost).toFixed(2), lc === null ? "" : lc.toFixed(2), lc === null || !r.qty ? "" : ((ls - lc) / r.qty).toFixed(2), lc === null ? "" : (ls - lc).toFixed(2)].map(q).join(",")); });
+    if(num(p.shipCost) || totals(p).ship){ const sc = shipCostTotal(p), sv = totals(p).ship; out.push(["Shipping", p.shipLabel || "Delivery to Jersey", ({ absorb: "You cover it", spread: "Built into prices", line: "Separate line" })[p.shipMode || "absorb"], 1, "", sv.toFixed(2), sv.toFixed(2), sc.toFixed(2), sc.toFixed(2), "", (sv - sc).toFixed(2)].map(q).join(",")); }
+    { const td = totals(p).disc; if(td) out.push(["Discount", discText(p), "", 1, "", (-td).toFixed(2), (-td).toFixed(2), "", "", "", (-td).toFixed(2)].map(q).join(",")); }
     offer(`${fileBase()} costing.csv`, out.join("\r\n") + "\r\n");
   }
 });
