@@ -137,6 +137,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .icon:hover{color:var(--ink);border-color:var(--muted)}
 .items{display:grid;gap:6px}
 .item{display:grid;grid-template-columns:52px 1fr 86px 28px;gap:6px;align-items:start;padding-bottom:6px;border-bottom:1px dashed var(--line)}
+.item .imove{display:flex;gap:2px;justify-content:center}.item .imove .icon{width:24px;height:30px;font-size:13px}.item .imove .icon:disabled{opacity:.25}
 .item .wide{grid-column:2 / 4;display:grid;grid-template-columns:1fr 120px;gap:6px}
 .item input,.item select{padding:6px 8px;font-size:13px}
 .item .icon{width:28px;height:30px}
@@ -1630,7 +1631,7 @@ function sysBlock(s,i){
       <input type="text" id="s${i}i${j}n" data-k="systems.${i}.items.${j}.item" value="${esc(it.item)}" placeholder="Item" aria-label="Item">
       <input type="number" id="s${i}i${j}p" data-k="systems.${i}.items.${j}.price" value="${esc(it.price)}" step="0.01" min="0" aria-label="Unit price">
       <button class="icon" title="Remove line" data-act="rmItem" data-i="${i}" data-j="${j}">×</button>
-      <span></span><span class="wide"><input type="text" id="s${i}i${j}m" data-k="systems.${i}.items.${j}.model" value="${esc(it.model)}" placeholder="Item description" aria-label="Item description">
+      <span class="imove"><button class="icon" title="Move line up${j===0&&i>0?" into the system above":""}" aria-label="Move line up" data-act="itemUp" data-i="${i}" data-j="${j}" ${i===0&&j===0?"disabled":""}>↑</button><button class="icon" title="Move line down${j===s.items.length-1&&i<current.systems.length-1?" into the system below":""}" aria-label="Move line down" data-act="itemDown" data-i="${i}" data-j="${j}" ${i===current.systems.length-1&&j===s.items.length-1?"disabled":""}>↓</button></span><span class="wide"><input type="text" id="s${i}i${j}m" data-k="systems.${i}.items.${j}.model" value="${esc(it.model)}" placeholder="Item description" aria-label="Item description">
       <select class="in" id="s${i}i${j}t" data-k="systems.${i}.items.${j}.tag" aria-label="Tag">${["","Allowance","Provisional"].map(o=>`<option value="${o}" ${it.tag===o?"selected":""}>${o||"Fixed price"}</option>`).join("")}</select></span>
       <button class="more" data-act="more" data-i="${i}" data-j="${j}">${openDetails.has(i+"-"+j)?"Hide":(it.desc||it.img?"Edit":"Add")} photo, description &amp; page break${it.desc||it.img?" ✓":""}${it.pb?" · new page":""}</button>
       ${openDetails.has(i+"-"+j)?`<div class="details">
@@ -1694,6 +1695,17 @@ $("#editor").addEventListener("click", e=>{
     case "poSup": { const v = ($("#poSupName")||{}).value || ""; if(!v.trim()) return; S.forEach(s=>s.items.forEach(it=>{ if((it.item || num(it.price)) && !poSupOf(it)) it.supplier = v.trim(); })); break; }
     default: return;
     case "rmItem": S[i].items.splice(j,1); break;
+    case "itemUp": case "itemDown": {
+      const up = b.dataset.act === "itemUp", it = S[i].items[j], wasOpen = openDetails.has(i+"-"+j); let ni = i, nj;
+      S[i].items.splice(j, 1);
+      if(up){ if(j > 0) nj = j - 1; else { ni = i - 1; nj = S[ni].items.length; } }
+      else { if(j < S[i].items.length) nj = j + 1; else { ni = i + 1; nj = 0; } }
+      S[ni].items.splice(nj, 0, it);
+      openDetails.clear(); if(wasOpen) openDetails.add(ni+"-"+nj);
+      buildEditor(); renderPreview(); scheduleSave();
+      const nb = document.querySelector(`[data-act="${b.dataset.act}"][data-i="${ni}"][data-j="${nj}"]`); if(nb && !nb.disabled) nb.focus(); else { const f = $(`#s${ni}i${nj}n`); f && f.focus({ preventScroll: true }); }
+      const row = $(`#s${ni}i${nj}n`); row && row.closest(".item").scrollIntoView({ block: "nearest" });
+      return; }
   }
   buildEditor(); renderPreview(); scheduleSave();
   if(b.dataset.act==="addItem"){ const el = $(`#s${i}i${S[i].items.length-1}n`); el && el.focus(); }
