@@ -678,6 +678,8 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .app[data-tab=todo] .pmode{display:none!important}
 .app[data-tab=planner] .pmode{display:none!important}
 .app[data-tab=cables] .pmode{display:none!important}
+.app[data-tab=hvac] .pmode{display:none!important}
+.app:not([data-tab=hvac]) .hmode{display:none!important}
 .app:not([data-tab=cables]) .xmode{display:none!important}
 .cxdetail{max-width:1180px}
 .cxbar{display:flex;gap:8px;justify-content:center;padding:14px;position:sticky;top:0;z-index:3;background:var(--bg)}
@@ -872,9 +874,9 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 @media (max-width:860px){
   .app.anim-fwd .stage,.app.anim-fwd .dstage,.app.anim-fwd .jstage{animation:slInR .32s cubic-bezier(.2,.85,.25,1)}
   .app.anim-back .editor,.app.anim-back .jlist{animation:slInL .3s cubic-bezier(.2,.85,.25,1)}
-  .app:is([data-tab=jobs],[data-tab=planner],[data-tab=cables],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .bar .seg{display:none}
-  .app[data-pv=preview]:is([data-tab=jobs],[data-tab=planner],[data-tab=cables],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .backbtn{display:inline-flex}
-  .app[data-pv=preview]:is([data-tab=jobs],[data-tab=planner],[data-tab=cables],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .brand{display:none}
+  .app:is([data-tab=jobs],[data-tab=planner],[data-tab=cables],[data-tab=hvac],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .bar .seg{display:none}
+  .app[data-pv=preview]:is([data-tab=jobs],[data-tab=planner],[data-tab=cables],[data-tab=hvac],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .backbtn{display:inline-flex}
+  .app[data-pv=preview]:is([data-tab=jobs],[data-tab=planner],[data-tab=cables],[data-tab=hvac],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .brand{display:none}
   .backbtn{align-items:center;gap:2px;height:36px;margin-left:-6px;padding:0 10px 0 2px;border:0;background:none;color:var(--accent);font:500 17px/1 var(--f-body);cursor:pointer}
   .backbtn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
   .app.swiping .jstage,.app.swiping .stage,.app.swiping .dstage{transition:none!important;box-shadow:-12px 0 24px rgba(0,0,0,.12)}
@@ -990,12 +992,99 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
   .calck .sm{height:38px;font-size:13px}
 }
 @media print{.calc,.calcbtn{display:none!important}}
+
+/* heating builder */
+.hvdetail{max-width:1240px}
+.hvchips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 14px}.hvchips span{font-size:12.5px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:5px 11px}.hvchips b{color:var(--ink);font-weight:600;margin-right:3px}.hvchips .t{margin-left:auto;border-color:var(--accent);color:var(--accent)}.hvchips .t b{color:var(--accent)}
+.hvsteps{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none}.hvsteps::-webkit-scrollbar{display:none}
+.hvsteps button{flex:1 0 auto;display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 11px;font:inherit;font-size:12.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.hvsteps i{font-style:normal;width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;background:var(--bg);font-size:11px;font-weight:600}
+.hvsteps .done{color:var(--ink)}.hvsteps .done i{background:var(--accent-soft);color:var(--accent)}
+.hvsteps .on{background:var(--ink);color:var(--panel);border-color:var(--ink)}.hvsteps .on i{background:var(--accent);color:#fff}
+.hvslide{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+.hvmain{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px 22px 18px;min-width:0}.hvmain.anim{animation:hvIn .25s ease}
+@keyframes hvIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+.hvst span{font:500 10.5px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}.hvst h3{font:300 28px/1.15 var(--f-display);margin:6px 0 2px}.hvst p{margin:0 0 16px;color:var(--muted)}
+.hvh{margin:20px 0 8px;font-size:14px}.hvh small{color:var(--muted);font-weight:400;margin-left:6px}
+.hvnav{display:flex;justify-content:space-between;gap:8px;margin-top:22px;padding-top:14px;border-top:1px solid var(--line)}
+.hvlearn{position:sticky;top:10px;background:#141311;color:#e9e3da;border-radius:16px;padding:18px 18px 14px;font-size:13px;line-height:1.5}
+.hvlearn .hvlk{font:500 10px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:#e8b878}.hvlearn h4{font:400 19px/1.2 var(--f-display);margin:8px 0 10px;color:#fff}.hvlearn p{margin:0 0 9px;color:#c9c2b8}.hvlearn b{color:#fff;font-weight:600}
+.hvlearn .btn{margin-top:4px;color:#e8b878;border-color:#3a352f}
+.hvopts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.hvopt{display:flex;flex-direction:column;gap:3px;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;position:relative;background:var(--field)}
+.hvopt input{position:absolute;top:12px;right:12px}.hvopt small{color:var(--muted);font-size:12px;line-height:1.35;padding-right:14px}.hvopt.on{border-color:var(--accent);background:var(--accent-soft)}
+.hvwarn{background:#fbecea;border:1px solid #e9b9b0;color:#7d2c1d;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:13px}.hvwarn p{margin:3px 0}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .hvwarn{background:#3a1f1a;border-color:#6b3328;color:#f0b8ab}}
+.hvrh,.hvr{display:grid;grid-template-columns:52px minmax(120px,1.4fr) 120px 56px 80px minmax(150px,1.3fr) 112px 92px 26px;gap:5px;align-items:center}
+.hvrh{font:500 9.5px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:0 2px 6px;position:sticky;top:0;background:var(--panel);z-index:1}
+.hvr{padding:3px 2px;border-radius:8px}.hvr input,.hvr select,.hvman input,.hvq input{border:1px solid var(--line);border-radius:7px;padding:6px 7px;background:var(--field);font:inherit;font-size:13px;min-width:0;width:100%;color:var(--ink)}
+.hvr input:disabled{opacity:.35}.hvctl{display:flex;flex-direction:column;gap:3px;min-width:0}
+.hvr.th{background:color-mix(in srgb,var(--accent-soft) 70%,transparent)}.hvr.none{opacity:.6}
+.hvref{font:500 11.5px var(--f-mono);color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hvfl{border-top:1px solid var(--line);padding:10px 0 6px}.hvflh{display:flex;align-items:center;gap:8px;margin-bottom:6px}.hvfln{font:inherit;font-size:16px;font-weight:600;border:1px solid transparent;background:none;padding:3px 6px;border-radius:6px;color:var(--ink);width:180px}.hvfln:hover,.hvfln:focus{border-color:var(--line);background:var(--field)}
+.hvpaste textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--field);font:inherit;font-size:13px;color:var(--ink)}
+.hvcalc{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}.hvcalc div{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--field)}.hvcalc b{display:block;font:300 30px/1 var(--f-display)}.hvcalc span{font-size:13px;font-weight:600}.hvcalc small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+.hvman{display:grid;grid-template-columns:150px 1fr 80px 26px;gap:6px;margin-bottom:6px}
+.hvq{display:grid;grid-template-columns:28px 1fr 150px 26px;gap:10px;align-items:start;padding:10px 0;border-bottom:1px solid var(--line)}.hvq .n{font:500 12px var(--f-mono);color:var(--accent);padding-top:2px}.hvq b{display:block;font-weight:600}.hvq small{display:block;color:var(--muted);margin-top:2px}.hvq i{display:block;font-style:normal;font-size:12.5px;margin-top:4px;color:var(--ink);background:var(--bg);border-radius:6px;padding:4px 8px}
+.hvq .who{font-size:12px;color:var(--muted);text-align:right}.hvq.own>div{display:flex;flex-direction:column;gap:4px}.hvq input.who{text-align:left}
+.hvresp{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hvresp textarea{width:100%;font-size:13px}
+.hvbom{min-width:860px}.hvbom input,.hvbom textarea{border:1px solid var(--line);border-radius:7px;padding:5px 7px;background:var(--field);font:inherit;font-size:12.5px;width:100%;color:var(--ink)}.hvbom td:first-child input{width:58px}.hvbom td:nth-child(2){min-width:200px}.hvbom td:nth-child(3){min-width:260px}.hvbom td.r input{width:88px;text-align:right}.hvbom textarea{min-width:220px;resize:vertical}
+.hvbom tr.sub td{border-top:1px solid var(--line);font-weight:600}.hvbom tr.tot td{border-top:2px solid var(--ink);font-weight:700;font-size:15px}.hvbom small.note{display:block}
+.hvguide .hvlede{font-size:16px;color:var(--muted);max-width:720px}
+.hvgs{display:grid;grid-template-columns:44px 1fr;gap:14px;padding:18px 0;border-top:1px solid var(--line);max-width:860px}.hvgn{width:36px;height:36px;border-radius:50%;background:var(--ink);color:var(--panel);display:grid;place-items:center;font-weight:600}
+.hvgs h3{margin:4px 0 8px;font:400 22px/1.2 var(--f-display)}.hvgs h3 small{font:500 10px var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-left:8px}.hvgs p{margin:0 0 8px;line-height:1.55}
+.hvqz{margin:12px 0 16px}.hvqz b{display:block;margin-bottom:6px}.hvqz button{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--field);border-radius:9px;padding:9px 12px;margin:4px 0;font:inherit;color:var(--ink);cursor:pointer}.hvqz button:disabled{cursor:default}.hvqz button.ok{border-color:#4c7a5a;background:#e3efe6;color:#1f4a2c}.hvqz button.bad{border-color:#c46a59;background:#f8e3df;color:#7d2c1d}
+@media (max-width:1100px){ .hvslide{grid-template-columns:1fr}.hvlearn{position:static} }
+@media (max-width:860px){ .hvmain{padding:16px 14px}.hvrh{display:none}.hvr{display:flex;flex-wrap:wrap;border:1px solid var(--line);padding:8px;margin-bottom:6px}.hvr>input:first-child{width:52px;flex:0 0 52px}.hvr>input:nth-child(2){flex:1 1 140px}.hvr>select,.hvr>input,.hvctl{flex:1 1 130px}.hvr input[type=number]{flex:0 0 60px}
+  .hvresp{grid-template-columns:1fr}.hvq{grid-template-columns:24px 1fr 26px}.hvq .who{grid-column:2;text-align:left}.hvman{grid-template-columns:1fr 70px 26px}.hvman input:nth-child(2){grid-column:1/3;grid-row:2}.hvchips .t{margin-left:0} }
+/* heating sheets */
+.hvm .cxcols{gap:30px}
+.hvsc{border:1px solid #2c2926;padding:12px 14px 10px;margin-bottom:10px}.hvsc.alt{background:#f4f1ec;border-color:#d9d3c9}
+.hvsch{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}.hvsch b{font:500 11px/1.2 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:#141210}.hvsch b small{color:#77716a;letter-spacing:.06em;margin-left:6px;font-size:9.5px}.hvsch span{font:500 10px var(--f-mono);letter-spacing:.08em;color:#9a5f1f;text-transform:uppercase}
+.hvsc p,.hvbx p,.hvp{margin:0;font-size:11.5px;line-height:1.5;color:#3d3935}
+.hvfoot{position:absolute;left:64px;bottom:34px;font:500 9px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:#77716a}
+.hvm{position:relative}
+.hvsq{display:grid;grid-template-columns:34px 1fr 150px;gap:12px;padding:11px 0;border-bottom:1px solid #e6e0d6}.hvsq .n{font:500 13px var(--f-mono);color:#9a5f1f}.hvsq b{font-size:13px;font-weight:600;color:#141210}.hvsq p{margin:4px 0 0;font-size:11.5px;line-height:1.45;color:#3d3935}.hvsq p.as{background:#f4f1ec;padding:5px 8px;margin-top:6px}.hvsq p.as span{font:500 9px var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:#9a5f1f;margin-right:6px}.hvsq .who{font:500 9.5px/1.3 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;text-align:right;color:#141210}
+.hvt td{padding:7px 6px}.hvt tr.none td{color:#9c958c}.hvt .rf{font:600 11px var(--f-mono);color:#141210}.hvt tr.vz .rf{color:#9a5f1f}
+.hvleg td{vertical-align:top;font-size:11px;line-height:1.45}
+.hvbx{border:1px solid #2c2926;padding:10px 12px;background:#fff}.hvbx.dash{border-style:dashed;border-color:#9c958c;margin-top:12px}.hvbx.wide{margin:12px 0 0}.hvbx ul{margin:4px 0 6px;padding-left:14px;font-size:11px;line-height:1.45;color:#3d3935}.hvbx ul.cols{columns:3;column-gap:20px}
+.cxk.sm{font-size:9px;margin:8px 0 3px}
+.hvrow2{display:grid;grid-template-columns:1fr 70px 1fr;align-items:center}.hvlink{text-align:center;font:500 8.5px var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:#77716a;border-top:1px dashed #9c958c;padding-top:4px}
+.hvdiv{text-align:center;font:500 9.5px var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:#77716a;margin:12px 0 8px}
+.hvrow3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.hvnote{display:grid;grid-template-columns:26px 1fr;gap:6px;font-size:11px;line-height:1.45;padding:6px 0;border-bottom:1px solid #eee8de;color:#3d3935}.hvnote span{font:500 10px var(--f-mono);color:#9a5f1f}
+.hvleg2{display:flex;align-items:center;gap:10px;font-size:11px;margin:6px 0}.hvleg2 i{width:34px;height:14px;border:1px solid #2c2926}.hvleg2.d i{border-style:dashed;border-color:#9c958c}
+.hvwho{border-bottom:1px solid #e6e0d6;padding:8px 0 4px}.hvwho ul{margin:0 0 4px;padding-left:14px;font-size:11.5px;line-height:1.5;color:#3d3935}
+/* schematic by device */
+.hvdev .cxh1{margin-bottom:12px}
+.hvdh{display:grid;grid-template-columns:200px 30px 1fr 30px 220px;align-items:center}
+.hvdb{border:1px solid #2c2926;padding:7px 8px;text-align:center;background:#fff}.hvdb b{display:block;font:500 9.5px/1.2 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:#141210}.hvdb small{display:block;font:500 8px/1.2 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:#77716a;margin-top:3px}.hvdb.dash{border-style:dashed;border-color:#9c958c}
+.hvdl{border-top:1px solid #2c2926}.hvdl.d{border-top-style:dashed;border-color:#9c958c}
+.hvdcab{border:1.5px solid #141210;padding:8px}.hvdct{display:flex;justify-content:space-between;margin-bottom:6px}.hvdct b{font:500 10px var(--f-mono);letter-spacing:.12em;text-transform:uppercase}.hvdct small{font:500 8px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:#77716a}
+.hvdin{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.hvdst{display:flex;flex-direction:column;gap:6px}
+.hvdbus{font:500 8.5px/1.6 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:#77716a;border-left:1px solid #2c2926;margin:6px 0 4px 40%;padding:2px 10px}
+.hvdcols{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:6px}
+.hvdfh{display:flex;align-items:baseline;gap:10px;border-bottom:1px solid #2c2926;padding-bottom:6px;margin-bottom:4px}.hvdfh h2{font:300 21px/1.1 var(--f-display);margin:0;color:#141210}.hvdfh span{font:500 9px var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:#77716a}
+.hvdr{display:grid;grid-template-columns:20px 112px 30px 64px minmax(8px,1fr) 88px 8px 84px minmax(8px,.6fr) 52px 8px 60px;align-items:center;column-gap:0;min-height:38px;border-bottom:1px solid #ece6dc;font-size:11px}
+.hvdr.two{grid-template-rows:20px 20px;min-height:46px}.hvdr.two>.no,.hvdr.two>.rm,.hvdr.two>.hvdc,.hvdr.two>.tg{grid-row:1/3}
+.hvdr .no{font:500 9.5px var(--f-mono);color:#9c958c}.hvdr .rm{font-size:11px;color:#141210;line-height:1.2;padding-right:4px}
+.hvdr.hd{font:500 7.5px/1.3 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:#77716a;min-height:28px}.hvdr.hd>span{grid-row:1}.hvdr.hd .op{text-align:center}
+.hvdc{width:28px;height:28px;border:1px solid #141210;border-radius:50%;display:grid;place-items:center;font:400 12px var(--f-display);font-style:normal;color:#141210;background:#fff}.hvdc.z{border-style:dashed;font-size:10px}
+.hvdr .tg{font:500 8px/1.35 var(--f-mono);color:#77716a;padding-left:5px}
+.hvdr .ln{border-top:1px solid #2c2926;align-self:center}.hvdr .ln.d{border-top-style:dashed;border-color:#9c958c}
+.hvdr .ln.a{grid-column:5}.hvdr .bx.op{grid-column:6}.hvdr .ln.s{grid-column:7}.hvdr .bx{border:1px solid #2c2926;font:500 7.5px/1 var(--f-mono);letter-spacing:.06em;text-align:center;padding:4px 2px;white-space:nowrap;background:#fff}
+.hvdr .bx.dash{border-style:dashed;border-color:#9c958c;color:#5a554f}
+.hvdr .bx.act{grid-column:8}.hvdr.two .ln.a,.hvdr.two .bx.op,.hvdr.two .ln.s,.hvdr.two .bx.act{grid-row:1}
+.hvdr.two .ln.b{grid-row:2;grid-column:5/10}.hvdr.two .bx.ifc{grid-row:2;grid-column:10}.hvdr.two .ln.d{grid-row:2;grid-column:11}.hvdr.two .bx.dash{grid-row:2;grid-column:12}
+.hvdcount{display:flex;flex-wrap:wrap;gap:10px 22px}.hvdcount span{font:500 8.5px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:#77716a}.hvdcount b{font:300 24px/1 var(--f-display);color:#141210;margin-right:6px;letter-spacing:0}
+b.tbc,.hvdcount b.tbc{color:#b0443a}
+.hvdleg{display:grid;grid-template-columns:48px 1fr;gap:8px;align-items:center;margin:6px 0}.hvdleg p{margin:0;font-size:10.5px;line-height:1.4;color:#3d3935}.hvdleg .bx{border:1px solid #2c2926;height:14px}.hvdleg .bx.dash{border-style:dashed;border-color:#9c958c}
 </style>
 
 <div class="app" id="app" data-tab="proposals">
   <header class="bar">
     <div class="brand"><img class="bmark" src="icons/emblem-96.png" alt="" onerror="this.remove()"><b>halo<span>.je</span></b><small>Studio</small></div>
-    <div class="navwrap" id="navWrap"><button class="navbtn" id="navBtn" aria-haspopup="true" aria-expanded="false" aria-controls="navMenu"><span class="burger" aria-hidden="true"><i></i><i></i><i></i></span><span id="navLabel">Proposals</span><span class="chev" aria-hidden="true">▼</span></button><div class="tabs" id="navMenu" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabX" role="tab" aria-selected="false">Cables</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabB" role="tab" aria-selected="false">Plan</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabL" role="tab" aria-selected="false">Leads</button><button id="tabS" role="tab" aria-selected="false">Stock</button><button id="tabM" role="tab" aria-selected="false">Promotions</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div></div>
+    <div class="navwrap" id="navWrap"><button class="navbtn" id="navBtn" aria-haspopup="true" aria-expanded="false" aria-controls="navMenu"><span class="burger" aria-hidden="true"><i></i><i></i><i></i></span><span id="navLabel">Proposals</span><span class="chev" aria-hidden="true">▼</span></button><div class="tabs" id="navMenu" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabX" role="tab" aria-selected="false">Cables</button><button id="tabH" role="tab" aria-selected="false">Heating</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabB" role="tab" aria-selected="false">Plan</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabL" role="tab" aria-selected="false">Leads</button><button id="tabS" role="tab" aria-selected="false">Stock</button><button id="tabM" role="tab" aria-selected="false">Promotions</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div></div>
     <button class="calcbtn" id="calcBtn" aria-label="Calculator" title="Calculator (press C on the keyboard)" aria-expanded="false" aria-controls="calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4.5" y="2.5" width="15" height="19" rx="2.5"/><rect x="7.5" y="5.5" width="9" height="4" rx="1"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></svg></button>
     <div class="actions rmode" style="margin-left:auto">
       <span class="prsync" id="prStatus"></span>
@@ -1012,6 +1101,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
     <div class="actions mmode" style="margin-left:auto">
       <span class="status" id="mpStatus"></span>
       <button class="btn primary" id="mpNew">New promotion</button>
+    </div>
+    <div class="actions hmode" style="margin-left:auto">
+      <span class="status" id="hvStatus"></span>
+      <button class="btn primary" id="hvNew">New heating design</button>
     </div>
     <div class="actions xmode" style="margin-left:auto">
       <span class="status" id="cxStatus"></span>
@@ -1092,6 +1185,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
   <main class="jwork lmode" id="lwork" data-view="edit">
     <aside class="jlist" aria-label="Planning leads"><div class="top"><input type="search" id="ldSearch" placeholder="Search address, description, architect" autocomplete="off" aria-label="Search leads"><div class="chips" id="ldChips"></div><div class="ldbar" id="ldBar"></div></div><div class="jrows" id="ldRows"></div></aside>
     <section class="jstage" aria-label="Lead details"><div class="jscroll" id="ldScroll"></div></section>
+  </main>
+  <main class="jwork hmode" id="hwork" data-view="edit">
+    <aside class="jlist" aria-label="Heating designs"><div class="top"><input type="search" id="hvSearch" placeholder="Search heating designs" autocomplete="off" aria-label="Search heating designs"></div><div class="jrows" id="hvRows"></div></aside>
+    <section class="jstage" aria-label="Heating design"><div class="jscroll" id="hvScroll"></div></section>
   </main>
   <main class="jwork xmode" id="xwork" data-view="edit">
     <aside class="jlist" aria-label="Cable schedules"><div class="top"><input type="search" id="cxSearch" placeholder="Search cable schedules" autocomplete="off" aria-label="Search cable schedules"></div><div class="jrows" id="cxRows"></div></aside>
@@ -2471,7 +2568,7 @@ function askDel(){
   };
 }
 $("#btnDel").addEventListener("click", askDel);
-function setView(v){ $("#work").dataset.view = v; $("#dwork").dataset.view = v; $("#jwork").dataset.view = v; $("#cwork").dataset.view = v; const kw = $("#kwork"); if(kw) kw.dataset.view = v; const tw = $("#twork"); if(tw) tw.dataset.view = v; const mw = $("#mwork"); if(mw) mw.dataset.view = v; const sw = $("#swork"); if(sw) sw.dataset.view = v; const bw = $("#bwork"); if(bw) bw.dataset.view = v; const xw = $("#xwork"); if(xw) xw.dataset.view = v; const lw = $("#lwork"); if(lw) lw.dataset.view = v; $("#vEdit").setAttribute("aria-pressed", v==="edit"); $("#vPrev").setAttribute("aria-pressed", v==="preview"); if(v==="preview") fitZoom(); }
+function setView(v){ $("#work").dataset.view = v; $("#dwork").dataset.view = v; $("#jwork").dataset.view = v; $("#cwork").dataset.view = v; const kw = $("#kwork"); if(kw) kw.dataset.view = v; const tw = $("#twork"); if(tw) tw.dataset.view = v; const mw = $("#mwork"); if(mw) mw.dataset.view = v; const sw = $("#swork"); if(sw) sw.dataset.view = v; const bw = $("#bwork"); if(bw) bw.dataset.view = v; const xw = $("#xwork"); if(xw) xw.dataset.view = v; const hw = $("#hwork"); if(hw) hw.dataset.view = v; const lw = $("#lwork"); if(lw) lw.dataset.view = v; $("#vEdit").setAttribute("aria-pressed", v==="edit"); $("#vPrev").setAttribute("aria-pressed", v==="preview"); if(v==="preview") fitZoom(); }
 $("#vEdit").onclick = ()=>setView("edit"); $("#vPrev").onclick = ()=>setView("preview");
 
 /* ---------- boot ---------- */
@@ -3064,8 +3161,9 @@ $("#dwDel").addEventListener("click", async e=>{
 
 /* ---------- tabs ---------- */
 function setTab(t){
-  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge"); $("#tabT").setAttribute("aria-selected", t==="todo"); $("#tabM").setAttribute("aria-selected", t==="promos"); $("#tabS").setAttribute("aria-selected", t==="stock"); $("#tabL").setAttribute("aria-selected", t==="leads"); $("#tabB").setAttribute("aria-selected", t==="planner"); $("#tabX").setAttribute("aria-selected", t==="cables");
+  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge"); $("#tabT").setAttribute("aria-selected", t==="todo"); $("#tabM").setAttribute("aria-selected", t==="promos"); $("#tabS").setAttribute("aria-selected", t==="stock"); $("#tabL").setAttribute("aria-selected", t==="leads"); $("#tabB").setAttribute("aria-selected", t==="planner"); $("#tabX").setAttribute("aria-selected", t==="cables"); $("#tabH").setAttribute("aria-selected", t==="hvac");
   if(t === "leads"){ if(mode !== "loading") ldStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); ldStart(); } }, 200); } }
+  if(t === "hvac"){ const go = ()=>{ hvStart(); if(typeof dwStart === "function") dwStart(); if(typeof plStart === "function") plStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   if(t === "cables"){ const go = ()=>{ cxStart(); if(typeof dwStart === "function") dwStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   if(t === "planner"){ const go = ()=>{ plStart(); if(typeof dwStart === "function") dwStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   if(t === "todo"){ if(mode !== "loading") tdStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); tdStart(); } }, 200); } }
@@ -3077,7 +3175,7 @@ function setTab(t){
   if(t === "customers"){ const go = ()=>{ jbStart(); kbStart(); cuStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   if(t === "jobs"){ const go = ()=>{ jbStart(); jbRender(); jbRenderList(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   try{ localStorage.setItem(LS+".tab", t); }catch(_){}
-  { const lbl = { proposals: ["Edit","Preview"], drawings: ["Edit","Plan"], jobs: ["List","Details"], customers: ["List","Details"], knowledge: ["List","Article"], todo: ["List","Details"], planner: ["List","Plan"], cables: ["List","Schedule"], promos: ["List","Promotion"], stock: ["List","Details"], leads: ["List","Details"], prices: ["List","List"] }[t] || ["Edit","Preview"]; $("#vEdit").textContent = lbl[0]; $("#vPrev").textContent = lbl[1]; if(innerWidth <= 860) setView("edit"); }
+  { const lbl = { proposals: ["Edit","Preview"], drawings: ["Edit","Plan"], jobs: ["List","Details"], customers: ["List","Details"], knowledge: ["List","Article"], todo: ["List","Details"], planner: ["List","Plan"], cables: ["List","Schedule"], hvac: ["List","Design"], promos: ["List","Promotion"], stock: ["List","Details"], leads: ["List","Details"], prices: ["List","List"] }[t] || ["Edit","Preview"]; $("#vEdit").textContent = lbl[0]; $("#vPrev").textContent = lbl[1]; if(innerWidth <= 860) setView("edit"); }
   if(t === "drawings"){ if(mode !== "loading") dwStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); dwStart(); } }, 200); } dwRender(); }
 }
 $("#tabP").addEventListener("click", ()=>setTab("proposals"));
@@ -5979,10 +6077,522 @@ $("#tabB").addEventListener("click", ()=>setTab("planner"));
   });
 })();
 
+/* ================= Heating builder: Polar Bear room control, step by step ================= */
+const HVP = { showPence: true };
+let hvList = [], hvCur = null, hvDirty = false, hvStarted = false, hvT = null, hvView = "edit", hvQuiz = {};
+const HV_STEPS = [
+  { k: "project", t: "Project", s: "Who and where" },
+  { k: "sources", t: "Heating and cooling", s: "What's in the building" },
+  { k: "rooms",   t: "Rooms", s: "How each room is controlled" },
+  { k: "stats",   t: "Thermostats", s: "Look and finish" },
+  { k: "plant",   t: "Plant and wiring", s: "Manifolds, wiring centres, cabinet" },
+  { k: "qs",      t: "Questions", s: "What we still need" },
+  { k: "resp",    t: "Who does what", s: "Trades and first fix" },
+  { k: "price",   t: "Price and issue", s: "Parts, labour, drawings" }
+];
+const HV_HEAT = [["wet","Wet UFH"],["elec","Electric UFH"],["rad","Radiators"],["none","No heating"]];
+const HV_CTL = [["auto","Auto"],["th","Thermostat"],["vz","Virtual zone"],["z2","Second zone"],["follow","Follows"],["none","No control"]];
+const HV_RAIL = [["none","No rail"],["wet","Wet rail"],["elec","Electric rail"]];
+const HV_INTEG = ["Crestron Home","Control4","Lutron HomeWorks","Savant","KNX","Polar Bear app only"];
+const HV_BOOK = {
+  gw:     { item: "Polar Bear gateway", model: "Polar Bear gateway ({integ} integration)", cost: 438.75, price: 585 },
+  th_zen: { item: "Wall thermostats, engraved", model: "Polar Bear Zen2 Turn ACM (PB-ZEN2-ACM-TN-NONE) + FP1 plate kit and digital crown + 1G back box (finish {finish})", cost: 721.35, price: 961.8 },
+  th_urs: { item: "Wall thermostats, engraved", model: "Polar Bear Ursium Pro thermostat + face plate kit + deep UK metal back box (finish {finish})", cost: 0, price: 0 },
+  probe:  { item: "Air probes (virtual zones)", model: "Polar Bear WL4 flat disc air sensor 10K3 + WL4 tip (finish {finish})", cost: 46.07, price: 61.43 },
+  umc_eth:{ item: "Wiring centres with probe inputs", model: "Polar Bear UMC2-ETH", cost: 626.06, price: 834.75 },
+  umc_rs1:{ item: "Wiring centres, thermostat zones", model: "Polar Bear UMC2-RS1", cost: 496.13, price: 661.5 },
+  acif:   { item: "{brand} AC interfaces", model: "Polar Bear Zentium direct AC interface, Mitsubishi Electric (PB-ZEN-ACM-INT-MITI0)", cost: 326.81, price: 435.75 },
+  act:    { item: "Zone actuators", model: "Polar Bear 24 V UMC actuator head (PB-AH-DFS-24-2)", cost: 40.95, price: 54.6 },
+  hub:    { item: "Bus hubs", model: "Polar Bear RJ45x8 wire hub / landing board (PB-RTU-RJ45x8-HUB)", cost: 224.44, price: 299.25 },
+  cab:    { item: "Controls cabinet", model: "Polar Bear DC01 cabinet + PB-PSU24-60 24 V DIN PSU, terminals, labels", cost: 285.08, price: 380.1 }
+};
+const HV_RESP = {
+  us: "Supplies thermostats, air probes, Polar Bear actuators, wiring centres, AC interfaces and the gateway\nIssues the first fix cable schedule and marks up device positions before first fix\nBuilds, installs and commissions the controls cabinet\nTerminates every device, sets addresses and commissions the system\nPrograms the zones, schedules and the {integ} integration",
+  elec: "Pulls every cable on the halo.je schedule: devices, probes, wiring centres and the cabinet feed\nBack boxes, conduit and containment\nProvides and connects power to the controls cabinet, on a dedicated RCD circuit, controls only\nSupplies, protection and isolators for plant",
+  ac: "Indoor units, refrigerant pipework, condensate and unit supplies\nMounts each halo.je interface at its unit and makes the connection to the unit\nLocates the manufacturer's room controllers in the plant space",
+  heat: "Reissues the underfloor layout to the current plan, with manifolds, ports and actuator count\nConfirms the valve bodies take the Polar Bear actuators halo.je supplies\nManifolds, zone valve bodies, pump and heat source"
+};
+const HV_CABLES = [["Cabinet to each wall device, one cable per device","Cat5 / Cat6"],["Wiring centre to each air probe","Screened pair"],["Device to its AC interface at the indoor unit","Screened pair"],["Cabinet to each wiring centre at the manifolds","Cat5 / Cat6"],["Wiring centre to zone valves and pump","Sized to load"],["Supply and network to the controls cabinet","By others"]];
+
+function hvBlank(){ return { id: uid(), updated: Date.now(), step: 0, name: "", client: "", site: "", number: "HJ-XXX-M", rev: "A", date: isoDay(new Date()), drawn: "IL", checked: "", status: "Preliminary", revNote: "First issue for coordination",
+  notes: "Polar Bear room control design. The mechanical design is by others.\nRoom names and numbers per the architect's room schedule.\nCapacity, sizing and plant selection sit with the mechanical engineer.",
+  mechBy: "", heatBy: "", acBy: "", elecBy: "",
+  heat: { wet: true, elec: false, rad: false, source: "Heat pump" }, ac: { type: "vrf", brand: "Mitsubishi Electric" }, rails: "none", integ: "Crestron Home",
+  stat: { model: "zentium", finish: "TBC", combo: "None", engrave: true },
+  floors: ["Ground", "First"], rooms: [], mans: [], cab: "Near the manifolds, position to be confirmed",
+  qs: [], qsOff: {}, resp: Object.assign({}, HV_RESP), book: clone(HV_BOOK), qtyOver: {}, hoursOver: "", proposalId: "", drawingId: "", planId: "" }; }
+function hvNorm(o){ const b = Object.assign(hvBlank(), o || {});
+  b.heat = Object.assign(hvBlank().heat, b.heat || {}); b.ac = Object.assign(hvBlank().ac, b.ac || {}); b.stat = Object.assign(hvBlank().stat, b.stat || {});
+  b.resp = Object.assign({}, HV_RESP, b.resp || {}); b.book = Object.assign(clone(HV_BOOK), b.book || {}); Object.keys(HV_BOOK).forEach(k=>{ b.book[k] = Object.assign({}, HV_BOOK[k], b.book[k] || {}); });
+  b.rooms = (b.rooms || []).map(r=>Object.assign({ id: uid(), no: "", name: "", floor: "", heat: "wet", ac: 0, units: "", ctl: "auto", host: "", rail: "none", note: "" }, r));
+  b.mans = (b.mans || []).map(m=>Object.assign({ id: uid(), name: "", loc: "", ports: "" }, m));
+  b.qs = (b.qs || []).map(q=>Object.assign({ id: uid(), q: "", why: "", who: "", assume: "" }, q));
+  return b; }
+
+/* ---------- the rules ---------- */
+function hvCtl(r){ if(r.ctl !== "auto") return r.ctl; if(num(r.ac) > 0) return "th"; if(r.heat !== "none") return "vz"; return r.rail !== "none" ? "z2" : "none"; }
+function hvCalc(p){
+  const R = p.rooms.map(r=>Object.assign({}, r, { c: hvCtl(r) }));
+  let th = 0, vz = 0; const floorsOrder = p.floors.concat([...new Set(R.map(r=>r.floor))].filter(f=>!p.floors.includes(f)));
+  floorsOrder.forEach(f=>R.filter(r=>r.floor === f).forEach(r=>{ if(r.c === "th") r.ref = "TH-" + String(++th).padStart(2, "0"); if(r.c === "vz") r.ref = "V-" + String(++vz).padStart(2, "0"); }));
+  const byId = new Map(R.map(r=>[r.id, r]));
+  R.forEach(r=>{ if(r.c === "z2" || r.c === "follow"){ const h = byId.get(r.host); r.ref = h && h.ref ? (r.c === "z2" ? h.ref + " zone 2" : "With " + h.ref) : (r.c === "z2" ? "Zone 2, host TBC" : "Follows, TBC"); } if(r.c === "none") r.ref = "None"; });
+  const heated = R.filter(r=>r.heat !== "none" && ["th","vz","z2"].includes(r.c));
+  const wetZones = R.filter(r=>(r.heat === "wet" || r.heat === "rad") && ["th","vz","z2","follow"].includes(r.c));
+  const rails = R.filter(r=>r.rail !== "none" && r.c !== "none").length;
+  const acRooms = R.filter(r=>num(r.ac) > 0), acif = p.ac.type === "none" ? 0 : acRooms.reduce((a,r)=>a + num(r.ac), 0);
+  const outputs = heated.length + rails, probes = vz;
+  const ports = p.mans.reduce((a,m)=>a + num(m.ports), 0), actKnown = ports > 0;
+  const act = actKnown ? ports : Math.ceil(wetZones.length * 1.25);
+  const umc = (outputs || probes) ? Math.max(Math.ceil(outputs / 8), Math.ceil(probes / 8), p.mans.length || 1) : 0;
+  const eth = probes ? Math.min(umc, Math.max(1, Math.ceil(probes / 8))) : 0;
+  const q = { th: th, probe: vz, acif, umc_eth: eth, umc_rs1: umc - eth, act, hub: (th + umc) ? Math.ceil((th + umc) / 7) : 0, gw: (th + umc + acif) ? Math.max(1, Math.ceil((th + umc + acif) / 32)) : 0, cab: (th + umc) ? 1 : 0 };
+  Object.keys(p.qtyOver || {}).forEach(k=>{ if(p.qtyOver[k] !== "" && p.qtyOver[k] != null && !isNaN(num(p.qtyOver[k]))) q[k] = num(p.qtyOver[k]); });
+  const hoursAuto = q.th || q.probe ? Math.round(8 + 1.5 * q.th + .75 * q.probe + 1 * q.acif + .25 * q.act) : 0;
+  const warn = [];
+  R.forEach(r=>{ if(num(r.ac) > 0 && r.c !== "th") warn.push(`${r.name || "A room"} has AC but no thermostat. AC needs a wall thermostat to drive its interface.`);
+    if((r.c === "z2" || r.c === "follow") && !byId.get(r.host)) warn.push(`${r.name || "A room"} needs a host room picked.`);
+    if(r.c === "z2"){ const h = byId.get(r.host); if(h && h.c !== "th") warn.push(`${r.name || "A room"} is a second zone on ${h.name}, which has no wall thermostat.`); } });
+  const z2count = new Map(); R.filter(r=>r.c === "z2").forEach(r=>z2count.set(r.host, (z2count.get(r.host) || 0) + 1)); z2count.forEach((n,h)=>{ if(n > 1){ const hr = byId.get(h); warn.push(`${hr ? hr.name : "A thermostat"} is carrying ${n} second zones. A Polar Bear thermostat runs two zones: its own room and one more.`); } });
+  if(q.gw > 1) warn.push(`${th + umc + acif} devices: more than 32 means a second gateway.`);
+  return { R, th, vz, acif, acRooms: acRooms.length, outputs, probes, umc, eth, act, actKnown, rails, wetZones: wetZones.length, heated: heated.length, q, hoursAuto, hours: p.hoursOver !== "" && p.hoursOver != null ? num(p.hoursOver) : hoursAuto, warn, none: R.filter(r=>r.c === "none").length };
+}
+function hvFill(p, s){ return String(s || "").replace(/\{integ\}/g, p.integ).replace(/\{finish\}/g, p.stat.finish || "TBC").replace(/\{brand\}/g, p.ac.brand || "AC"); }
+function hvBom(p, C){ C = C || hvCalc(p);
+  const keys = [["gw","gw"],[p.stat.model === "ursium" ? "th_urs" : "th_zen","th"],["probe","probe"],["umc_eth","umc_eth"],["umc_rs1","umc_rs1"],["acif","acif"],["act","act"],["hub","hub"],["cab","cab"]];
+  return keys.map(([bk, qk])=>{ const b = p.book[bk], qty = C.q[qk] || 0; let tag = "", desc = "";
+    if(qk === "act" && !C.actKnown) tag = "Allowance";
+    if(qk === "umc_rs1" && !p.mans.length) tag = "Allowance";
+    if(qk === "acif" && !/mitsubishi/i.test(p.ac.brand) && /MITI0/.test(b.model)) desc = `Interface to suit ${p.ac.brand}, to confirm`;
+    if(!num(b.price)) desc = "Price to confirm";
+    return { k: bk, qk, qty, item: hvFill(p, b.item), model: hvFill(p, b.model), cost: num(b.cost), price: num(b.price), tag, desc }; }).filter(l=>l.qty > 0); }
+
+/* questions we generate from the gaps */
+function hvAutoQs(p, C){ const by = p.heatBy || "Heating engineer", out = [];
+  if(p.heat.wet || p.heat.rad){
+    out.push({ k: "layout", q: "Please confirm the underfloor layout matches the current floor plan.", why: "Our zones follow the room schedule. If the heating drawings don't match it, we can't read the circuits from them.", who: by, assume: "" });
+    if(!p.mans.length) out.push({ k: "mans", q: "How many manifolds are there, and where is each one?", why: "Sets the number of wiring centres and where each sits.", who: by, assume: "One valve output per room. Rooms served by more than one loop group may need a second." });
+    out.push({ k: "ports", q: "Which zones sit on each manifold, and which ports serve each room?", why: "Assigns each thermostat and virtual zone to its wiring centre output.", who: by, assume: "" });
+    if(!C.actKnown) out.push({ k: "act", q: "How many actuators in total, per manifold?", why: "We supply the Polar Bear actuators and need the count to order them.", who: by, assume: `Allowed ${C.act}, about one and a quarter per zone.` });
+    out.push({ k: "valves", q: "Do the valve bodies take the Polar Bear actuators?", why: "The actuator head has to suit the manifold's valve thread.", who: by, assume: "Standard M30 x 1.5 valve bodies." });
+  }
+  if(p.ac.type !== "none"){ out.push({ k: "units", q: `Please confirm the ${p.ac.brand || "AC"} indoor unit model numbers and which room each serves.`, why: "Each interface is matched to its indoor unit.", who: p.acBy || "AC contractor", assume: "One interface per indoor unit, as on the room schedule." });
+    out.push({ k: "rc", q: "Will the manufacturer's room controllers be hidden in the plant space?", why: "The Polar Bear thermostat should be the only device on the wall.", who: p.acBy || "AC contractor", assume: "Hidden in the plant space, not fitted in the rooms." }); }
+  const ens = C.R.filter(r=>/en.?suite|bath|shower|wet room/i.test(r.name));
+  if(ens.length && !p.heat.elec) out.push({ k: "eufh", q: `Is electric underfloor heating wanted in the ${ens.length === 1 ? "en-suite" : ens.length + " en-suites and bathrooms"}?`, why: "Changes the zones and the wiring centre outputs.", who: "Client", assume: "Not in the design at present. A Polar Bear thermostat runs two zones, so no extra thermostats would be needed." });
+  if(p.rails === "none" && ens.length) out.push({ k: "rails", q: "Are the towel rails to be controlled, and are they wet or electric?", why: "A rail is its own function on the bedroom thermostat, not a zone, but it still needs a wiring centre output.", who: "Client", assume: "Not controlled at present." });
+  out.push({ k: "cab", q: "Where will the controls cabinet go?", why: "Every device cable runs back to it, so it sets the first fix.", who: p.elecBy || "Electrical contractor", assume: p.cab });
+  return out.filter(x=>!p.qsOff[x.k]); }
+function hvAllQs(p, C){ return hvAutoQs(p, C).concat(p.qs.filter(q=>q.q)); }
+
+/* ---------- training content ---------- */
+const HV_LEARN = {
+  project: { h: "What Polar Bear is", b: [
+    "A British made room control system (registered Made in Britain, CEDIA manufacturer member). Each thermostat runs its room's heating and cooling on its own, with a built in Edge BMS, then shares it with Crestron, Control4, Lutron, Savant or KNX.",
+    "Our job is the <b>room control design</b>. The mechanical design, capacity, sizing and plant selection stay with the mechanical engineer. Say so on every sheet.",
+    "Installers have to be approved: a training kit for demo and install, and Polar Bear's training.",
+    "Before you start, get the architect's room schedule, the underfloor drawings and the AC layout with indoor unit model numbers." ] },
+  sources: { h: "The topology", b: [
+    "<b>Heating</b> runs through the UMC wiring centre: wet or electric underfloor, a delayed boiler or heat pump trigger, and towel rail timers. A zone calls, the UMC opens that room's valve, and the pump and heat source run while any zone is calling.",
+    "<b>VRV and VRF</b> (Mitsubishi, Daikin and others) talk to the thermostat on aBUS, directly or through a Polar Bear interface at each indoor unit. The thermostat sets mode, setpoint and fan.",
+    "<b>Chilled water fan coils</b> use aBUS to an FCU controller. <b>VAVs</b> currently only through a BMS.",
+    "Heating and cooling are <b>interlocked</b> in the zone engine, so a room never calls for both.",
+    "The system holds its zones, schedules and setpoints and keeps running if the control processor is off." ] },
+  rooms: { h: "Deciding each room", b: [
+    "<b>Room with an AC indoor unit:</b> one wall thermostat for heating and cooling, plus an interface per indoor unit. A two unit room takes two interfaces.",
+    "<b>Heated room without AC</b> (halls, en-suites, wet rooms, utility): a <b>virtual zone</b>. An air probe, no thermostat on the wall, set from the app or the control system. A bathroom keeps its own setpoint apart from the bedroom.",
+    "<b>Second zone:</b> a Polar Bear thermostat runs two zones, its own room and one more. Good for en-suites, where wet zone rules keep devices off the wall.",
+    "<b>Towel rails</b> are a function on the bedroom thermostat, not a zone: off, auto, a timed boost or two timer periods a day. Each still needs a UMC output: a valve for wet, a switched supply for electric.",
+    "<b>Follows:</b> a room grouped to an adjacent zone at commissioning, and ungrouped later if needed.",
+    "Cupboards, unheated spaces and plant get no control." ] },
+  stats: { h: "Choosing the thermostat", b: [
+    "<b>Zentium</b>: the award winner. Colour touch screen, digital crown, built in temperature and humidity, 7 programmable inputs, two rooms in one unit, AC driver built in. Custom back box. Combination plates take a Lutron Palladiom, Pico / RA2 Select or seeTouch keypad in the same plate.",
+    "<b>Ursium</b>: super low profile and designed to sit beside the lighting keypads (Lutron, Forbes &amp; Lomax, Meljac, Rako). Fits a deep 47 mm UK metal back box.",
+    "<b>Alisse finishes</b>: the Signature Metal Collection, polished, brushed or painted, finished by hand, so batches can vary slightly. Order plates together.",
+    "Face plate kits take <b>6 to 12 weeks</b>. Agree the finish early and order as soon as the design is fixed.",
+    "Anything you switch off in setup vanishes from the screen, so the client only sees what the room has." ] },
+  plant: { h: "Wiring centres, gateway and cabinet", b: [
+    "<b>UMC2</b>: 9 relay outputs (1 pump, 8 heat), 8 programmable inputs for probes or contacts, pBUS and aBUS, Ethernet, two 0-10 V outputs. The ETH version hosts virtual thermostats, so put the probes on those.",
+    "Count <b>outputs</b>: one per heated zone plus one per towel rail. Count <b>inputs</b>: one per air probe. Wiring centres = whichever needs more, in eights, and at least one per manifold.",
+    "<b>Actuators</b>: one per manifold port. Until the manifold schedule arrives, allow about one and a quarter per zone and mark it as an allowance.",
+    "<b>Gateway</b>: up to 32 devices each.",
+    "<b>Air probes</b>: 12 mm, 10k3 or PT1000, paintable, with a first fix kit. Mount clear of draughts and heat sources.",
+    "<b>Cabinet</b> near the manifolds, on its own 24 V supply that nothing else shares, fed from a dedicated RCD circuit. One cable per device back to the cabinet, nothing daisy chained, so a fault stays on one device." ] },
+  qs: { h: "Asking good questions", b: [
+    "Ask plain questions, each with who owes the answer and why it matters.",
+    "Every question carries the <b>assumption</b> we will work to. Anything unanswered proceeds on that assumption and is noted at the next revision, so the job never stalls.",
+    "The usual gaps: an out of date underfloor layout, manifold count and position, zone to port mapping, actuator count, valve body thread, indoor unit model numbers, where the AC room controllers go, electric underfloor and towel rails in en-suites." ] },
+  resp: { h: "Who does what", b: [
+    "We supply, build the cabinet, terminate, address, program and commission.",
+    "The electrician pulls every cable to our schedule, sets back boxes and feeds the cabinet on its own RCD. Probe cables are left coiled at the agreed positions for us to terminate.",
+    "The AC contractor mounts our interface at each unit and connects it. The heating engineer owns manifolds, valves, pump and heat source.",
+    "Issue the first fix cable schedule before first fix, and mark device positions on the architect's plans." ] },
+  price: { h: "How the price is built", b: [
+    "Parts start from the Baymont House Polar Bear prices. Change any cost or price here and it sticks for this project.",
+    "Labour starts at 8 hours for the cabinet and commissioning, plus 1.5 hours a thermostat, 0.75 a virtual zone, 1 an AC interface and 0.25 an actuator. Override it if the job is unusual.",
+    "Actuators and spare wiring centres stay marked <b>Allowance</b> until the manifold schedule is in.",
+    "Issue the drawing set with the quote: strategy, questions, room schedules, schematic and responsibilities." ] }
+};
+const HV_QUIZ = [
+  { q: "A bedroom has one AC indoor unit and wet underfloor. What does it get?", o: ["Air probe only","One wall thermostat and one AC interface","Two thermostats"], a: 1, e: "One Polar Bear thermostat runs heating and cooling. The interface at the indoor unit lets it set mode, setpoint and fan." },
+  { q: "A heated en-suite with no AC, next to that bedroom. The cheapest tidy answer?", o: ["Its own wall thermostat","Second zone on the bedroom thermostat, or a virtual zone with an air probe","No control"], a: 1, e: "A Polar Bear thermostat runs two zones. A virtual zone also works and keeps the wall clear." },
+  { q: "How many devices can one gateway take?", o: ["16","32","64"], a: 1, e: "Up to 32 devices per gateway." },
+  { q: "A towel rail on the bedroom thermostat is…", o: ["A separate zone with its own probe","A function on the thermostat, but it still needs a UMC output","Nothing to do with Polar Bear"], a: 1, e: "Off, auto, boost or two timer periods, without turning the floor up. A valve or switched supply on a UMC output." },
+  { q: "How should the devices be wired back?", o: ["Daisy chained room to room","One cable per device back to the cabinet","Wireless only"], a: 1, e: "One cable per device, so a fault stays on one device." },
+  { q: "The client wants a brushed brass finish. What matters most for the programme?", o: ["Nothing, it's in stock","Face plates take 6 to 12 weeks, so order early","Brass isn't available"], a: 1, e: "Agree the finish early and order the plate kits together." },
+  { q: "The manifold schedule hasn't arrived. How do you price actuators?", o: ["Leave them out","Allow about 1.25 per zone and mark it Allowance","Guess one per room and fix the price"], a: 1, e: "Show it as an allowance and ask the question with the assumption you're working to." }
+];
+
+/* ---------- storage ---------- */
+function hvSetStatus(t, w){ const s = $("#hvStatus"); if(s){ s.textContent = t; s.classList.toggle("warn", !!w); } }
+function hvStart(){
+  if(!hvStarted){ hvStarted = true;
+    if(mode === "db"){ db.collection("hvac").onSnapshot(snap=>{ hvList = snap.docs.map(d=>hvNorm(Object.assign({ id: d.id }, d.data()))).filter(x=>!x.deleted);
+        if(hvCur && !hvDirty){ const f = hvList.find(x=>x.id === hvCur.id); if(f && f.updated > hvCur.updated){ const ae = document.activeElement; hvCur = clone(f); if(!(ae && $("#hvScroll").contains(ae) && /INPUT|TEXTAREA|SELECT/.test(ae.tagName))) hvRender(); } }
+        if($("#app").dataset.tab === "hvac"){ hvRenderList(); if(!hvCur) hvRender(); } }, ()=>hvSetStatus("Couldn't load", true)); hvSetStatus("Saved"); }
+    else { try{ hvList = JSON.parse(localStorage.getItem(LS + ".hvac") || "[]").map(hvNorm); }catch(_){ hvList = []; } hvSetStatus("On this device only"); }
+  }
+  if($("#app").dataset.tab === "hvac"){ hvRenderList(); hvRender(); }
+}
+function hvSchedule(){ if(!hvCur) return; hvDirty = true; hvSetStatus("Unsaved"); clearTimeout(hvT); hvT = setTimeout(hvSave, 800); }
+async function hvSave(){ if(!hvCur) return; hvCur.updated = Date.now(); const snap = clone(hvCur); const i = hvList.findIndex(x=>x.id === snap.id); if(i >= 0) hvList[i] = snap; else hvList.unshift(snap);
+  if(mode === "db"){ try{ await db.collection("hvac").doc(snap.id).set(snap); hvDirty = false; hvSetStatus("Saved"); }catch(_){ hvSetStatus("Not saved, retrying", true); setTimeout(hvSave, 4000); } }
+  else { try{ localStorage.setItem(LS + ".hvac", JSON.stringify(hvList)); }catch(_){} hvDirty = false; hvSetStatus("Saved on this device"); }
+  hvRenderList(); }
+
+/* ---------- list ---------- */
+function hvRenderList(){ const el = $("#hvRows"); if(!el) return; const q = (($("#hvSearch") || {}).value || "").toLowerCase();
+  const rows = hvList.slice().sort((a,b)=>b.updated - a.updated).filter(s=>!q || [s.name, s.client, s.number].join(" ").toLowerCase().includes(q));
+  el.innerHTML = `<button class="jrow ${hvView === "guide" ? "on" : ""}" data-hvguide style="--js:#b0443a"><span class="jbar"></span><span class="jm"><span class="n">TRAINING</span><span class="c">Polar Bear guide</span><small>How it works, rules of thumb, self check</small></span></button>` +
+    (rows.length ? rows.map(s=>{ const C = hvCalc(s); return `<button class="jrow ${hvCur && hvCur.id === s.id && hvView !== "guide" ? "on" : ""}" data-hv="${esc(s.id)}" style="--js:var(--accent)"><span class="jbar"></span><span class="jm"><span class="n">${esc(s.number || "M")} · REV ${esc(s.rev)}</span><span class="c">${esc(s.name || "New heating design")}</span><small>${esc(s.client || "")}</small></span><span class="when">${C.th} TH · ${C.vz} V</span></button>`; }).join("")
+    : `<div class="planempty" style="padding:24px"><p>No heating designs yet. Start one and the builder walks you through it.</p></div>`); }
+
+/* ---------- editor ---------- */
+const hvI = (path, label, ph = "", type = "text") => { const v = path.split(".").reduce((o,k)=>o == null ? o : o[k], hvCur); return `<label class="f"><span>${label}</span><input type="${type}" data-hk="${path}" value="${esc(v ?? "")}" placeholder="${esc(ph)}"></label>`; };
+const hvSel = (path, opts, cls = "in") => { const v = path.split(".").reduce((o,k)=>o == null ? o : o[k], hvCur); return `<select class="${cls}" data-hk="${path}">${opts.map(o=>{ const [k,t] = Array.isArray(o) ? o : [o,o]; return `<option value="${esc(k)}" ${String(v) === String(k) ? "selected" : ""}>${esc(t)}</option>`; }).join("")}</select>`; };
+function hvChips(C){ const tot = hvBom(hvCur, C).reduce((a,l)=>a + l.qty * l.price, 0) + C.hours * num(typeof defRate !== "undefined" ? defRate : 0);
+  return `<div class="hvchips"><span><b>${C.th}</b> thermostats</span><span><b>${C.vz}</b> virtual zones</span><span><b>${C.acif}</b> AC interfaces</span><span><b>${C.umc}</b> wiring centres</span><span><b>${C.act}</b> actuators${C.actKnown ? "" : "*"}</span><span><b>${C.hours}</b> hrs</span><span class="t"><b>${money(tot, HVP)}</b> est.</span></div>`; }
+function hvLearn(k){ const L = HV_LEARN[k]; return `<aside class="hvlearn"><div class="hvlk">Learn</div><h4>${L.h}</h4>${L.b.map(x=>`<p>${x}</p>`).join("")}<button class="btn small ghost" data-ha="guide">Open the full guide</button></aside>`; }
+function hvStep(k, C){ const p = hvCur;
+  if(k === "project"){ const dws = typeof dwList !== "undefined" ? dwList : [], pls = typeof plList !== "undefined" ? plList : [];
+    return `<div class="plgrid">${hvI("name","Project","e.g. Baymont House")}${hvI("client","Client")}${hvI("site","Site")}${hvI("number","Drawing number","HJ-BAY-M")}${hvI("rev","Rev")}${hvI("date","Date","","date")}${hvI("drawn","Drawn")}${hvI("checked","Checked")}
+      <label class="f"><span>Status</span>${hvSel("status", ["Preliminary","Tender","Construction","As built"])}</label>${hvI("revNote","Revision note")}</div>
+      <h4 class="hvh">The other trades</h4><div class="plgrid">${hvI("mechBy","Mechanical engineer","e.g. Ennis")}${hvI("heatBy","Heating engineer","e.g. Isle-Eco")}${hvI("acBy","AC contractor")}${hvI("elecBy","Electrical contractor","e.g. Prolec")}</div>
+      <h4 class="hvh">Start from what you have <small>optional, fills the rooms step</small></h4>
+      <div class="adds"><select class="in" id="hvFromPl" style="width:auto"><option value="">From a plan…</option>${pls.map(x=>`<option value="${esc(x.id)}">${esc(x.name || "Untitled plan")} (${(x.rooms || []).length} rooms)</option>`).join("")}</select><button class="btn small" data-ha="frompl">Import rooms</button>
+      <select class="in" id="hvFromDw" style="width:auto"><option value="">From a drawing set…</option>${dws.map(d=>`<option value="${esc(d.id)}">${esc(d.name)} (${d.rooms.length} rooms)</option>`).join("")}</select><button class="btn small" data-ha="fromdw">Import rooms</button></div>
+      <p class="note">A plan brings each room's heating choice and AC units. A drawing set brings room names, and reads thermostats, air probes and AC interfaces already placed on the plans.</p>`; }
+  if(k === "sources"){ return `<div class="hvopts">
+      <label class="hvopt ${p.heat.wet ? "on" : ""}"><input type="checkbox" data-hk="heat.wet" ${p.heat.wet ? "checked" : ""}><b>Wet underfloor</b><small>Manifolds, zone valves, actuators</small></label>
+      <label class="hvopt ${p.heat.elec ? "on" : ""}"><input type="checkbox" data-hk="heat.elec" ${p.heat.elec ? "checked" : ""}><b>Electric underfloor</b><small>Switched supply per zone</small></label>
+      <label class="hvopt ${p.heat.rad ? "on" : ""}"><input type="checkbox" data-hk="heat.rad" ${p.heat.rad ? "checked" : ""}><b>Radiators</b><small>Zone valve per room</small></label></div>
+      <div class="plgrid" style="margin-top:12px">${hvI("heat.source","Heat source","Heat pump, boiler…")}
+      <label class="f"><span>Air conditioning</span>${hvSel("ac.type", [["none","None"],["vrf","VRV / VRF, direct or interface"],["fcu","Chilled water fan coils"]])}</label>
+      ${p.ac.type !== "none" ? hvI("ac.brand","AC manufacturer","Mitsubishi Electric") : ""}
+      <label class="f"><span>Towel rails</span>${hvSel("rails", [["none","Not controlled"],["wet","Wet"],["elec","Electric"],["mixed","Some of each"]])}</label>
+      <label class="f"><span>Shown in</span>${hvSel("integ", HV_INTEG)}</label></div>
+      ${p.ac.type === "fcu" ? `<p class="note">Chilled water fan coils need a Polar Bear FCU controller per coil on aBUS. Check the part and price with Polar Bear and enter it on the price step.</p>` : ""}`; }
+  if(k === "rooms"){ const floors = p.floors.concat([...new Set(p.rooms.map(r=>r.floor))].filter(f=>f && !p.floors.includes(f)));
+    const hosts = r => C.R.filter(x=>x.id !== r.id && (x.c === "th" || x.c === "vz"));
+    return `${C.warn.length ? `<div class="hvwarn">${C.warn.map(w=>`<p>${esc(w)}</p>`).join("")}</div>` : ""}
+      <div class="hvrh"><span>No</span><span>Room</span><span>Heating</span><span>AC units</span><span>Unit refs</span><span>Control</span><span>Towel rail</span><span>Ref</span><span></span></div>
+      ${floors.map((f,fi)=>`<div class="hvfl"><div class="hvflh"><input class="hvfln" data-hfl="${fi}" value="${esc(f)}" ${p.floors.includes(f) ? "" : "disabled"}><span class="note">${p.rooms.filter(r=>r.floor === f).length} rooms</span>${p.floors.includes(f) ? `<button class="icon" data-ha="rmfloor" data-i="${fi}" aria-label="Remove floor">×</button>` : ""}</div>
+        ${C.R.map((r,i)=>[r,i]).filter(([r])=>r.floor === f).map(([r,i])=>`<div class="hvr ${r.c}">
+          <input data-hk="rooms.${i}.no" value="${esc(r.no)}" placeholder="No">
+          <input data-hk="rooms.${i}.name" value="${esc(r.name)}" placeholder="Room name">
+          ${hvSel(`rooms.${i}.heat`, HV_HEAT, "")}
+          <input type="number" min="0" data-hk="rooms.${i}.ac" value="${esc(r.ac)}" ${p.ac.type === "none" ? "disabled" : ""}>
+          <input data-hk="rooms.${i}.units" value="${esc(r.units)}" placeholder="${num(r.ac) ? "FCU ref" : ""}" ${p.ac.type === "none" || !num(r.ac) ? "disabled" : ""}>
+          <div class="hvctl"><select data-hk="rooms.${i}.ctl">${HV_CTL.map(([k,t])=>`<option value="${k}" ${r.ctl === k ? "selected" : ""}>${k === "auto" ? `Auto (${HV_CTL.find(x=>x[0] === hvCtl(Object.assign({}, r, { ctl: "auto" })))[1].toLowerCase()})` : t}</option>`).join("")}</select>
+            ${r.c === "z2" || r.c === "follow" ? `<select data-hk="rooms.${i}.host"><option value="">${r.c === "z2" ? "On which thermostat?" : "Follows which room?"}</option>${hosts(r).filter(x=>r.c === "follow" || x.c === "th").map(x=>`<option value="${esc(x.id)}" ${r.host === x.id ? "selected" : ""}>${esc(x.ref)} ${esc(x.name)}</option>`).join("")}</select>` : ""}</div>
+          ${hvSel(`rooms.${i}.rail`, HV_RAIL, "")}
+          <span class="hvref">${esc(r.ref || "")}</span>
+          <button class="icon" data-ha="rmroom" data-i="${i}" aria-label="Remove room">×</button></div>`).join("")}
+        <div class="adds"><button class="btn small ghost" data-ha="addroom" data-f="${esc(f)}">Add room</button><button class="btn small ghost" data-ha="paste" data-f="${esc(f)}">Paste a list</button></div>
+        ${hvPaste === f ? `<div class="hvpaste"><textarea id="hvPasteT" rows="6" placeholder="One room per line, number first if you have it:\n01 Entrance Hall\n02 Gym\n05 Alfie's Bedroom"></textarea><div class="adds"><button class="btn small primary" data-ha="pasteok" data-f="${esc(f)}">Add rooms</button><button class="btn small ghost" data-ha="pastex">Cancel</button></div></div>` : ""}</div>`).join("")}
+      <div class="adds"><button class="btn small" data-ha="addfloor">Add floor</button></div>
+      <p class="note">Auto picks a wall thermostat where there's AC, a virtual zone where there's heating only, and no control elsewhere. Change any room and the refs renumber.</p>`; }
+  if(k === "stats"){ return `<div class="hvopts">
+      <label class="hvopt ${p.stat.model === "zentium" ? "on" : ""}"><input type="radio" name="hvm" data-hk="stat.model" value="zentium" ${p.stat.model === "zentium" ? "checked" : ""}><b>Zentium Pro</b><small>Touch screen and digital crown. Custom back box. Combination plates with Lutron keypads.</small></label>
+      <label class="hvopt ${p.stat.model === "ursium" ? "on" : ""}"><input type="radio" name="hvm" data-hk="stat.model" value="ursium" ${p.stat.model === "ursium" ? "checked" : ""}><b>Ursium Pro</b><small>Super low profile. Deep 47 mm UK metal box. Sits beside Lutron, Forbes &amp; Lomax, Meljac, Rako.</small></label></div>
+      <div class="plgrid" style="margin-top:12px">${hvI("stat.finish","Finish","e.g. Alisse brushed brass")}
+      <label class="f"><span>Combination plate</span>${hvSel("stat.combo", ["None","Lutron Palladiom","Lutron Pico / RA2 Select","Lutron seeTouch (international)","Lutron seeTouch (US)"])}</label>
+      <label class="check" style="align-self:end"><input type="checkbox" data-hk="stat.engrave" ${p.stat.engrave ? "checked" : ""}> Engrave room names</label></div>
+      ${p.stat.model === "ursium" && !num(p.book.th_urs.price) ? `<p class="note">There's no Ursium price saved yet. Add it on the price step once Polar Bear quote it.</p>` : ""}
+      <p class="note">Plates take 6 to 12 weeks. The finish shows on the drawings and in the proposal as written here.</p>`; }
+  if(k === "plant"){ return `<div class="hvcalc">
+      <div><b>${C.outputs}</b><span>heat outputs</span><small>${C.heated} zones${C.rails ? ` + ${C.rails} rails` : ""}</small></div>
+      <div><b>${C.probes}</b><span>probe inputs</span><small>one per virtual zone</small></div>
+      <div><b>${C.umc}</b><span>wiring centres</span><small>${C.eth} UMC2-ETH · ${C.umc - C.eth} UMC2-RS1</small></div>
+      <div><b>${C.act}</b><span>actuators</span><small>${C.actKnown ? "from manifold ports" : "allowance, 1.25 per wet zone"}</small></div>
+      <div><b>${C.q.hub}</b><span>bus hubs</span><small>8 ports, one spare each</small></div>
+      <div><b>${C.q.gw}</b><span>gateway${C.q.gw === 1 ? "" : "s"}</span><small>${C.th + C.umc + C.acif} of 32 devices</small></div></div>
+      <h4 class="hvh">Manifolds <small>leave empty until the heating engineer confirms</small></h4>
+      ${p.mans.map((m,i)=>`<div class="hvman"><input data-hk="mans.${i}.name" value="${esc(m.name)}" placeholder="Manifold 1"><input data-hk="mans.${i}.loc" value="${esc(m.loc)}" placeholder="Where, e.g. ground floor plant"><input type="number" min="0" data-hk="mans.${i}.ports" value="${esc(m.ports)}" placeholder="Ports"><button class="icon" data-ha="rmman" data-i="${i}" aria-label="Remove">×</button></div>`).join("")}
+      <div class="adds"><button class="btn small ghost" data-ha="addman">Add manifold</button></div>
+      <h4 class="hvh">Controls cabinet</h4><div class="plgrid">${hvI("cab","Position","Near the manifolds")}</div>`; }
+  if(k === "qs"){ const auto = hvAutoQs(p, C), offs = Object.keys(p.qsOff).filter(k=>p.qsOff[k]);
+    return `<p class="note">These come from the gaps in the design. Each prints with who owes it and the assumption we'll work to.</p>
+      ${auto.map((q,i)=>`<div class="hvq"><span class="n">${String(i + 1).padStart(2,"0")}</span><div><b>${esc(q.q)}</b><small>${esc(q.why)}</small>${q.assume ? `<i>Assumed: ${esc(q.assume)}</i>` : ""}</div><span class="who">${esc(q.who)}</span><button class="icon" data-ha="qoff" data-k="${q.k}" title="Not needed on this job" aria-label="Hide">×</button></div>`).join("")}
+      ${p.qs.map((q,i)=>`<div class="hvq own"><span class="n">${String(auto.length + i + 1).padStart(2,"0")}</span><div><input data-hk="qs.${i}.q" value="${esc(q.q)}" placeholder="Question"><input data-hk="qs.${i}.why" value="${esc(q.why)}" placeholder="Why it matters"><input data-hk="qs.${i}.assume" value="${esc(q.assume)}" placeholder="What we'll assume"></div><input class="who" data-hk="qs.${i}.who" value="${esc(q.who)}" placeholder="Who"><button class="icon" data-ha="rmq" data-i="${i}" aria-label="Remove">×</button></div>`).join("")}
+      <div class="adds"><button class="btn small ghost" data-ha="addq">Add a question</button>${offs.length ? `<button class="btn small ghost" data-ha="qon">Bring back ${offs.length} hidden</button>` : ""}</div>`; }
+  if(k === "resp"){ return `<div class="hvresp">${[["us","halo.je"],["elec", p.elecBy || "Electrical contractor"],["ac", p.acBy || "AC contractor"],["heat", p.heatBy || "Heating engineer"]].filter(([k])=>k !== "ac" || p.ac.type !== "none").map(([k,t])=>`<label class="f"><span>${esc(t)}</span><textarea rows="6" data-hk="resp.${k}">${esc(hvFill(p, p.resp[k]))}</textarea></label>`).join("")}</div>
+      <label class="f" style="margin-top:12px"><span>General notes on the title block, one per line</span><textarea rows="4" data-hk="notes">${esc(p.notes)}</textarea></label>`; }
+  if(k === "price"){ const bom = hvBom(p, C), parts = bom.reduce((a,l)=>a + l.qty * l.price, 0), cost = bom.reduce((a,l)=>a + l.qty * l.cost, 0), rate = num(typeof defRate !== "undefined" ? defRate : 0), lab = C.hours * rate;
+    const props = (typeof list !== "undefined" ? list : []).slice().sort((a,b)=>b.updated - a.updated);
+    return `<div class="ctable"><table class="hvbom"><tr><th>Qty</th><th>Item</th><th>Model</th><th class="r">Cost each</th><th class="r">Price each</th><th class="r">Line</th><th class="r">Profit</th></tr>
+      ${bom.map(l=>`<tr><td><input type="number" min="0" data-hq="${l.qk}" value="${l.qty}" title="Change to override the count"></td><td><input data-hb="${l.k}.item" value="${esc(l.item)}">${l.tag ? `<span class="tag mid">${l.tag}</span>` : ""}${l.desc ? `<small class="note">${esc(l.desc)}</small>` : ""}</td><td><textarea rows="3" data-hb="${l.k}.model">${esc(l.model)}</textarea></td><td class="r"><input type="number" step="0.01" data-hb="${l.k}.cost" value="${esc(p.book[l.k].cost)}"></td><td class="r"><input type="number" step="0.01" data-hb="${l.k}.price" value="${esc(p.book[l.k].price)}"></td><td class="r">${money(l.qty * l.price, HVP)}</td><td class="r">${money(l.qty * (l.price - l.cost), HVP)}</td></tr>`).join("")}
+      <tr class="sub"><td colspan="5">Parts</td><td class="r">${money(parts, HVP)}</td><td class="r">${money(parts - cost, HVP)}</td></tr>
+      <tr><td colspan="4">Labour, <input type="number" step="0.5" min="0" data-hk="hoursOver" value="${esc(p.hoursOver)}" placeholder="${C.hoursAuto}" style="width:70px"> hours ${p.hoursOver !== "" ? `<small class="note">(rules say ${C.hoursAuto})</small>` : ""}</td><td class="r">${money(rate, HVP)}/hr</td><td class="r">${money(lab, HVP)}</td><td></td></tr>
+      <tr class="tot"><td colspan="5">Heating and cooling control</td><td class="r">${money(parts + lab, HVP)}</td><td class="r">${parts ? Math.round((parts - cost) / parts * 100) + "% on parts" : ""}</td></tr></table></div>
+      ${Object.keys(p.qtyOver).some(k=>p.qtyOver[k] !== "") ? `<div class="adds"><button class="btn small ghost" data-ha="qtyreset">Go back to the worked out quantities</button></div>` : ""}
+      <h4 class="hvh">Issue it</h4>
+      <div class="adds"><select class="in" id="hvProp" style="width:auto"><option value="new">Into a new proposal</option>${props.map(q=>`<option value="${esc(q.id)}" ${p.proposalId === q.id ? "selected" : ""}>${esc(q.ref)} ${esc(q.titleA || "")}</option>`).join("")}</select><button class="btn small primary" data-ha="toprop">${p.proposalId ? "Update proposal" : "Add to proposal"}</button>${p.proposalId ? `<button class="btn small" data-ha="openprop">Open proposal</button>` : ""}</div>
+      <p class="note">Adds or refreshes a "Heating &amp; cooling control" system with these lines, costs and hours. The questions go into the proposal's next steps.</p>
+      <div class="adds"><button class="btn small primary" data-ha="sheets">Preview drawings</button><button class="btn small" data-ha="pdf">Download drawings PDF</button></div>`; }
+  return ""; }
+let hvPaste = null, hvLastStep = "";
+function hvRender(){
+  const sc = $("#hvScroll"); if(!sc) return;
+  if(hvView === "guide") return hvRenderGuide(sc);
+  if(!hvCur){ sc.innerHTML = `<div class="planempty"><h2>Heating and cooling, step by step.</h2><p>Build a Polar Bear room control design from scratch: rooms, thermostats, wiring centres, questions for the other trades, a priced proposal and the drawing set. Every step explains the why, so it doubles as training.</p><div class="adds" style="justify-content:center"><button class="btn primary" data-ha="new">Start a heating design</button><button class="btn" data-ha="guide">Read the guide</button></div></div>`; return; }
+  if(hvView === "sheets"){ sc.innerHTML = `<div class="cxbar"><button class="btn small" data-ha="edit">Back to the builder</button><button class="btn small primary" data-ha="pdf">Download PDF</button></div><div class="dsheets cxsheets" id="hvSheets">${hvSheets(hvCur)}</div>`; hvFit(); return; }
+  const p = hvCur, C = hvCalc(p), st = Math.min(HV_STEPS.length - 1, Math.max(0, p.step || 0)), S = HV_STEPS[st], top = sc.scrollTop;
+  const ae = document.activeElement, keep = ae && sc.contains(ae) && ae.dataset && (ae.dataset.hk || ae.dataset.hb || ae.dataset.hq) ? `[data-${ae.dataset.hk ? "hk" : ae.dataset.hb ? "hb" : "hq"}="${ae.dataset.hk || ae.dataset.hb || ae.dataset.hq}"]` : null;
+  sc.innerHTML = `<div class="jdetail hvdetail"><div class="jhead"><span class="num">HEATING AND COOLING · POLAR BEAR</span><h2>${esc(p.name || "New heating design")}</h2></div>
+    ${hvChips(C)}
+    <nav class="hvsteps">${HV_STEPS.map((x,i)=>`<button data-hstep="${i}" class="${i === st ? "on" : ""} ${i < st ? "done" : ""}"><i>${i + 1}</i><span>${x.t}</span></button>`).join("")}</nav>
+    <div class="hvslide"><section class="hvmain ${hvLastStep !== st + ":" + p.id ? "anim" : ""}"><div class="hvst"><span>Step ${st + 1} of ${HV_STEPS.length}</span><h3>${S.t}</h3><p>${S.s}</p></div>${hvStep(S.k, C)}
+      <div class="hvnav">${st ? `<button class="btn" data-ha="prev">Back</button>` : "<span></span>"}${st < HV_STEPS.length - 1 ? `<button class="btn primary" data-ha="next">Next: ${HV_STEPS[st + 1].t}</button>` : `<button class="btn primary" data-ha="sheets">Preview drawings</button>`}</div></section>
+      ${hvLearn(S.k)}</div>
+    <div class="adds" style="margin-top:20px"><button class="btn small ghost danger" data-ha="del">Delete heating design</button></div></div>`;
+  sc.scrollTop = top; hvLastStep = st + ":" + p.id;
+  if(keep){ try{ const el = sc.querySelector(keep); if(el){ el.focus({ preventScroll: true }); } }catch(_){} }
+}
+function hvRenderGuide(sc){
+  const score = HV_QUIZ.filter((x,i)=>hvQuiz[i] === x.a).length, done = Object.keys(hvQuiz).length;
+  sc.innerHTML = `<div class="jdetail hvdetail hvguide"><div class="jhead"><span class="num">TRAINING · POLAR BEAR ROOM CONTROL</span><h2>The Polar Bear guide</h2></div>
+    <p class="hvlede">How a Polar Bear design comes together, in the order the builder follows. Read it once, then use the self check at the bottom.</p>
+    ${HV_STEPS.map((s,i)=>{ const L = HV_LEARN[s.k]; return `<section class="hvgs"><div class="hvgn">${i + 1}</div><div><h3>${L.h} <small>${s.t}</small></h3>${L.b.map(x=>`<p>${x}</p>`).join("")}</div></section>`; }).join("")}
+    <section class="hvgs"><div class="hvgn">✓</div><div><h3>Self check <small>${done ? `${score} of ${HV_QUIZ.length} right` : `${HV_QUIZ.length} questions`}</small></h3>
+      ${HV_QUIZ.map((x,i)=>`<div class="hvqz"><b>${i + 1}. ${esc(x.q)}</b>${x.o.map((o,j)=>{ const picked = hvQuiz[i] === j, show = hvQuiz[i] != null; return `<button data-hqz="${i}.${j}" class="${show && j === x.a ? "ok" : ""} ${picked && j !== x.a ? "bad" : ""}" ${show ? "disabled" : ""}>${esc(o)}</button>`; }).join("")}${hvQuiz[i] != null ? `<p class="note">${esc(x.e)}</p>` : ""}</div>`).join("")}
+      ${done ? `<div class="adds"><button class="btn small ghost" data-ha="quizreset">Try again</button></div>` : ""}</div></section>
+    <div class="adds" style="justify-content:center;margin:24px 0">${hvCur ? `<button class="btn" data-ha="edit">Back to ${esc(hvCur.name || "the builder")}</button>` : ""}<button class="btn primary" data-ha="new">Start a heating design</button></div></div>`;
+}
+
+/* ---------- imports ---------- */
+function hvFromPlan(pl){ const p = hvCur; if(!pl) return 0; const map = { vz: ["wet","vz"], th: ["wet","th"], ac: ["wet","th"], none: ["none","none"] };
+  (pl.floors || []).forEach(f=>{ if(!p.floors.includes(f)) p.floors.push(f); });
+  let n = 0; (pl.rooms || []).forEach(r=>{ if(p.rooms.some(x=>x.no && x.no === r.no && x.name === r.name)) return; const m = map[r.hv] || map.none;
+    p.rooms.push(hvNorm({ rooms: [{ no: r.no || "", name: r.name || "", floor: r.floor || p.floors[0], heat: m[0], ac: r.hv === "ac" ? num(r.ac) || 1 : 0, ctl: r.hv === "none" ? "auto" : m[1] }] }).rooms[0]); n++; });
+  p.planId = pl.id; if(!p.name) p.name = pl.name || ""; if(!p.client) p.client = pl.client || ""; if(!p.site) p.site = pl.site || ""; return n; }
+function hvFromDrawing(d){ const p = hvCur; if(!d) return 0; let n = 0;
+  d.floors.forEach(f=>{ if(!p.floors.includes(f.name)) p.floors.push(f.name); });
+  const fname = id => (d.floors.find(f=>f.id === id) || {}).name || p.floors[0];
+  const devs = d.floors.flatMap(f=>f.devices);
+  d.rooms.forEach(r=>{ if(p.rooms.some(x=>x.no === r.no && x.name === r.name)) return;
+    const c = t => devs.filter(v=>v.room === r.no && v.type === t).length, th = c("TH"), ap = c("AP"), ifc = c("IF");
+    p.rooms.push(hvNorm({ rooms: [{ no: r.no, name: r.name, floor: fname(r.floor), heat: th || ap ? "wet" : "none", ac: ifc, ctl: th ? "th" : ap ? "vz" : "auto" }] }).rooms[0]); n++; });
+  p.drawingId = d.id; if(!p.name) p.name = d.name || ""; if(!p.number || p.number === "HJ-XXX-M") p.number = (d.prefix || "HJ-XXX") + "-M"; return n; }
+
+/* ---------- into a proposal ---------- */
+async function hvToProposal(target){
+  const p = hvCur; if(!p) return; const C = hvCalc(p), bom = hvBom(p, C);
+  if(!bom.length){ toast("Add some rooms with heating or AC first."); return; }
+  let q = target && target !== "new" ? list.find(x=>x.id === target) : null; const isNew = !q;
+  q = normalise(clone(q || Object.assign(blankProposal(), { titleA: p.name || "Project name", preparedFor: p.client || "Client", client: p.client, site: p.site || "Address, Jersey", ref: "HQ-" + ((p.name || "").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "XXX") + "-001", systems: [] })));
+  const desc = `I'll supply, build and commission the Polar Bear room control system: ${C.th ? `${C.th} wall thermostat${C.th === 1 ? "" : "s"}` : ""}${C.vz ? `${C.th ? ", " : ""}air probes for ${C.vz} virtual zone${C.vz === 1 ? "" : "s"}` : ""}, wiring centres, zone actuators${C.acif ? ` and the ${p.ac.brand} interfaces` : ""}, all brought together in a controls cabinet by the manifolds.`;
+  const prev = q.systems.find(s=>s.fromHvac === p.id) || q.systems.find(s=>/heating/i.test(s.name) && /cool/i.test(s.name));
+  const sys = { name: "Heating & cooling control", desc: prev && prev.descMan ? prev.desc : desc, descMan: prev ? !!prev.descMan : false, hours: C.hours, work: prev ? prev.work || "" : "", fromHvac: p.id,
+    items: bom.map(l=>Object.assign(newItem(), { qty: l.qty, item: l.item, model: l.model, price: l.price, cost: l.cost, tag: l.tag, desc: l.desc })) };
+  if(prev){ const i = q.systems.indexOf(prev); sys.items.forEach(it=>{ const o = prev.items.find(x=>x.item === it.item); if(o){ it.img = o.img || ""; if(o.imgSize) it.imgSize = o.imgSize; } }); q.systems[i] = sys; } else q.systems.push(sys);
+  const qs = hvAllQs(p, C).map(x=>`${x.q}${x.who ? ` (${x.who})` : ""}${x.assume ? ` Until I hear otherwise: ${x.assume}` : ""}`).join("\n");
+  if(isNew || !q.next || q.next === (p.lastNext || "")) q.next = qs; p.lastNext = qs;
+  if(isNew) q.lede = `Heating and cooling control for ${p.name || "the property"}: every room set its own way, from one wall thermostat or one app.`;
+  q.updated = Date.now();
+  const i = list.findIndex(x=>x.id === q.id); if(i >= 0) list[i] = clone(q); else list.unshift(clone(q));
+  if(mode === "db"){ try{ await db.collection("proposals").doc(q.id).set({ title: q.titleA, ref: q.ref, updated: q.updated, data: q }); }catch(_){ toast("Couldn't save the proposal."); return; } } else lsWrite();
+  if(current && current.id === q.id && !dirty){ current = normalise(clone(q)); buildEditor(); renderPreview(); }
+  fillPicker(); p.proposalId = q.id; hvSchedule(); hvRender();
+  toast(isNew ? `Proposal ${q.ref} started with the heating lines.` : `${q.ref} updated.`); }
+
+/* ---------- drawing sheets (A3) ---------- */
+function hvSheets(p){
+  const C = hvCalc(p), qs = hvAllQs(p, C), floors = p.floors.concat([...new Set(C.R.map(r=>r.floor))].filter(f=>f && !p.floors.includes(f))).filter(f=>C.R.some(r=>r.floor === f));
+  const RPP = 24, schedPages = []; floors.forEach(f=>{ const rs = C.R.filter(r=>r.floor === f); for(let i = 0; i < rs.length; i += RPP) schedPages.push({ f, rows: rs.slice(i, i + RPP), cont: i > 0 }); });
+  const dev = hvDevPlan(p, C);
+  const set = [["Control strategy and summary"],["Outstanding information"]].concat(schedPages.map(x=>[`Room schedule, ${x.f.toLowerCase()} floor${x.cont ? " (cont.)" : ""}`.replace(/ floor floor/, " floor")])).concat([["Control and wiring schematic"],["Responsibilities and first fix"]]).concat(dev.pages.map((x,i)=>["Room control schematic by device" + (dev.pages.length > 1 ? ` (${i + 1} of ${dev.pages.length})` : "")]));
+  const total = set.length, ref = n => `${p.number}-${String(n).padStart(3,"0")}`, sub = "HVAC · Controls";
+  const foot = t => `<div class="hvfoot">${esc(t)}</div>`;
+  const card = (t, n, b, alt) => `<div class="hvsc ${alt ? "alt" : ""}"><div class="hvsch"><b>${esc(t)}</b><span>${esc(n)}</span></div><p>${b}</p></div>`;
+  const cards = [];
+  if(p.heat.wet || p.heat.rad) cards.push(card(p.heat.rad && !p.heat.wet ? "Radiators" : "Wet underfloor heating", `${C.wetZones} zones`, `The heat source in every controlled room through the heating season. The zone calls for heat, a wiring centre opens that room's valve${p.heat.wet ? " at the manifold" : ""}, and the pump and ${esc((p.heat.source || "heat source").toLowerCase())} run while any zone is calling.`));
+  if(p.heat.elec) cards.push(card("Electric underfloor heating", "Switched", "Each electric zone is a switched supply from a wiring centre output, driven by its room's thermostat or virtual zone."));
+  if(p.ac.type !== "none" && C.acRooms) cards.push(card("Air conditioning", `${C.acRooms} rooms`, `Rooms with an indoor unit get one wall thermostat for both heating and cooling. A Polar Bear ${esc(p.ac.brand)} interface at each unit lets it set mode, setpoint and fan. The two are interlocked, so a room never calls for both.`));
+  if(C.vz) cards.push(card("Virtual zones", `${C.vz} rooms`, `Halls, en-suites, wet rooms and other rooms without an indoor unit take an air probe and no thermostat on the wall. The room is set from ${esc(p.integ === "Polar Bear app only" ? "the app" : p.integ + " or the app")}, so a bathroom holds its own setpoint apart from the bedroom.`, true));
+  if(C.R.some(r=>r.c === "z2")) cards.push(card("Second zones", `${C.R.filter(r=>r.c === "z2").length} rooms`, "A Polar Bear thermostat runs two zones: its own room and one more. These rooms run on the thermostat next door, with nothing on their wall."));
+  if(C.rails) cards.push(card("Towel rails", `${C.rails} rails`, "Each rail is a function on its room's thermostat, not a zone: off, auto, a timed boost or two timer periods a day, without turning the floor up. Wired to a wiring centre output."));
+  cards.push(card("Setpoints and schedules", "Per zone", "Each zone holds its own setpoint and its own daily schedule, with a setback when the house is empty and a holiday mode. Values are set at commissioning and changed by the client at any time."));
+  if(p.integ !== "Polar Bear app only") cards.push(card(p.integ, "All zones", `Every zone appears by room name with its temperature and setpoint. The Polar Bear system keeps running on its own if the ${esc(p.integ)} processor is off.`, true));
+  const sumRows = [["Rooms on the room schedule", C.R.length],["Wall thermostats", C.th],["Virtual zones, air probe only", C.vz],["Rooms with no Polar Bear control", C.none]].concat(p.ac.type !== "none" ? [["Rooms with air conditioning", C.acRooms],["AC interfaces, one per indoor unit", C.acif]] : []).concat([["Wiring centres", C.umc],["Actuators" + (C.actKnown ? "" : ", allowance"), C.act]]);
+  const s1 = `<article class="cxa3"><div class="cxmain hvm"><div class="cxh1"><h1>Control strategy and summary <em>Polar Bear room control</em></h1><span>Room control design · mechanical design by ${esc(p.mechBy || "others")}</span></div>
+    <div class="cxcols"><div><div class="cxk">How each room is controlled</div>${cards.join("")}</div>
+    <div><div class="cxk">Summary</div><table class="cxsum">${sumRows.map(([t,v])=>`<tr><td>${esc(t)}</td><td class="r b">${v}</td></tr>`).join("")}</table>
+      <div class="cxk" style="margin-top:22px">The set <small>${total} sheets at A3</small></div><table class="cxsum">${set.map(([t],i)=>`<tr><td class="cid">${esc(ref(i + 1))}</td><td>${esc(t)}</td></tr>`).join("")}</table>
+      <div class="cxk" style="margin-top:22px">Thermostats</div><table class="cxsum"><tr><td>Model</td><td class="r">${p.stat.model === "ursium" ? "Ursium Pro" : "Zentium Pro"}</td></tr><tr><td>Finish</td><td class="r">${esc(p.stat.finish || "TBC")}</td></tr>${p.stat.combo !== "None" ? `<tr><td>Combination plate</td><td class="r">${esc(p.stat.combo)}</td></tr>` : ""}<tr><td>Engraved room names</td><td class="r">${p.stat.engrave ? "Yes" : "No"}</td></tr></table></div></div>
+    ${foot("Outstanding information on " + ref(2) + " · room schedules from " + ref(3) + " · schematic on " + ref(total - dev.pages.length - 1))}</div>${cxTitle(p, "Control strategy and summary", sub, 1, total)}</article>`;
+  const whoG = {}; qs.forEach((q,i)=>{ const w = q.who || "TBC"; (whoG[w] = whoG[w] || []).push(String(i + 1).padStart(2,"0")); });
+  const s2 = `<article class="cxa3"><div class="cxmain hvm"><div class="cxh1"><h1>Outstanding information <em>${qs.length} questions · ${qs.filter(q=>q.assume).length} assumptions</em></h1><span>Plain questions · mark up and return</span></div>
+    <div class="cxcols" style="grid-template-columns:1.6fr .8fr"><div><div class="cxk">What we still need <small>before the control design is fixed</small></div>
+      ${qs.map((q,i)=>`<div class="hvsq"><span class="n">${String(i + 1).padStart(2,"0")}</span><div><b>${esc(q.q)}</b>${q.why ? `<p>${esc(q.why)}</p>` : ""}${q.assume ? `<p class="as"><span>Assumed</span> ${esc(q.assume)}</p>` : ""}</div><span class="who">${esc(q.who || "TBC")}</span></div>`).join("")}</div>
+    <div><div class="cxk">Who we are waiting on</div><table class="cxsum">${Object.entries(whoG).map(([w,ns])=>`<tr><td>${esc(w)}</td><td class="r">Items ${ns.join(", ")}</td></tr>`).join("")}</table>
+      <div class="cxk" style="margin-top:22px">How to respond</div><p class="hvp">Mark up this sheet and return it, or reply against the item numbers. Anything unanswered stays as the assumption shown, and we will proceed on that basis and note it at the next revision.</p></div></div>
+    ${foot("Control strategy on " + ref(1) + " · room schedules from " + ref(3))}</div>${cxTitle(p, "Outstanding information", sub, 2, total)}</article>`;
+  const heatT = { wet: "Wet UFH", elec: "Elec UFH", rad: "Rads", none: "—" };
+  const sched = schedPages.map((pg,pi)=>{ const n = pi + 3, all = C.R.filter(r=>r.floor === pg.f);
+    return `<article class="cxa3"><div class="cxmain hvm"><div class="cxh1"><h1>Room schedule, ${esc(pg.f.toLowerCase())}${/floor/i.test(pg.f) ? "" : " floor"}${pg.cont ? " (cont.)" : ""} <em>${all.length} rooms · ${all.filter(r=>r.c === "th").length} thermostats · ${all.filter(r=>r.c === "vz").length} virtual</em></h1><span>Room names per the room schedule</span></div>
+      <div class="cxcols" style="grid-template-columns:1.7fr .7fr"><div><table class="cxt hvt"><tr><th>ID</th><th>Room</th><th>Heating</th><th>AC</th><th>Control</th><th>Unit ref</th><th>Rail</th></tr>
+        ${pg.rows.map(r=>`<tr class="${r.c}"><td class="cid">${esc(r.no)}</td><td>${esc(r.name)}</td><td>${heatT[r.heat]}</td><td>${num(r.ac) ? (num(r.ac) > 1 ? num(r.ac) + " units" : "Yes") : "—"}</td><td><b class="rf">${esc(r.ref)}</b></td><td>${esc(r.units || "—")}</td><td>${r.rail === "none" ? "—" : r.rail === "wet" ? "Wet" : "Electric"}</td></tr>`).join("")}</table></div>
+      <div><div class="cxk">Reading this schedule</div><table class="cxsum hvleg"><tr><td class="cid">TH-nn</td><td>A Polar Bear wall thermostat in that room. Heating, and cooling where the room has a unit.</td></tr><tr><td class="cid">V-nn</td><td>A virtual zone. Air probe only, no thermostat on the wall. Set from ${esc(p.integ === "Polar Bear app only" ? "the app" : p.integ + " or the app")}.</td></tr><tr><td class="cid">Zone 2</td><td>Runs as the second zone on the thermostat named.</td></tr><tr><td class="cid">None</td><td>No Polar Bear control. Cupboards, unheated spaces, or rooms that follow an adjacent zone.</td></tr>${p.ac.type !== "none" ? `<tr><td class="cid">Unit ref</td><td>The indoor unit that thermostat addresses, per the mechanical drawings.</td></tr>` : ""}</table>
+        ${pg.rows.some(r=>r.note) ? `<div class="cxk" style="margin-top:22px">Notes</div>${pg.rows.filter(r=>r.note).map(r=>`<p class="hvp"><b>${esc(r.no)}</b> ${esc(r.note)}</p>`).join("")}` : ""}</div></div>
+      ${foot("Control strategy on " + ref(1) + " · outstanding information on " + ref(2))}</div>${cxTitle(p, `Room schedule, ${pg.f.toLowerCase()}`, sub, n, total)}</article>`; }).join("");
+  const nS = total - dev.pages.length - 1, nR = nS + 1, intg = p.integ === "Polar Bear app only" ? "Polar Bear app" : p.integ;
+  const col = (t, n, a, inRoom, to) => `<div class="hvbx"><div class="hvsch"><b>${t}</b><span>${n}</span></div><p>${a}</p><div class="cxk sm">In the room</div><ul>${inRoom.map(x=>`<li>${x}</li>`).join("")}</ul><div class="cxk sm">Connects to</div><p>${to}</p></div>`;
+  const s5 = `<article class="cxa3"><div class="cxmain hvm"><div class="cxh1"><h1>Control and wiring schematic <em>Control intent · not cable routing</em></h1><span>Terminations per the Polar Bear wiring references</span></div>
+    <div class="cxcols" style="grid-template-columns:1.75fr .75fr"><div>
+      <div class="hvrow2"><div class="hvbx"><div class="hvsch"><b>${esc(intg)}</b><span>halo.je</span></div><p>Every zone by room name, with temperature and setpoint.</p></div><span class="hvlink">Network</span><div class="hvbx"><div class="hvsch"><b>Polar Bear gateway${C.q.gw > 1 ? "s" : ""}</b><span>halo.je</span></div><p>Holds the zones, schedules and setpoints. Runs on its own if the control system is off.</p></div></div>
+      <div class="hvbx wide"><div class="hvsch"><b>Controls cabinet <small>${esc(p.cab)}</small></b><span>${C.umc} wiring centre${C.umc === 1 ? "" : "s"} · ${C.q.hub} hubs</span></div><p>Built, installed and commissioned by halo.je: 24 V supply for the Polar Bear equipment, the bus hubs every device plugs into, the wiring centres and the gateway. Power provided and connected by the electrical contractor, on its own RCD circuit, controls only.</p></div>
+      <div class="hvdiv">One cable per device, back to the cabinet. Nothing daisy chained</div>
+      <div class="hvrow3">${col("Wall thermostats", C.th, `One per room ${p.ac.type !== "none" ? "with an indoor unit" : "that needs one"}. Sets and senses the room, and drives heating${p.ac.type !== "none" ? " and cooling where the room has a unit" : ""}.`, ["Wall device on a " + (p.stat.model === "ursium" ? "deep 47 mm UK metal back box" : "Polar Bear back box") + ", clear of doors and draughts", "Senses room air at the device, no separate probe", p.stat.engrave ? "Engraved with the room name" : "Finish " + esc(p.stat.finish || "TBC")], "The wiring centre holding its zone valve output" + (p.ac.type !== "none" ? ", and its AC interface where the room is cooled." : "."))}
+        ${col("Virtual zones", C.vz, "Rooms with no thermostat on the wall. An air probe runs back to a wiring centre and the room is set from " + esc(intg) + ".", ["Air probe at a position agreed on site, clear of draughts and heat sources", "No thermostat on the wall", "Appears by name, with its own setpoint"], "A probe input at its wiring centre, and the zone valve output for that room.")}
+        ${p.ac.type !== "none" ? col("AC interfaces", C.acif, `A Polar Bear ${esc(p.ac.brand)} interface at each indoor unit that lets the thermostat set mode, setpoint and fan.`, ["Sits in or within reach of the unit casing, accessible", "One per indoor unit, so a two unit room takes two", "Manufacturer's room controllers hidden in the plant space"], "The control connector on the indoor unit, and the thermostat for that room.") : col("Wiring centres", C.umc, "UMC2 wiring centres at the manifolds: outputs to the zone actuators and pump, inputs for the air probes.", ["In the cabinet or beside the manifolds", "8 heat outputs and a pump output each", "8 inputs for probes or contacts"], "The cabinet bus, each zone actuator and the pump enable.")}</div>
+      <div class="hvbx dash"><div class="hvsch"><b>Mechanical installation</b><span>By others</span></div><ul class="cols">${["Manifolds and zone valve bodies","Pump, heat source and control terminals","230 V supplies to plant, and to the cabinet, provided and connected","Screed and finishes"].concat(p.ac.type !== "none" ? ["Indoor units and refrigerant pipework"] : []).map(x=>`<li>${x}</li>`).join("")}</ul></div></div>
+    <div><div class="cxk">Notes</div>${["This sheet shows control intent. It is not a cable routing drawing and sets no containment.","Terminal connections are per the Polar Bear wiring references for the delivered devices, and are not repeated here.","One cable per device back to the cabinet. Nothing is daisy chained, so a fault stays on one device.","Polar Bear equipment runs from its own 24 V supply. Nothing else shares it."].concat(p.ac.type !== "none" ? ["Heating and cooling are interlocked in the zone engine. A room does not call for both at once."] : []).concat(["One valve output per room is allowed. Rooms on more than one loop group need a second, once the manifold schedule is issued.","All first fix wiring is by the electrical contractor to a halo.je cable schedule, issued before first fix.","Every zone holds its own setpoint as drawn. A zone can be grouped to follow an adjacent zone at commissioning and ungrouped later."]).map((t,i)=>`<div class="hvnote"><span>${String(i + 1).padStart(2,"0")}</span>${t}</div>`).join("")}
+      <div class="cxk" style="margin-top:18px">Legend</div><div class="hvleg2"><i></i>halo.je supplied and installed</div><div class="hvleg2 d"><i></i>By others, shown for connection only</div></div></div>
+    ${foot("Room schedules from " + ref(3) + " · responsibilities and cables on " + ref(nR) + (dev.pages.length ? " · schematic by device on " + ref(nR + 1) : ""))}</div>${cxTitle(p, "Control and wiring schematic", sub, nS, total)}</article>`;
+  const who = [["halo.je","Controls integrator","us"],[p.elecBy || "Electrical contractor","All first fix wiring","elec"]].concat(p.ac.type !== "none" ? [[p.acBy || "AC contractor","By others","ac"]] : []).concat([[p.heatBy || "Heating engineer","By others","heat"]]);
+  const s6 = `<article class="cxa3"><div class="cxmain hvm"><div class="cxh1"><h1>Responsibilities and first fix <em>${esc(who.map(w=>w[0]).join(" · "))}</em></h1><span>All first fix wiring by the electrical contractor</span></div>
+    <div class="cxcols" style="grid-template-columns:1.3fr 1fr"><div><div class="cxk">Who does what</div>${who.map(([t,s,k])=>`<div class="hvwho"><div class="hvsch"><b>${esc(t)}</b><span>${esc(s)}</span></div><ul>${lines(hvFill(p, p.resp[k])).map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`).join("")}</div>
+    <div><div class="cxk">First fix cables <small>types only · quantities with the cable schedule</small></div><table class="cxsum">${HV_CABLES.filter(([t])=>p.ac.type !== "none" || !/AC interface/.test(t)).map(([t,c])=>`<tr><td>${esc(t)}</td><td class="r b">${esc(c)}</td></tr>`).join("")}</table>
+      <div class="cxk" style="margin-top:22px">Before first fix</div>${["halo.je marks up device positions on the architect's plans and issues the cable schedule.","Electrical contractor sets back boxes and conduit, and pulls all cable to the cabinet position.","Air probe cables pulled to each agreed probe position and left coiled for halo.je to terminate.","Cabinet position, supply and containment agreed on site before cables are pulled.","halo.je terminates, addresses and commissions once second fix is complete."].map((t,i)=>`<div class="hvnote"><span>${String(i + 1).padStart(2,"0")}</span>${t}</div>`).join("")}</div></div>
+    ${foot("Schematic on " + ref(nS) + " · room schedules from " + ref(3) + " · outstanding information on " + ref(2))}</div>${cxTitle(p, "Responsibilities and first fix", sub, nR, total)}</article>`;
+  return s1 + s2 + sched + s5 + s6 + hvDevSheets(p, C, dev, nR + 1, total, ref);
+}
+
+/* room control schematic by device: one row per controlled room, two columns a sheet */
+function hvDevPlan(p, C){
+  const floors = p.floors.concat([...new Set(C.R.map(r=>r.floor))].filter(f=>f && !p.floors.includes(f)));
+  let eth = 0, port = 0; const ethName = i => "ETH-" + String.fromCharCode(65 + i);
+  const rows = [];
+  floors.forEach(f=>C.R.filter(r=>r.floor === f && ["th","vz","z2"].includes(r.c)).forEach(r=>{ const o = { r, f };
+    if(r.c === "vz"){ if(port === 8){ eth++; port = 0; } port++; o.op = `${ethName(eth)} P${port} / O/P`; o.dev = "AP"; o.h = "W-1500"; o.tag = `${r.no || "XX"}-AP-01`; }
+    else if(r.c === "th"){ o.op = "ZONE O/P"; o.dev = "TH"; o.h = "W-1200"; o.tag = `${r.no || "XX"}-TH-01`; }
+    else { o.op = "ZONE 2 O/P"; o.dev = ""; o.h = ""; o.tag = r.ref; }
+    rows.push(o); }));
+  const cols = [], hgt = o => num(o.r.ac) > 0 && p.ac.type !== "none" ? 47 : 39;
+  floors.forEach(f=>{ const rs = rows.filter(x=>x.f === f); let cur = [], used = 0;
+    rs.forEach(o=>{ const cap = cols.length < 2 ? 740 : 880; if(used + hgt(o) > cap && cur.length){ cols.push({ f, rows: cur, cont: cols.some(c=>c.f === f) }); cur = []; used = 0; } cur.push(o); used += hgt(o); });
+    if(cur.length) cols.push({ f, rows: cur, cont: cols.some(c=>c.f === f) }); });
+  cols.push({ key: true });
+  const pages = []; for(let i = 0; i < cols.length; i += 2) pages.push(cols.slice(i, i + 2));
+  return rows.length ? { pages, rows } : { pages: [], rows };
+}
+function hvDevSheets(p, C, dev, start, total, ref){
+  if(!dev.pages.length) return "";
+  const intg = p.integ === "Polar Bear app only" ? "Polar Bear app" : p.integ, ac = p.ac.type !== "none";
+  const head = `<div class="hvdh"><div class="hvdb dash"><b>Supply · dedicated RCD circuit</b><small>${esc(p.elecBy || "Electrical contractor")}</small></div><span class="hvdl d"></span>
+    <div class="hvdcab"><div class="hvdct"><b>Controls cabinet</b><small>halo.je builds, installs and commissions</small></div><div class="hvdin"><div class="hvdb"><b>Polar Bear gateway</b><small>Zone engine</small></div><div class="hvdb"><b>24 V DC supply</b><small>UMC2s and thermostats, via pBUS</small></div><div class="hvdb"><b>Termination</b><small>One cable per device</small></div></div></div><span class="hvdl"></span>
+    <div class="hvdst"><div class="hvdb"><b>${esc(intg)}</b><small>Integration by halo.je</small></div><div class="hvdb dash"><b>Home network</b><small>By others</small></div></div></div>
+    <div class="hvdbus">pBUS · 24 V DC and data on one cable · star wired, one cable per thermostat and per UMC2<br>Air probes · own screened 2-core cable, one per probe, to a UMC2-ETH input P1 to P8</div>`;
+  const row = (o, i) => { const r = o.r, n = num(r.ac), tbc = !C.actKnown;
+    return `<div class="hvdr ${ac && n ? "two" : ""}"><span class="no">${esc(r.no)}</span><span class="rm">${esc(r.name)}</span>
+      ${o.dev ? `<i class="hvdc">${o.dev}</i><span class="tg">${o.h}<br>${esc(o.tag)}</span>` : `<i class="hvdc z">Z2</i><span class="tg">${esc(r.ref)}</span>`}
+      <span class="ln a"></span><span class="bx op">${esc(o.op)}</span><span class="ln s"></span><span class="bx act">ACTUATOR(S)${r.rail !== "none" ? " + RAIL" : ""}</span>
+      ${ac && n ? `<span class="ln b"></span><span class="bx ifc">AC-IF${n > 1 ? ` ×${n}` : ""}</span><span class="ln d"></span><span class="bx dash">${esc(r.units || "TBC")}</span>` : ""}</div>`; };
+  const col = c => { if(c.key){ const items = [[C.th,"Wall thermostats"],[C.vz,"Virtual zones"],[C.heated,"Heated zones"]].concat(ac ? [[C.acif,"AC interfaces"]] : []).concat([[C.eth,"UMC2-ETH for air probes"],[C.actKnown ? C.umc - C.eth : "TBC","UMC2 for thermostat zones"]]);
+      const skipped = C.R.filter(r=>!["th","vz","z2"].includes(r.c) && r.heat !== "none");
+      return `<div class="hvdcol"><div class="cxk">Counts</div><div class="hvdcount">${items.map(([v,t])=>`<span><b class="${v === "TBC" ? "tbc" : ""}">${v}</b>${t}</span>`).join("")}</div>
+        <div class="cxk" style="margin-top:18px">Legend</div>
+        <div class="hvdleg"><i class="hvdc">TH</i><p>Wall thermostat. Senses the room at the device. W-1200 is the mounting height to centre, mm. Ref is room, device, number.</p></div>
+        <div class="hvdleg"><i class="hvdc">AP</i><p>Air probe for a virtual zone, W-1500. Own screened 2-core cable to a UMC2-ETH input. Set from ${esc(intg)} or the app.</p></div>
+        ${C.R.some(r=>r.c === "z2") ? `<div class="hvdleg"><i class="hvdc z">Z2</i><p>Second zone on the thermostat named. Nothing on the wall.</p></div>` : ""}
+        <div class="hvdleg"><span class="bx">&nbsp;</span><p>halo.je supplied and installed.</p></div><div class="hvdleg"><span class="bx dash">&nbsp;</span><p>By others, shown for connection only.</p></div>
+        <div class="cxk" style="margin-top:18px">Notes</div>${["Control intent only. Not a cable routing drawing and sets no containment.","Terminations per the Polar Bear wiring references, not repeated here.","Every thermostat and UMC2 is on the Polar Bear pBUS, which carries 24 V DC and data on one cable.",`The ${C.vz} air probes land on ${C.eth} UMC2-ETH, inputs P1 to P8, each driving its own room output. Allocation shown is indicative.`, C.actKnown ? "Actuator quantity per zone follows the manifold ports." : "Actuator quantity per zone follows the manifold ports, to be confirmed by the heating engineer.", skipped.length ? `Rooms that follow another zone are not shown: ${skipped.map(r=>`${r.name}${r.no ? " " + r.no : ""}`).join(", ")}.` : "Rooms with no control are not shown.","All first fix wiring by the electrical contractor to a halo.je cable schedule, issued before first fix."].map((t,i)=>`<div class="hvnote"><span>${String(i + 1).padStart(2,"0")}</span>${esc(t)}</div>`).join("")}</div>`; }
+    const all = dev.rows.filter(x=>x.f === c.f), th = all.filter(x=>x.r.c === "th").length, vz = all.filter(x=>x.r.c === "vz").length;
+    return `<div class="hvdcol"><div class="hvdfh"><h2>${esc(c.f)}${/floor/i.test(c.f) ? "" : " floor"}${c.cont ? " (cont.)" : ""}</h2><span>${all.length} zones · ${th} thermostats · ${vz} virtual</span></div>
+      <div class="hvdr hd"><span class="no">Room</span><span class="rm"></span><span style="grid-column:3/5">Device</span><span class="op" style="grid-column:6">UMC2 zone o/p<br>AP: UMC2-ETH input</span><span style="grid-column:8">Actuator${C.actKnown ? "" : ` <b class="tbc">qty TBC</b>`}</span>${ac ? `<span style="grid-column:10">AC interface</span><span style="grid-column:12">Indoor unit<br>by AC contractor</span>` : ""}</div>
+      ${c.rows.map(row).join("")}</div>`; };
+  return dev.pages.map((pg,i)=>`<article class="cxa3"><div class="cxmain hvm hvdev"><div class="cxh1"><h1>Room control schematic by device <em>${esc(ref(start + i))} · system schematic</em></h1><span>Control intent · not to scale · by others shown dashed</span></div>
+    ${i === 0 ? head : ""}<div class="hvdcols">${pg.map(col).join("")}</div>
+    <div class="hvfoot">Room schedules from ${esc(ref(3))} · responsibilities and cable types on ${esc(ref(start - 1))} · outstanding information on ${esc(ref(2))}</div></div>${cxTitle(p, "Room control schematic by device", "HVAC · Controls", start + i, total)}</article>`).join("");
+}
+function hvFit(){ const sc = $("#hvScroll"), sh = $("#hvSheets"); if(!sc || !sh) return; sh.style.setProperty("--dz", Math.min(1, Math.max(.2, (sc.clientWidth - 40) / 1587)).toFixed(3)); }
+addEventListener("resize", ()=>{ if(hvView === "sheets") hvFit(); });
+async function hvPdf(){
+  if(!hvCur) return; const busy = document.createElement("div"); busy.className = "busy"; busy.innerHTML = "<div>Building drawings</div>"; document.body.appendChild(busy);
+  try{ const host = document.createElement("div"); host.style.cssText = "position:absolute;left:0;top:0;width:1587px;pointer-events:none;z-index:-1"; host.innerHTML = hvSheets(hvCur); document.body.appendChild(host);
+    await document.fonts.ready; const { jsPDF } = window.jspdf, pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3", compress: true }), sheets = [...host.querySelectorAll(".cxa3")];
+    for(let k = 0; k < sheets.length; k++){ busy.firstChild.textContent = `Building sheet ${k + 1} of ${sheets.length}`; const c = await html2canvas(sheets[k], { scale: 1.6, backgroundColor: "#ffffff", useCORS: true, logging: false, windowWidth: 1800, scrollX: 0, scrollY: -window.scrollY }); if(k) pdf.addPage("a3", "landscape"); pdf.addImage(c.toDataURL("image/jpeg", .92), "JPEG", 0, 0, 420, 297); }
+    host.remove(); busy.remove(); await offer(`${hvCur.number || "Heating"} ${hvCur.name || ""} HVAC control Rev ${hvCur.rev}.pdf`.replace(/[\\/:*?"<>|]+/g, "").trim(), pdf.output("blob"));
+  }catch(err){ busy.remove(); console.error(err); toast("The drawings couldn't be built."); }
+}
+
+/* ---------- events ---------- */
+function hvSet(path, v){ const ks = path.split("."); let o = hvCur; for(let i = 0; i < ks.length - 1; i++) o = o[ks[i]]; o[ks[ks.length - 1]] = v; }
+$("#hvRows").addEventListener("click", async e=>{ if(e.target.closest("[data-hvguide]")){ hvView = "guide"; hvRenderList(); hvRender(); if(PH()) setView("preview"); return; }
+  const b = e.target.closest("[data-hv]"); if(!b) return; if(hvDirty) await hvSave(); const f = hvList.find(x=>x.id === b.dataset.hv); if(!f) return; hvCur = clone(f); hvView = "edit"; hvRenderList(); hvRender(); if(PH()) setView("preview"); });
+$("#hvSearch").addEventListener("input", hvRenderList);
+function hvNew(){ const s = hvBlank(); hvList.unshift(s); hvCur = clone(s); hvView = "edit"; hvSave(); hvRenderList(); hvRender(); if(PH()) setView("preview"); }
+$("#hvNew").addEventListener("click", hvNew);
+$("#hvScroll").addEventListener("input", e=>{ const t = e.target, p = hvCur; if(!p) return;
+  if(t.dataset.hk){ const v = t.type === "checkbox" ? t.checked : t.type === "radio" ? t.value : t.type === "number" && t.dataset.hk !== "hoursOver" ? num(t.value) : t.value; hvSet(t.dataset.hk, v);
+    if(t.dataset.hk === "name"){ const h = $("#hvScroll .jhead h2"); if(h) h.textContent = t.value || "New heating design"; }
+    hvSchedule(); if(t.tagName === "SELECT" || t.type === "checkbox" || t.type === "radio") hvRender(); return; }
+  if(t.dataset.hb){ const [k,f] = t.dataset.hb.split("."); p.book[k][f] = t.type === "number" ? num(t.value) : t.value; hvSchedule(); return; }
+  if(t.dataset.hq){ p.qtyOver[t.dataset.hq] = t.value; hvSchedule(); return; }
+  if(t.dataset.hfl !== undefined){ const i = +t.dataset.hfl, old = p.floors[i]; p.floors[i] = t.value; p.rooms.forEach(r=>{ if(r.floor === old) r.floor = t.value; }); hvSchedule(); return; } });
+$("#hvScroll").addEventListener("change", e=>{ const t = e.target; if(!hvCur) return; if((t.dataset.hk && t.type !== "checkbox" && t.type !== "radio" && t.tagName !== "SELECT") || t.dataset.hb || t.dataset.hq) hvRender(); });
+$("#hvScroll").addEventListener("click", async e=>{
+  const qz = e.target.closest("[data-hqz]"); if(qz){ const [i,j] = qz.dataset.hqz.split(".").map(Number); hvQuiz[i] = j; hvRender(); return; }
+  const st = e.target.closest("[data-hstep]"); if(st && hvCur){ hvCur.step = +st.dataset.hstep; hvSchedule(); hvRender(); $("#hvScroll").scrollTop = 0; return; }
+  const b = e.target.closest("[data-ha]"); if(!b) return; const a = b.dataset.ha, p = hvCur, i = +b.dataset.i;
+  if(a === "new"){ hvNew(); return; }
+  if(a === "guide"){ hvView = "guide"; hvRenderList(); hvRender(); $("#hvScroll").scrollTop = 0; return; }
+  if(a === "quizreset"){ hvQuiz = {}; hvRender(); return; }
+  if(a === "edit"){ hvView = "edit"; hvRenderList(); hvRender(); return; }
+  if(!p) return;
+  if(a === "next" || a === "prev"){ p.step = Math.max(0, Math.min(HV_STEPS.length - 1, (p.step || 0) + (a === "next" ? 1 : -1))); hvSchedule(); hvRender(); $("#hvScroll").scrollTop = 0; return; }
+  if(a === "sheets"){ if(hvDirty) await hvSave(); hvView = "sheets"; hvRender(); $("#hvScroll").scrollTop = 0; return; }
+  if(a === "pdf"){ if(hvDirty) await hvSave(); hvPdf(); return; }
+  if(a === "frompl"){ const id = ($("#hvFromPl") || {}).value, pl = (typeof plList !== "undefined" ? plList : []).find(x=>x.id === id); if(!pl){ toast("Choose a plan first."); return; } const n = hvFromPlan(pl); toast(n ? `${n} rooms added.` : "Those rooms are already here."); }
+  else if(a === "fromdw"){ const id = ($("#hvFromDw") || {}).value, d = (typeof dwList !== "undefined" ? dwList : []).find(x=>x.id === id); if(!d){ toast("Choose a drawing set first."); return; } const n = hvFromDrawing(d); toast(n ? `${n} rooms added.` : "Those rooms are already here."); }
+  else if(a === "addroom"){ p.rooms.push(hvNorm({ rooms: [{ floor: b.dataset.f, heat: p.heat.wet ? "wet" : p.heat.elec ? "elec" : p.heat.rad ? "rad" : "none" }] }).rooms[0]); hvSchedule(); hvRender(); setTimeout(()=>{ const ins = [...document.querySelectorAll('#hvScroll [data-hk$=".name"]')]; const l = ins[ins.length - 1]; l && l.focus(); }, 30); return; }
+  else if(a === "rmroom"){ const id = p.rooms[i].id; p.rooms.splice(i, 1); p.rooms.forEach(r=>{ if(r.host === id) r.host = ""; }); }
+  else if(a === "addfloor"){ p.floors.push(["Ground","First","Second","Third","Lower ground","Basement"].find(f=>!p.floors.includes(f)) || "New floor"); }
+  else if(a === "rmfloor"){ const f = p.floors[i], n = p.rooms.filter(r=>r.floor === f).length; if(n && !confirm(`Remove ${f} and its ${n} rooms?`)) return; p.floors.splice(i, 1); p.rooms = p.rooms.filter(r=>r.floor !== f); }
+  else if(a === "paste"){ hvPaste = b.dataset.f; hvRender(); setTimeout(()=>{ const t = $("#hvPasteT"); t && t.focus(); }, 30); return; }
+  else if(a === "pastex"){ hvPaste = null; }
+  else if(a === "pasteok"){ const t = ($("#hvPasteT") || {}).value || "", f = b.dataset.f, heat = p.heat.wet ? "wet" : p.heat.elec ? "elec" : p.heat.rad ? "rad" : "none"; let n = 0;
+    t.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).forEach(l=>{ const m = l.match(/^(\d+[A-Za-z]?)[\s.\-:]+(.+)$/), name = (m ? m[2] : l).trim(), cold = /cup'?d|cupboard|store|plant|garage|sauna|elec|riser|void/i.test(name);
+      p.rooms.push(hvNorm({ rooms: [{ no: m ? m[1] : "", name, floor: f, heat: cold ? "none" : heat }] }).rooms[0]); n++; });
+    hvPaste = null; toast(`${n} rooms added. Cupboards, plant and garages start with no heating.`); }
+  else if(a === "addman"){ p.mans.push({ id: uid(), name: `Manifold ${p.mans.length + 1}`, loc: "", ports: "" }); }
+  else if(a === "rmman"){ p.mans.splice(i, 1); }
+  else if(a === "qoff"){ p.qsOff[b.dataset.k] = true; }
+  else if(a === "qon"){ p.qsOff = {}; }
+  else if(a === "addq"){ p.qs.push({ id: uid(), q: "", why: "", who: "", assume: "" }); }
+  else if(a === "rmq"){ p.qs.splice(i, 1); }
+  else if(a === "qtyreset"){ p.qtyOver = {}; }
+  else if(a === "toprop"){ await hvToProposal(($("#hvProp") || {}).value || "new"); return; }
+  else if(a === "openprop"){ if(p.proposalId){ setTab("proposals"); open(p.proposalId); if(PH()) setView("preview"); } return; }
+  else if(a === "del"){ if(!confirm(`Delete the heating design for ${p.name || "this project"}?`)) return; const id = p.id; hvList = hvList.filter(x=>x.id !== id); hvCur = null; if(mode === "db"){ try{ await db.collection("hvac").doc(id).delete(); }catch(_){} } else { try{ localStorage.setItem(LS + ".hvac", JSON.stringify(hvList)); }catch(_){} } hvRenderList(); hvRender(); if(PH()) setView("edit"); return; }
+  hvSchedule(); hvRender(); });
+$("#tabH").addEventListener("click", ()=>setTab("hvac"));
+
 /* ---- app feel 2: slide-in screens, back button, swipe back, pull to refresh, quick sheets, Today ---- */
 const PH = ()=>innerWidth <= 860;
-const DRILL = { cables: "Cables", planner: "Plans", jobs: "Jobs", customers: "Customers", leads: "Leads", todo: "To-do", stock: "Stock", promos: "Promotions", knowledge: "Knowledge" };
-const WORK = { cables: "xwork", planner: "bwork", proposals: "work", drawings: "dwork", jobs: "jwork", customers: "cwork", leads: "lwork", todo: "twork", stock: "swork", promos: "mwork", knowledge: "kwork" };
+const DRILL = { hvac: "Heating", cables: "Cables", planner: "Plans", jobs: "Jobs", customers: "Customers", leads: "Leads", todo: "To-do", stock: "Stock", promos: "Promotions", knowledge: "Knowledge" };
+const WORK = { hvac: "hwork", cables: "xwork", planner: "bwork", proposals: "work", drawings: "dwork", jobs: "jwork", customers: "cwork", leads: "lwork", todo: "twork", stock: "swork", promos: "mwork", knowledge: "kwork" };
 (function(){
   const app = $("#app"); app.dataset.pv = $("#work").dataset.view || "edit";
   const base = setView;
