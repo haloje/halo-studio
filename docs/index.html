@@ -237,6 +237,7 @@ body.pdfvon .tabbar{display:none}
 .sheet .swrow .no{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;color:var(--d-brown);padding-top:3px}
 .sheet .swrow h4{font-family:var(--f-display);font-weight:400;font-size:15.5px;color:var(--d-ink);margin:0 0 4px}
 .sheet .swrow p{margin:0;font-size:12.2px}
+.sheet td.ue{white-space:nowrap;color:#6a645c}
 .sheet .prods{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
 .sheet .sysgap{height:26px}
 .sheet hr.pbm{border:0;border-top:1px dashed #d8b98f;margin:10px 0;position:relative}
@@ -1408,24 +1409,25 @@ function renderDoc(p){
 
   // scope, one page per system. With one system, the lines that sit outside it (delivery, contractors, allowance,
   // discount, GST) are repeated under it so its table ends on the same total as the summary.
-  const row = (l, v) => `<tr><td class="q"></td><td class="it">${l}</td><td class="mm"></td><td class="r pr">${v}</td></tr>`;
+  const su = p.showUnit !== false, ue = su ? `<td class="r ue"></td>` : "";
+  const row = (l, v) => `<tr><td class="q"></td><td class="it">${l}</td><td class="mm"></td>${ue}<td class="r pr">${v}</td></tr>`;
   const oneTail = p.systems.length === 1 && Math.abs(t.grand - t.sys[0].total) > 0.004
     ? (t.contr ? row(esc(p.contractorTitle || "Contractor labour"), money(t.contr,p)) : "") + (t.ship ? row(esc(p.shipLabel || "Delivery to Jersey"), money(t.ship,p)) : "")
       + (t.allow ? row(esc(p.allowanceLabel), money(t.allow,p)) : "") + (t.disc ? row(esc(discText(p)), "−" + money(t.disc,p)) : "") + (p.gst ? row("GST at 5%", money(t.gst,p)) : "")
-      + `<tr class="sub"><td></td><td colspan="2">${esc(p.totalLabel || "Total")}</td><td class="r">${money(t.grand,p)}</td></tr>`
+      + `<tr class="sub"><td></td><td colspan="${su ? 3 : 2}">${esc(p.totalLabel || "Total")}</td><td class="r">${money(t.grand,p)}</td></tr>`
     : "";
   p.systems.forEach((s,i)=>{
     const items = s.items.filter(it => it.item || it.model || num(it.price));
     const sp = p.showParts !== false;
-    const body = items.map(it=>`<tr${it.pb?' class="pb"':''}><td class="q">${esc(it.qty)}</td><td class="it"${sp?"":' colspan="2"'}>${esc(it.item)}${it.tag?`<span class="tag">${esc(it.tag)}</span>`:""}</td>${sp?`<td class="mm">${esc(it.model)}</td>`:""}<td class="r pr">${money(num(it.qty)*sellUnit(p, it),p)}</td></tr>`).join("")
-      + (num(s.hours) ? `<tr><td class="q"></td><td class="it">Installation, programming and commissioning</td><td class="mm">${esc(s.hours)} hours</td><td class="r pr">${money(t.sys[i].inst,p)}</td></tr>` : "")
-      + (oneTail || `<tr class="sub"><td></td><td colspan="2">${esc(s.name)} total</td><td class="r">${money(t.sys[i].total,p)}</td></tr>`);
+    const body = items.map(it=>`<tr${it.pb?' class="pb"':''}><td class="q">${esc(it.qty)}</td><td class="it"${sp?"":' colspan="2"'}>${esc(it.item)}${it.tag?`<span class="tag">${esc(it.tag)}</span>`:""}</td>${sp?`<td class="mm">${esc(it.model)}</td>`:""}${su ? `<td class="r ue">${num(it.price) ? money(sellUnit(p, it),p) : ""}</td>` : ""}<td class="r pr">${money(num(it.qty)*sellUnit(p, it),p)}</td></tr>`).join("")
+      + (num(s.hours) ? `<tr><td class="q"></td><td class="it">Installation, programming and commissioning</td><td class="mm">${esc(s.hours)} hours</td>${su ? `<td class="r ue">${money(num(p.rate),p)} per hour</td>` : ""}<td class="r pr">${money(t.sys[i].inst,p)}</td></tr>` : "")
+      + (oneTail || `<tr class="sub"><td></td><td colspan="${su ? 3 : 2}">${esc(s.name)} total</td><td class="r">${money(t.sys[i].total,p)}</td></tr>`);
     const work = lines(s.work);
     const feat = items.filter(it => (it.desc && it.desc.trim()) || it.img);
     const cards = feat.length ? `<div class="prods">${feat.map(it=>`<div class="prod${feat.length===1?" solo":""}${it.img && it.imgSize && it.imgSize !== "M" ? " isz-" + esc(String(it.imgSize).toLowerCase()) : ""}">${it.img?`<div class="pic"><img src="${esc(it.img)}" alt="${esc(it.item)}" crossorigin="anonymous"></div>`:""}<div class="txt">${it.model && p.showParts !== false?`<div class="mono">${esc(it.model)}</div>`:""}<h4>${esc(it.item)}</h4>${paras(it.desc).map(x=>`<p>${inline(x)}</p>`).join("")}</div></div>`).join("")}</div>` : "";
     const sysHtml = `${i===0?`<div class="mono kick">Scope</div><h2>What's <em>included.</em></h2>`:""}
       <h3>${esc(s.name)}</h3>${s.desc?paras(s.desc).map(x=>`<p>${inline(x)}</p>`).join(""):""}
-      <table><tr><th>Qty</th><th>Item</th><th>${p.showParts !== false ? "Part number" : ""}</th><th class="r">Price</th></tr>${body}</table>${cards}
+      <table><tr><th>Qty</th><th>Item</th><th>${p.showParts !== false ? "Part number" : ""}</th>${su ? `<th class="r">Each</th>` : ""}<th class="r">${su ? "Total" : "Price"}</th></tr>${body}</table>${cards}
       ${work.length?`<h3>The work</h3><ul>${work.map(w=>`<li>${inline(w)}</li>`).join("")}</ul>`:""}${galHtml(p,"sys:"+i)}`;
     if(i > 0 && s.joinPrev && /^<article class="sheet sysp">/.test(pages[pages.length-1])) pages[pages.length-1] = pages[pages.length-1].replace(/<\/article>$/, `<div class="sysgap"></div>${sysHtml}</article>`);
     else pages.push(`<article class="sheet sysp">${sysHtml}</article>`);
@@ -1638,6 +1640,7 @@ function buildEditor(){
     <label class="check"><input type="checkbox" id="f_gst" data-k="gst" ${p.gst?"checked":""}> Add GST at 5%</label>
     <label class="check"><input type="checkbox" id="f_pence" data-k="showPence" ${p.showPence?"checked":""}> Show pence</label>
     <label class="check"><input type="checkbox" id="f_parts" data-k="showParts" ${p.showParts!==false?"checked":""}> Show part numbers on the proposal</label>
+    <label class="check"><input type="checkbox" id="f_unit" data-k="showUnit" ${p.showUnit!==false?"checked":""}> Show the price of each item as well as the line total</label>
     <label class="f"><span>Page spacing</span><select class="in" id="f_spacing" data-k="spacing"><option value="normal" ${p.spacing!=="compact"?"selected":""}>Normal</option><option value="compact" ${p.spacing==="compact"?"selected":""}>Compact (fits more on each page)</option></select></label>
     <p class="note">Pages lay themselves out so nothing is cut in half: anything that doesn't fit moves to a continuation page. To force a break, tick "Start a new page from this line" on an item, or type <b>[new page]</b> on its own line in any text box.</p>
     ${field("afterTotal","Note under the total","area",'rows="3"')}
