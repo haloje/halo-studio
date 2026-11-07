@@ -112,6 +112,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .icon:hover{color:var(--ink);border-color:var(--muted)}
 .items{display:grid;gap:6px}
 .item{display:grid;grid-template-columns:52px 1fr 86px 28px;gap:6px;align-items:start;padding-bottom:6px;border-bottom:1px dashed var(--line)}
+.galrow{display:grid;gap:8px;padding:10px 0 14px;border-bottom:1px dashed var(--line)}
 .item .imove{display:flex;gap:2px;justify-content:center}.item .imove .icon{width:24px;height:30px;font-size:13px}.item .imove .icon:disabled{opacity:.25}
 .item .wide{grid-column:2 / 4;display:grid;grid-template-columns:1fr 120px;gap:6px}
 .item input,.item select{padding:6px 8px;font-size:13px}
@@ -225,6 +226,15 @@ textarea{resize:vertical;min-height:70px;line-height:1.45}
 .sheet .prod{border:1px solid var(--d-line);border-radius:10px;overflow:hidden;break-inside:avoid}
 .sheet .prod .pic{height:150px;background:#f6f3ee;display:flex;align-items:center;justify-content:center;padding:14px}
 .sheet .prod .pic img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.sheet .gblk{margin-top:22px;break-inside:avoid;display:grid;gap:16px;align-items:center}
+.sheet .gblk .pic{background:#f6f3ee;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.sheet .gblk .pic img{display:block;max-width:100%;object-fit:contain}
+.sheet .gblk h4{margin:0 0 6px;font-family:var(--f-display);font-weight:400;font-size:19px;color:var(--d-ink)}
+.sheet .gblk p{margin:0 0 8px}
+.sheet .gblk.g-s{grid-template-columns:32% 1fr}.sheet .gblk.g-s .pic img{max-height:150px}
+.sheet .gblk.g-m{grid-template-columns:52% 1fr}.sheet .gblk.g-m .pic img{max-height:260px}
+.sheet .gblk.g-l{grid-template-columns:1fr}.sheet .gblk.g-l .pic img{max-height:420px;width:100%}
+.sheet .gblk:not(:has(.pic)){grid-template-columns:1fr}.sheet .gblk:not(:has(.txt)) {grid-template-columns:1fr}
 .sheet .prod.isz-s .pic{height:96px;padding:12px}.sheet .prod.isz-s .pic img{max-width:60%}
 .sheet .prod.isz-l .pic{height:220px;padding:10px}
 .sheet.compact .prod.isz-s .pic{height:72px}.sheet.compact .prod.isz-l .pic{height:150px}
@@ -1057,7 +1067,7 @@ function blankProposal(){
   };
 }
 function newContractor(){ return { who: "", work: "", qty: 1, unit: "days", rate: 0 }; }
-function normalise(p){ const b = blankProposal(); const o = Object.assign(b, p || {}); if(p && p.uplift == null) o.uplift = 0; /* older proposals keep their prices exactly */ o.contractors = (o.contractors||[]).map(c=>Object.assign(newContractor(), c)); o.systems = (o.systems||[]).map(s => Object.assign({name:"",desc:"",hours:0,work:"",items:[]}, s, {items:(s.items||[]).map(i=>Object.assign(newItem(),i))})); return o; }
+function normalise(p){ const b = blankProposal(); const o = Object.assign(b, p || {}); o.gallery = Array.isArray(o.gallery) ? o.gallery : []; if(p && p.uplift == null) o.uplift = 0; /* older proposals keep their prices exactly */ o.contractors = (o.contractors||[]).map(c=>Object.assign(newContractor(), c)); o.systems = (o.systems||[]).map(s => Object.assign({name:"",desc:"",hours:0,work:"",items:[]}, s, {items:(s.items||[]).map(i=>Object.assign(newItem(),i))})); return o; }
 
 const STD_STAGES = [
   "Survey and design sign-off: I'll visit site to confirm device positions, cable routes and rack location, and agree the final design with you before anything is ordered.",
@@ -1263,6 +1273,12 @@ async function poSaveSuppliers(){ if(mode === "db"){ try{ await db.doc("settings
   const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 300); })();
 
 /* ---------- document renderer (shared by preview and HTML export) ---------- */
+/* Free image blocks: a photo with an optional title and description, placed anywhere in the proposal. */
+const GAL_AT = p => [["summary","After the price summary"],["scope","After the scope of works"]].concat((p.systems||[]).map((s,i)=>["sys:"+i, "In " + (s.name || "System " + (i+1))])).concat([["own","On their own page, after the systems"],["end","Before the terms"]]);
+function galHtml(p, at){
+  const bl = (p.gallery || []).filter(g=>(g.img || g.title || g.desc) && (g.at || "own") === at);
+  return bl.map(g=>`<div class="gblk g-${esc((g.size || "M").toLowerCase())}">${g.img ? `<div class="pic"><img src="${esc(g.img)}" alt="${esc(g.title || "")}" crossorigin="anonymous"></div>` : ""}${g.title || g.desc ? `<div class="txt">${g.title ? `<h4>${esc(g.title)}</h4>` : ""}${paras(g.desc || "").map(x=>`<p>${inline(x)}</p>`).join("")}</div>` : ""}</div>`).join("");
+}
 function renderDoc(p){
   const t = totals(p), pages = [];
   const foot = n => `<div class="foot"><span>halo.je · ${esc(p.ref)} ${esc(p.rev)}</span><span>${esc(p.titleA)}</span><span>Page ${n}</span></div>`;
@@ -1300,6 +1316,7 @@ function renderDoc(p){
     <div class="grand"><span>${esc(p.totalLabel)}</span><span>${money(t.grand,p)}</span></div>
     ${!t.allow && allowNote(p) ? `<p style="margin-top:18px">${inline(tokens(allowNote(p),p))}</p>` : ""}
     ${p.afterTotal?`<p style="margin-top:18px">${inline(tokens(p.afterTotal,p))}</p>`:""}
+    ${galHtml(p,"summary")}
   </article>`);
 
   // scope of works
@@ -1308,8 +1325,9 @@ function renderDoc(p){
     pages.push(`<article class="sheet"><div class="mono kick">Scope of works</div><h2>How the <em>work runs.</em></h2>
       ${paras(tokens(p.scopeIntro,p)).map(x=>`<p>${inline(x)}</p>`).join("")}
       ${stages.length?`<div class="swlist">${stages.map((st,k)=>`<div class="swrow"><div class="no">${String(k+1).padStart(2,"0")}</div><div><h4>${inline(st.t)}</h4>${st.d?`<p>${inline(st.d)}</p>`:""}</div></div>`).join("")}</div>`:""}
+      ${galHtml(p,"scope")}
     </article>`);
-  }
+  } else if(galHtml(p,"scope")){ pages.push(`<article class="sheet">${galHtml(p,"scope")}</article>`); }
 
   // scope, one page per system. With one system, the lines that sit outside it (delivery, contractors, allowance,
   // discount, GST) are repeated under it so its table ends on the same total as the summary.
@@ -1331,10 +1349,16 @@ function renderDoc(p){
     const sysHtml = `${i===0?`<div class="mono kick">Scope</div><h2>What's <em>included.</em></h2>`:""}
       <h3>${esc(s.name)}</h3>${s.desc?paras(s.desc).map(x=>`<p>${inline(x)}</p>`).join(""):""}
       <table><tr><th>Qty</th><th>Item</th><th>${p.showParts !== false ? "Part number" : ""}</th><th class="r">Price</th></tr>${body}</table>${cards}
-      ${work.length?`<h3>The work</h3><ul>${work.map(w=>`<li>${inline(w)}</li>`).join("")}</ul>`:""}`;
+      ${work.length?`<h3>The work</h3><ul>${work.map(w=>`<li>${inline(w)}</li>`).join("")}</ul>`:""}${galHtml(p,"sys:"+i)}`;
     if(i > 0 && s.joinPrev && /^<article class="sheet sysp">/.test(pages[pages.length-1])) pages[pages.length-1] = pages[pages.length-1].replace(/<\/article>$/, `<div class="sysgap"></div>${sysHtml}</article>`);
     else pages.push(`<article class="sheet sysp">${sysHtml}</article>`);
   });
+
+  // image blocks on their own page
+  { /* blocks set to a system that has since been removed fall back to this page */
+    const orphan = (p.gallery||[]).filter(g=>/^sys:/.test(g.at||"") && !p.systems[+String(g.at).slice(4)]).map(g=>Object.assign({}, g, { at: "own" }));
+    const own = galHtml(p,"own") + (orphan.length ? galHtml(Object.assign({}, p, { gallery: orphan }), "own") : "");
+    if(own) pages.push(`<article class="sheet">${own}</article>`); }
 
   // contractor labour
   const crows = (p.contractors||[]).filter(c=>c.who||c.work||num(c.qty)*num(c.rate));
@@ -1352,6 +1376,8 @@ function renderDoc(p){
   const list = (h, s) => { const l = lines(tokens(s,p)); return l.length ? `<h3>${h}</h3><ul>${l.map(x=>`<li>${inline(x)}</li>`).join("")}</ul>` : ""; };
   const sp = (p.pricedTo?`<p><b>Priced to:</b> ${esc(p.pricedTo)}</p>`:"") + list("Included",p.included) + list("Assumptions",p.assumptions) + list("Not included",p.excluded);
   if(sp.trim()) pages.push(`<article class="sheet"><div class="mono kick">Basis of ${esc(p.docType.toLowerCase())}</div><h2>The <em>small print.</em></h2>${sp}</article>`);
+
+  if(galHtml(p,"end")) pages.push(`<article class="sheet">${galHtml(p,"end")}</article>`);
 
   // next steps, terms, acceptance
   const nx = lines(p.next);
@@ -1552,6 +1578,21 @@ function buildEditor(){
     <button class="btn add" data-act="addSys">Add system</button>
   </div></details>
 
+  <details class="sec" data-s="gal" ${isOpen("gal",false)}><summary><span class="t">Images</span><span class="hint">${(p.gallery||[]).length ? (p.gallery.length + " on the " + esc(p.docType.toLowerCase())) : "Photos anywhere, with a title"}</span></summary><div class="body">
+    <p class="note">Add a photo with a title and a short description, then choose where it sits: after the summary, inside a system, on its own page, or before the terms.</p>
+    ${(p.gallery||[]).map((g,k)=>`<div class="galrow">
+      <div class="imgrow"><span class="thumb" style="${g.img?`background-image:url('${esc(g.img)}')`:""}"></span>
+        <span class="btn small filebtn">${g.img?"Replace photo":"Add photo"}<input type="file" accept="image/*" data-gimg="${k}" aria-label="Upload a photo"></span>
+        <button class="icon" title="Move up" data-act="galUp" data-i="${k}" ${k===0?"disabled":""}>↑</button><button class="icon" title="Move down" data-act="galDown" data-i="${k}" ${k===p.gallery.length-1?"disabled":""}>↓</button>
+        <button class="icon" title="Remove image" data-act="galRm" data-i="${k}">×</button></div>
+      ${field("gallery."+k+".title","Title")}
+      ${field("gallery."+k+".desc","Description","area",'rows="2"')}
+      <div class="row"><label class="f"><span>Where it goes</span><select class="in" id="f_gallery_${k}_at" data-k="gallery.${k}.at">${GAL_AT(p).map(([v,l])=>`<option value="${esc(v)}" ${(g.at||"own")===v?"selected":""}>${esc(l)}</option>`).join("")}</select></label>
+        <label class="f"><span>Size</span><select class="in" id="f_gallery_${k}_size" data-k="gallery.${k}.size">${[["S","Small, beside the text"],["M","Medium, beside the text"],["L","Large, full width"]].map(([v,l])=>`<option value="${v}" ${(g.size||"M")===v?"selected":""}>${l}</option>`).join("")}</select></label></div>
+    </div>`).join("")}
+    <button class="btn add" data-act="galAdd">Add image</button>
+  </div></details>
+
   <details class="sec" data-s="contr" ${isOpen("contr",false)}><summary><span class="t">Contractor labour</span><span class="hint">${p.contractors.length ? money(totals(p).contr,p) : "Optional"}</span></summary><div class="body">
     <div class="row">${field("contractorTitle","Section heading")}<div></div></div>
     ${field("contractorNote","Note above the table","area",'rows="2" placeholder="Other trades I arrange and manage as part of this job."')}
@@ -1682,6 +1723,10 @@ $("#editor").addEventListener("click", e=>{
     case "poSup": { const v = ($("#poSupName")||{}).value || ""; if(!v.trim()) return; S.forEach(s=>s.items.forEach(it=>{ if((it.item || num(it.price)) && !poSupOf(it)) it.supplier = v.trim(); })); break; }
     default: return;
     case "rmItem": S[i].items.splice(j,1); break;
+    case "galAdd": current.gallery = (current.gallery || []).concat([{ id: uid(), img: "", title: "", desc: "", at: "own", size: "M" }]); break;
+    case "galRm": current.gallery.splice(i,1); break;
+    case "galUp": if(i > 0){ const G = current.gallery; [G[i-1], G[i]] = [G[i], G[i-1]]; } break;
+    case "galDown": { const G = current.gallery; if(i < G.length-1) [G[i+1], G[i]] = [G[i], G[i+1]]; } break;
     case "itemUp": case "itemDown": {
       const up = b.dataset.act === "itemUp", it = S[i].items[j], wasOpen = openDetails.has(i+"-"+j); let ni = i, nj;
       S[i].items.splice(j, 1);
@@ -1724,6 +1769,13 @@ async function uploadPhoto(file){
   const { canvas } = await shrink(file, 700, "image/jpeg", 0.82); return canvas.toDataURL("image/jpeg", 0.82);
 }
 $("#editor").addEventListener("change", async e=>{
+  if(e.target.dataset.gimg !== undefined){
+    const k = +e.target.dataset.gimg, f = e.target.files && e.target.files[0]; if(!f || !current || !current.gallery[k]) return;
+    setStatus("Uploading photo");
+    try{ const url = await uploadPhoto(f); current.gallery[k].img = url; buildEditor(); renderPreview(); scheduleSave(); }
+    catch(err){ setStatus("Photo not added", true); toast((err && err.message) || "The photo couldn't be uploaded."); }
+    return;
+  }
   if(e.target.dataset.img){
     const [i,j] = e.target.dataset.img.split("-").map(Number), f = e.target.files && e.target.files[0]; if(!f || !current) return;
     setStatus("Uploading photo");
