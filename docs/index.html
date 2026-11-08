@@ -3104,6 +3104,7 @@ function dwInspector(p, d){
   return `<div class="insp" id="dwInsp"><span class="tagbig" style="color:${esc(dwType(p,d.type).color)}">${esc(dwTag(d))}</span>
     <label class="f"><span>Type</span><select class="in" data-dev-k="type">${p.types.map(t=>`<option value="${esc(t.tag)}" ${t.tag===d.type?"selected":""}>${esc(t.tag)} · ${esc(t.name)}</option>`).join("")}</select></label>
     <label class="f"><span>Room</span><select class="in" data-dev-k="room">${p.rooms.map(r=>`<option value="${esc(r.no)}" ${r.no===d.room?"selected":""}>${esc(r.no)} ${esc(r.name)}</option>`).join("")}${p.rooms.some(r=>r.no===d.room)?"":`<option selected value="${esc(d.room)}">${esc(d.room||"None")}</option>`}</select></label>
+    <label class="f"><span>No.</span><input type="number" data-dev-k="seq" value="${esc(d.seq)}" min="1" step="1" style="width:70px" title="Change the number. If another device in this room already has it, the two swap."></label>
     <label class="f"><span>Mount</span><select class="in" data-dev-k="mount">${DW_MOUNTS.map(([v,l])=>`<option value="${v}" ${d.mount===v?"selected":""}>${l}</option>`).join("")}</select></label>
     ${d.mount==="W"?`<label class="f"><span>Height mm</span><input type="number" data-dev-k="height" value="${esc(d.height)}" step="50" style="width:90px"></label>`:""}
     <label class="f w"><span>Notes</span><input type="text" data-dev-k="notes" value="${esc(d.notes)}" placeholder="Shows in the cable schedule"></label>
@@ -3151,12 +3152,20 @@ $("#dwScroll").addEventListener("pointermove", e=>{
 });
 $("#dwScroll").addEventListener("pointerup", ()=>{ if(!dwDrag) return; const moved = dwDrag.moved; dwDrag = null; if(moved) dwSchedule(); dwRender(); });
 $("#dwScroll").addEventListener("input", e=>{
-  const k = e.target.dataset.devK; if(!k || !dwCur) return;
+  const k = e.target.dataset.devK; if(!k || !dwCur || k === "seq") return;
   const f = dwCur.floors[dwFloor], d = f.devices.find(x=>x.id===dwSel); if(!d) return;
   let v = e.target.value; if(k === "height") v = v === "" ? "" : num(v);
   if(k === "type" || k === "room"){ d[k] = v; d.seq = dwNextSeq(dwCur, d.room, d.type, d.id); if(k === "type"){ const t = dwType(dwCur, v); d.mount = t.mount || d.mount; d.height = t.mount === "W" ? (t.height || "") : ""; } dwSchedule(); dwRender(); return; }
   d[k] = v; if(k === "mount" && v !== "W") d.height = ""; dwSchedule();
   if(k === "mount") dwRender(); else { const el = $("#dwPlan .mk.sel .t span"); if(el) el.textContent = dwMountStr(d); }
+});
+$("#dwScroll").addEventListener("change", e=>{
+  if(e.target.dataset.devK !== "seq" || !dwCur) return;
+  const d = dwCur.floors[dwFloor].devices.find(x=>x.id===dwSel); if(!d) return;
+  const n = Math.round(num(e.target.value)); if(!(n >= 1)){ e.target.value = d.seq; return; }
+  if(n === d.seq) return;
+  dwCur.floors.forEach(fl=>fl.devices.forEach(o=>{ if(o.id !== d.id && o.room === d.room && o.type === d.type && o.seq === n) o.seq = d.seq; }));
+  d.seq = n; dwSchedule(); dwRender();
 });
 $("#dwScroll").addEventListener("click", e=>{
   if(e.target.closest("[data-dact2=delDev]")){ const f = dwCur.floors[dwFloor]; f.devices = f.devices.filter(x=>x.id!==dwSel); dwSel = null; dwSchedule(); dwRender(); }
