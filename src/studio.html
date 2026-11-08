@@ -1869,6 +1869,7 @@ function sysBlock(s,i){
         <label class="check"><input type="checkbox" id="s${i}i${j}pb" data-k="systems.${i}.items.${j}.pb" ${it.pb?"checked":""}> Start a new page from this line</label>
         <div class="imgrow"><span class="thumb" style="${it.img?`background-image:url('${esc(it.img)}')`:""}"></span>
           <span class="btn small filebtn">${it.img?"Replace photo":"Add photo"}<input type="file" accept="image/*" data-img="${i}-${j}" aria-label="Upload a product photo"></span>
+          ${window.haloPhotoFromUrl ? `<input class="in imgurl" type="url" data-imgurl="${i}-${j}" placeholder="or paste a product page link" aria-label="Product page or photo link" style="width:220px">` : ""}
           ${it.img?`<button class="btn small ghost" data-act="rmImg" data-i="${i}" data-j="${j}">Remove</button><select class="in" id="s${i}i${j}is" data-k="systems.${i}.items.${j}.imgSize" aria-label="Photo size on the proposal" style="width:auto">${[["S","Small photo"],["M","Medium photo"],["L","Large photo"]].map(([v,l])=>`<option value="${v}" ${(it.imgSize||"M")===v?"selected":""}>${l}</option>`).join("")}</select>`:""}
           <button class="btn small ghost" data-act="saveLib" data-i="${i}" data-j="${j}" ${it.item?"":"disabled"}>Save to library</button></div>
       </div>`:""}
@@ -1976,6 +1977,13 @@ $("#editor").addEventListener("change", async e=>{
     setStatus("Uploading photo");
     try{ const url = await uploadPhoto(f); current.gallery[k].img = url; buildEditor(); renderPreview(); scheduleSave(); }
     catch(err){ setStatus("Photo not added", true); toast((err && err.message) || "The photo couldn't be uploaded."); }
+    return;
+  }
+  if(e.target.dataset.imgurl){
+    const [i,j] = e.target.dataset.imgurl.split("-").map(Number), u = e.target.value.trim(); if(!u || !current || !window.haloPhotoFromUrl) return;
+    setStatus("Fetching photo"); e.target.disabled = true;
+    try{ const url = await window.haloPhotoFromUrl(u); current.systems[i].items[j].img = url; buildEditor(); renderPreview(); scheduleSave(); toast("Photo added."); }
+    catch(err){ e.target.disabled = false; setStatus("Photo not added", true); toast((err && err.message) || "That link didn't give a photo."); }
     return;
   }
   if(e.target.dataset.img){

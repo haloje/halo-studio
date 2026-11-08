@@ -191,6 +191,13 @@
     async profiles(ids){ const o = {}; (ids || []).forEach(i=>o[i] = { name: "" }); return o; }
   });
 
+  /* ---------- product photo from a web link (server fetches the page's photo and stores it) ---------- */
+  window.haloPhotoFromUrl = async url=>{
+    await ready; const { data } = await sb.auth.getSession(); const tok = data.session && data.session.access_token;
+    const r = await fetch(SB_URL + "/functions/v1/photo", { method: "POST", headers: { "Content-Type": "application/json", apikey: SB_KEY, Authorization: "Bearer " + tok }, body: JSON.stringify({ url }) });
+    const j = await r.json().catch(()=>({})); if(!r.ok || j.error) throw { message: (j.error && j.error.message) || "That link didn't give a photo." };
+    return j.result.url;
+  };
   /* ---------- integrations: Outlook + Xero through the server function ---------- */
   const API = SB_URL + "/functions/v1/api";
   async function api(path, body){
