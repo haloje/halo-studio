@@ -654,6 +654,36 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .app[data-tab=planner] .pmode{display:none!important}
 .app[data-tab=cables] .pmode{display:none!important}
 .app[data-tab=hvac] .pmode{display:none!important}
+.app[data-tab=calendar] .pmode{display:none!important}
+.app:not([data-tab=calendar]) .calmode{display:none!important}
+.calwork{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--bg)}
+.calscroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+.ctb{position:relative;z-index:5;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.ctb h2{margin:0 auto 0 4px;font:300 24px/1.1 var(--f-display);min-width:180px}
+.ctb .pal button{padding:6px 12px}
+.ctb .grp{display:flex;flex-direction:row;gap:4px;align-items:center}
+.ctb .ck{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:4px 10px;cursor:pointer;background:var(--panel)}
+.ctb .ck i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.ctb .ck.off{opacity:.45}
+.calwork .cal.n1 .calhead,.calwork .cal.n1 .calbody{grid-template-columns:52px minmax(0,1fr)}
+.calwork .cal.n1{min-width:0}
+.blk.td{background:#4c7a5a}.olad.td{background:#4c7a5a}.olad.vs{background:var(--accent)}
+.blk.done{opacity:.5;text-decoration:line-through}
+.cmonth{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:12px 16px 40px;border-radius:12px;overflow:hidden}
+.cmonth .h{background:var(--panel);font:500 10px var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:8px 6px;text-align:center}
+.cmd{background:var(--panel);min-height:112px;padding:5px;cursor:pointer;display:flex;flex-direction:column;gap:3px;min-width:0}
+.cmd.out{background:var(--bg);color:var(--muted)}
+.cmd.ctoday .n{background:var(--accent);color:#fff}
+.calwork .calday.ctoday{background-color:var(--accent-soft)}
+.calwork .calhead div.ctoday b{color:var(--accent)}
+.cmd .n{align-self:flex-start;font-size:12px;font-weight:600;min-width:22px;height:22px;border-radius:11px;display:grid;place-items:center;padding:0 5px}
+.cmd .ch{display:block;font-size:11px;line-height:1.25;padding:2px 6px;border-radius:5px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--js,#8a847c);text-decoration:none;text-align:left;border:0;font-family:inherit;cursor:pointer}
+.cmd .ch.ol{background:#8a847c}.cmd .ch.td{background:#4c7a5a}
+.cmd .more{font-size:11px;color:var(--muted)}
+.cpop{position:fixed;z-index:150;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.2);padding:12px;width:290px}
+.cpop h4{margin:0 0 8px;font-size:13px}.cpop input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;background:var(--field);color:var(--ink);margin-bottom:8px}
+.cpop .adds{display:flex;gap:6px;flex-wrap:wrap}
+@media (max-width:760px){ .ctb h2{font-size:20px;min-width:0;width:100%;order:-1} .cmd{min-height:70px} .cmd .ch{font-size:9.5px;padding:1px 4px} .cmonth{margin:8px} }
 .app:not([data-tab=hvac]) .hmode{display:none!important}
 .app:not([data-tab=cables]) .xmode{display:none!important}
 .cxdetail{max-width:1180px}
@@ -834,7 +864,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
   .tabbar button:active svg{transform:scale(.9)}
   .navwrap.open .tabs{position:fixed;left:10px;right:10px;top:auto;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:71;min-width:0;border-radius:14px;padding:8px}
   .navwrap .tabs button{height:46px;font-size:16px;padding:0 14px}
-  .navwrap .tabs #tabJ,.navwrap .tabs #tabP,.navwrap .tabs #tabT,.navwrap .tabs #tabB{display:none}
+  .navwrap .tabs #tabJ,.navwrap .tabs #tabP,.navwrap .tabs #tabT,.navwrap .tabs #tabB,.navwrap .tabs #tabCal{display:none}
   .navwrap.open::before{content:"";position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:70}
   .toast{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
 }
@@ -849,9 +879,9 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 @media (max-width:860px){
   .app.anim-fwd .stage,.app.anim-fwd .dstage,.app.anim-fwd .jstage{animation:slInR .32s cubic-bezier(.2,.85,.25,1)}
   .app.anim-back .editor,.app.anim-back .jlist{animation:slInL .3s cubic-bezier(.2,.85,.25,1)}
-  .app:is([data-tab=jobs],[data-tab=planner],[data-tab=cables],[data-tab=hvac],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .bar .seg{display:none}
-  .app[data-pv=preview]:is([data-tab=jobs],[data-tab=planner],[data-tab=cables],[data-tab=hvac],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .backbtn{display:inline-flex}
-  .app[data-pv=preview]:is([data-tab=jobs],[data-tab=planner],[data-tab=cables],[data-tab=hvac],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .brand{display:none}
+  .app:is([data-tab=jobs],[data-tab=planner],[data-tab=cables],[data-tab=hvac],[data-tab=calendar],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .bar .seg{display:none}
+  .app[data-pv=preview]:is([data-tab=jobs],[data-tab=planner],[data-tab=cables],[data-tab=hvac],[data-tab=calendar],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .backbtn{display:inline-flex}
+  .app[data-pv=preview]:is([data-tab=jobs],[data-tab=planner],[data-tab=cables],[data-tab=hvac],[data-tab=calendar],[data-tab=customers],[data-tab=leads],[data-tab=todo],[data-tab=stock],[data-tab=promos],[data-tab=knowledge]) .brand{display:none}
   .backbtn{align-items:center;gap:2px;height:36px;margin-left:-6px;padding:0 10px 0 2px;border:0;background:none;color:var(--accent);font:500 17px/1 var(--f-body);cursor:pointer}
   .backbtn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
   .app.swiping .jstage,.app.swiping .stage,.app.swiping .dstage{transition:none!important;box-shadow:-12px 0 24px rgba(0,0,0,.12)}
@@ -1064,7 +1094,7 @@ setTimeout(function(){location.href=u;},60);document.write("<plaintext hidden>")
 <div class="app" id="app" data-tab="proposals">
   <header class="bar">
     <div class="brand"><img class="bmark" src="icons/emblem-96.png" alt="" onerror="this.remove()"><b>halo<span>.je</span></b><small>Studio</small></div>
-    <div class="navwrap" id="navWrap"><button class="navbtn" id="navBtn" aria-haspopup="true" aria-expanded="false" aria-controls="navMenu"><span class="burger" aria-hidden="true"><i></i><i></i><i></i></span><span id="navLabel">Proposals</span><span class="chev" aria-hidden="true">▼</span></button><div class="tabs" id="navMenu" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabX" role="tab" aria-selected="false">Cables</button><button id="tabH" role="tab" aria-selected="false">Heating</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabB" role="tab" aria-selected="false">Plan</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabL" role="tab" aria-selected="false">Leads</button><button id="tabS" role="tab" aria-selected="false">Stock</button><button id="tabM" role="tab" aria-selected="false">Promotions</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div></div>
+    <div class="navwrap" id="navWrap"><button class="navbtn" id="navBtn" aria-haspopup="true" aria-expanded="false" aria-controls="navMenu"><span class="burger" aria-hidden="true"><i></i><i></i><i></i></span><span id="navLabel">Proposals</span><span class="chev" aria-hidden="true">▼</span></button><div class="tabs" id="navMenu" role="tablist" aria-label="Section"><button id="tabP" role="tab" aria-selected="true">Proposals</button><button id="tabD" role="tab" aria-selected="false">Drawings</button><button id="tabX" role="tab" aria-selected="false">Cables</button><button id="tabH" role="tab" aria-selected="false">Heating</button><button id="tabJ" role="tab" aria-selected="false">Jobs</button><button id="tabCal" role="tab" aria-selected="false">Calendar</button><button id="tabB" role="tab" aria-selected="false">Plan</button><button id="tabC" role="tab" aria-selected="false">Customers</button><button id="tabR" role="tab" aria-selected="false">Prices</button><button id="tabT" role="tab" aria-selected="false">To-do</button><button id="tabL" role="tab" aria-selected="false">Leads</button><button id="tabS" role="tab" aria-selected="false">Stock</button><button id="tabM" role="tab" aria-selected="false">Promotions</button><button id="tabK" role="tab" aria-selected="false">Knowledge</button></div></div>
     <button class="calcbtn" id="calcBtn" aria-label="Calculator" title="Calculator (press C on the keyboard)" aria-expanded="false" aria-controls="calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4.5" y="2.5" width="15" height="19" rx="2.5"/><rect x="7.5" y="5.5" width="9" height="4" rx="1"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></svg></button>
     <div class="actions rmode" style="margin-left:auto">
       <span class="prsync" id="prStatus"></span>
@@ -1170,6 +1200,7 @@ setTimeout(function(){location.href=u;},60);document.write("<plaintext hidden>")
     <aside class="jlist" aria-label="Heating designs"><div class="top"><input type="search" id="hvSearch" placeholder="Search heating designs" autocomplete="off" aria-label="Search heating designs"></div><div class="jrows" id="hvRows"></div></aside>
     <section class="jstage" aria-label="Heating design"><div class="jscroll" id="hvScroll"></div></section>
   </main>
+  <main class="calmode calwork" id="calwork"><div id="calBar"></div><div class="calscroll" id="calScroll"></div></main>
   <main class="jwork xmode" id="xwork" data-view="edit">
     <aside class="jlist" aria-label="Cable schedules"><div class="top"><input type="search" id="cxSearch" placeholder="Search cable schedules" autocomplete="off" aria-label="Search cable schedules"></div><div class="jrows" id="cxRows"></div></aside>
     <section class="jstage" aria-label="Cable schedule"><div class="jscroll" id="cxScroll"></div></section>
@@ -3156,8 +3187,9 @@ $("#dwDel").addEventListener("click", async e=>{
 
 /* ---------- tabs ---------- */
 function setTab(t){
-  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge"); $("#tabT").setAttribute("aria-selected", t==="todo"); $("#tabM").setAttribute("aria-selected", t==="promos"); $("#tabS").setAttribute("aria-selected", t==="stock"); $("#tabL").setAttribute("aria-selected", t==="leads"); $("#tabB").setAttribute("aria-selected", t==="planner"); $("#tabX").setAttribute("aria-selected", t==="cables"); $("#tabH").setAttribute("aria-selected", t==="hvac");
+  $("#app").dataset.tab = t; $("#tabP").setAttribute("aria-selected", t==="proposals"); $("#tabD").setAttribute("aria-selected", t==="drawings"); $("#tabJ").setAttribute("aria-selected", t==="jobs"); $("#tabC").setAttribute("aria-selected", t==="customers"); $("#tabR").setAttribute("aria-selected", t==="prices"); $("#tabK").setAttribute("aria-selected", t==="knowledge"); $("#tabT").setAttribute("aria-selected", t==="todo"); $("#tabM").setAttribute("aria-selected", t==="promos"); $("#tabS").setAttribute("aria-selected", t==="stock"); $("#tabL").setAttribute("aria-selected", t==="leads"); $("#tabB").setAttribute("aria-selected", t==="planner"); $("#tabX").setAttribute("aria-selected", t==="cables"); $("#tabCal").setAttribute("aria-selected", t==="calendar"); $("#tabH").setAttribute("aria-selected", t==="hvac");
   if(t === "leads"){ if(mode !== "loading") ldStart(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); ldStart(); } }, 200); } }
+  if(t === "calendar"){ const go = ()=>{ if(typeof jbStart === "function") jbStart(); if(typeof tdStart === "function") tdStart(); calRender(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   if(t === "hvac"){ const go = ()=>{ hvStart(); if(typeof dwStart === "function") dwStart(); if(typeof plStart === "function") plStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   if(t === "cables"){ const go = ()=>{ cxStart(); if(typeof dwStart === "function") dwStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
   if(t === "planner"){ const go = ()=>{ plStart(); if(typeof dwStart === "function") dwStart(); }; if(mode !== "loading") go(); else { const w = setInterval(()=>{ if(mode !== "loading"){ clearInterval(w); go(); } }, 200); } }
@@ -6047,11 +6079,12 @@ $("#tabB").addEventListener("click", ()=>setTab("planner"));
     proposals: '<svg viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5M9 13h6M9 16.5h4"/></svg>',
     stock: '<svg viewBox="0 0 24 24"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>',
     todo: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m8.3 12.2 2.5 2.5 4.9-5"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h2M12 14h2M16 14h0M8 17.5h2M12 17.5h2"/></svg>',
     planner: '<svg viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M9 3.5V5h6V3.5M8.5 10l1.3 1.3 2.4-2.4M8.5 15.5l1.3 1.3 2.4-2.4M14 10.5h2M14 16h2"/></svg>',
     today: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>',
     more: '<svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg>'
   };
-  const items = [["jobs","tabJ","Jobs"],["planner","tabB","Plan"],["proposals","tabP","Proposals"],["todo","tabT","To-do"]];
+  const items = [["jobs","tabJ","Jobs"],["calendar","tabCal","Calendar"],["planner","tabB","Plan"],["proposals","tabP","Proposals"],["todo","tabT","To-do"]];
   const bar = document.createElement("nav"); bar.className = "tabbar"; bar.setAttribute("aria-label", "Sections");
   bar.innerHTML = `<button type="button" data-tb="today">${ic.today}<span>Today</span></button>` + items.map(([t,id,l])=>`<button type="button" data-tb="${id}" data-tt="${t}">${ic[t]}<span>${l}</span></button>`).join("") + `<button type="button" data-tb="more">${ic.more}<span>More</span></button>`;
   document.body.appendChild(bar);
@@ -6583,6 +6616,106 @@ $("#hvScroll").addEventListener("click", async e=>{
   else if(a === "del"){ if(!confirm(`Delete the heating design for ${p.name || "this project"}?`)) return; const id = p.id; hvList = hvList.filter(x=>x.id !== id); hvCur = null; if(mode === "db"){ try{ await db.collection("hvac").doc(id).delete(); }catch(_){} } else { try{ localStorage.setItem(LS + ".hvac", JSON.stringify(hvList)); }catch(_){} } hvRenderList(); hvRender(); if(PH()) setView("edit"); return; }
   hvSchedule(); hvRender(); });
 $("#tabH").addEventListener("click", ()=>setTab("hvac"));
+
+
+/* ================= Calendar: Outlook, job visits and to-dos together ================= */
+let calView = innerWidth <= 760 ? "day" : "week", calDate = jbIso(new Date()), calShow = { ol: true, vs: true, td: true }, calPop = null;
+try{ const v = localStorage.getItem(LS + ".calview"); if(v) calView = v; const sh = JSON.parse(localStorage.getItem(LS + ".calshow") || "null"); if(sh) calShow = Object.assign(calShow, sh); }catch(_){}
+const calAdd = (iso, n) => { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n); return jbIso(d); };
+function calRange(){
+  if(calView === "day") return [calDate, calDate];
+  if(calView === "week"){ const a = jbIso(jbMonday(new Date(calDate + "T12:00:00"))); return [a, calAdd(a, 6)]; }
+  const d = new Date(calDate + "T12:00:00"), first = new Date(d.getFullYear(), d.getMonth(), 1, 12), a = jbIso(jbMonday(first)); return [a, calAdd(a, 41)];
+}
+function calItems(a, b){
+  const timed = [], allday = [];
+  if(calShow.vs) jbVisitsBetween(a, b).forEach(({ j, v })=>{ const s = jbMins(v.start), e = jbMins(v.end);
+    const it = { kind: "vs", date: v.date, s: s ?? 9*60, e: e ?? ((s ?? 9*60) + 60), title: j.customer || j.number, sub: `${v.start || ""}${v.end ? "–" + v.end : ""} · ${j.number}`, job: j.id, color: jbColor(j.status), note: j.site || j.address || "" };
+    (s == null ? allday : timed).push(it); });
+  if(calShow.td && typeof tdList !== "undefined") tdList.filter(t=>t.due && t.due >= a && t.due <= b && !t.done).forEach(t=>{ const s = jbMins(t.time);
+    const it = { kind: "td", date: t.due, s: s ?? 0, e: (s ?? 0) + 45, title: t.title || "To-do", sub: (t.time || "") + " · To-do", task: t.id };
+    (s == null ? allday : timed).push(it); });
+  if(calShow.ol && olOn){ for(let d = a; d <= b; d = calAdd(d, 1)){ olTimed(a, b, d).forEach(x=>timed.push({ kind: "ol", date: d, s: x.s, e: x.e, title: x.ol.subject || "Busy", sub: `${jbHM(x.s)}–${jbHM(Math.min(x.e, 1439))} · Outlook`, link: x.ol.webLink, note: x.ol.location && x.ol.location.displayName || x.ol.location || "" }));
+    olAllDay(a, b, d).forEach(ev=>allday.push({ kind: "ol", date: d, title: ev.subject || "All day", link: ev.webLink })); } }
+  return { timed, allday };
+}
+function calChip(it, cls){ const t = esc(it.title); if(it.kind === "ol") return `<a class="${cls} ol" href="${esc(it.link || "#")}" target="_blank" rel="noopener" title="${t} (Outlook)">${t}</a>`;
+  return `<button class="${cls} ${it.kind}" ${it.job ? `data-cjob="${esc(it.job)}"` : `data-ctask="${esc(it.task)}"`} style="--js:${it.color || ""}" title="${t}">${it.kind === "vs" && it.sub ? esc(it.sub.split(" · ")[0]) + " " : ""}${t}</button>`; }
+function calGrid(days, it){
+  const t = jbToday(), a = days[0], b = days[days.length - 1];
+  const cols = days.map((iso,i)=>{ const dow = new Date(iso + "T12:00:00").getDay();
+    const di = it.timed.filter(x=>x.date === iso).map(x=>Object.assign({}, x)).sort((p,q)=>p.s - q.s);
+    const lanes = []; di.forEach(x=>{ let k = lanes.findIndex(end=>end <= x.s); if(k < 0){ k = lanes.length; lanes.push(0); } lanes[k] = x.e; x.lane = k; });
+    di.forEach(x=>{ x.lanes = Math.max(1, ...di.filter(o=>o.s < x.e && o.e > x.s).map(o=>o.lane + 1)); });
+    const blocks = di.map(x=>{ const top = Math.max(0, (x.s/60 - H0) * HR), h = Math.max(22, (Math.min(x.e, H1*60) - Math.max(x.s, H0*60))/60 * HR - 2), w = 100/x.lanes, st = `top:${top}px;height:${h}px;left:calc(${(x.lane*w).toFixed(2)}% + 3px);right:auto;width:calc(${w.toFixed(2)}% - 6px)`;
+      const inner = `<b>${esc(x.title)}</b><span>${esc(x.sub || "")}</span>${x.note ? `<span>${esc(String(x.note).split(/\n/)[0])}</span>` : ""}`;
+      if(x.kind === "ol") return `<a class="blk ol" href="${esc(x.link || "#")}" target="_blank" rel="noopener" style="${st}">${inner}</a>`;
+      return `<button class="blk ${x.kind}" ${x.job ? `data-cjob="${esc(x.job)}"` : `data-ctask="${esc(x.task)}"`} style="${st};--js:${x.color || ""}">${inner}</button>`; }).join("");
+    const now = iso === t ? (()=>{ const n = new Date(), m = n.getHours()*60 + n.getMinutes(); return m > H0*60 && m < H1*60 ? `<div class="nowline" style="top:${(m/60 - H0)*HR}px"></div>` : ""; })() : "";
+    return `<div class="calday ${iso === t ? "ctoday" : ""} ${dow === 0 || dow === 6 ? "weekend" : ""}" data-cday="${iso}" style="height:${(H1-H0)*HR}px">${blocks}${now}</div>`; }).join("");
+  return `<div class="cal ${days.length === 1 ? "n1" : ""}" style="--hr:${HR}px"><div class="calhead"><div></div>${days.map(iso=>{ const d = new Date(iso + "T12:00:00"); return `<div class="${iso === t ? "ctoday" : ""}" data-cgo="${iso}" style="cursor:pointer">${d.toLocaleDateString("en-GB", { weekday: days.length === 1 ? "long" : "short" })}<b>${d.getDate()}</b>${it.allday.filter(x=>x.date === iso).map(x=>calChip(x, "olad")).join("")}</div>`; }).join("")}</div>
+    <div class="calbody"><div class="hrs" style="height:${(H1-H0)*HR}px">${[...Array(H1-H0)].map((_,k)=>k ? `<span style="top:${k*HR}px">${dwPad(H0+k)}:00</span>` : "").join("")}</div>${cols}</div></div>`;
+}
+function calMonth(a, it){
+  const t = jbToday(), m = new Date(calDate + "T12:00:00").getMonth();
+  const cells = [...Array(42)].map((_,i)=>{ const iso = calAdd(a, i), d = new Date(iso + "T12:00:00");
+    const all = it.allday.filter(x=>x.date === iso).concat(it.timed.filter(x=>x.date === iso).sort((p,q)=>p.s - q.s));
+    return `<div class="cmd ${d.getMonth() !== m ? "out" : ""} ${iso === t ? "ctoday" : ""}" data-cgo="${iso}"><span class="n">${d.getDate()}</span>${all.slice(0, 4).map(x=>calChip(x, "ch")).join("")}${all.length > 4 ? `<span class="more">+${all.length - 4} more</span>` : ""}</div>`; }).join("");
+  return `<div class="cmonth">${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(x=>`<div class="h">${x}</div>`).join("")}${cells}</div>`;
+}
+function calTitle(a, b){ const d = new Date(calDate + "T12:00:00");
+  if(calView === "day") return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  if(calView === "month") return d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const x = new Date(a + "T12:00:00"), y = new Date(b + "T12:00:00"); return `${x.getDate()} ${x.toLocaleDateString("en-GB", { month: "short" })} – ${y.getDate()} ${y.toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`; }
+function calRender(){
+  const sc = $("#calScroll"); if(!sc) return;
+  const [a, b] = calRange(), it = calItems(a, b);
+  if(calShow.ol && olOn) olEnsure(a, b).then(()=>{ if($("#app").dataset.tab === "calendar"){ const [a2, b2] = calRange(); if(a2 === a && b2 === b) calPaint(sc, a, b, calItems(a, b)); } });
+  calPaint(sc, a, b, it);
+}
+function calPaint(sc, a, b, it){
+  const top = sc.scrollTop, days = calView === "day" ? [a] : calView === "week" ? [...Array(7)].map((_,i)=>calAdd(a, i)) : null;
+  $("#calBar").innerHTML = `<div class="ctb"><h2>${esc(calTitle(a, b))}</h2>
+    <div class="grp"><button class="icon" data-cnav="-1" aria-label="Back">‹</button><button class="btn small" data-cnav="0">Today</button><button class="icon" data-cnav="1" aria-label="Forward">›</button></div>
+    <div class="pal" role="group" aria-label="View">${[["day","Day"],["week","Week"],["month","Month"]].map(([k,l])=>`<button class="sel" data-cview="${k}" aria-pressed="${calView === k}">${l}</button>`).join("")}</div>
+    <span class="ck ${calShow.vs ? "" : "off"}" data-cshow="vs"><i style="background:var(--accent)"></i>Visits</span><span class="ck ${calShow.td ? "" : "off"}" data-cshow="td"><i style="background:#4c7a5a"></i>To-dos</span><span class="ck ${calShow.ol && olOn ? "" : "off"}" data-cshow="ol"><i style="background:#8a847c"></i>${olOn ? (olState === "err" ? "Outlook (not loading)" : "Outlook") : "Connect Outlook"}</span></div>`;
+  sc.innerHTML = `${days ? calGrid(days, it) : calMonth(a, it)}
+    ${!days ? "" : `<p class="note" style="padding:0 16px 30px">Tap an empty time to add a job visit or a to-do there.</p>`}`;
+  sc.scrollTop = top || (days ? Math.max(0, (8 - H0) * HR) : 0);
+}
+function calClosePop(){ if(calPop){ calPop.remove(); calPop = null; } }
+$("#calBar").addEventListener("click", e=>{ const b = e.target.closest("[data-cnav],[data-cview],[data-cshow]"); if(b) calClick(e); });
+$("#calScroll").addEventListener("click", e=>calClick(e));
+async function calClick(e){
+  const nav = e.target.closest("[data-cnav]"); if(nav){ const n = +nav.dataset.cnav; if(!n) calDate = jbToday(); else if(calView === "day") calDate = calAdd(calDate, n); else if(calView === "week") calDate = calAdd(calDate, 7*n); else { const d = new Date(calDate + "T12:00:00"); d.setDate(1); d.setMonth(d.getMonth() + n); calDate = jbIso(d); } calRender(); return; }
+  const v = e.target.closest("[data-cview]"); if(v){ calView = v.dataset.cview; try{ localStorage.setItem(LS + ".calview", calView); }catch(_){} calRender(); return; }
+  const sh = e.target.closest("[data-cshow]"); if(sh){ const k = sh.dataset.cshow;
+    if(k === "ol" && !olOn){ olOn = true; try{ localStorage.setItem(LSO, "1"); }catch(_){} olState = "loading"; olCache = {}; olSetUi(); calShow.ol = true; }
+    else calShow[k] = !calShow[k];
+    try{ localStorage.setItem(LS + ".calshow", JSON.stringify(calShow)); }catch(_){} calRender(); return; }
+  const job = e.target.closest("[data-cjob]"); if(job){ e.stopPropagation(); setTab("jobs"); jbOpen(job.dataset.cjob); return; }
+  const tk = e.target.closest("[data-ctask]"); if(tk){ e.stopPropagation(); setTab("todo"); setTimeout(()=>tdOpen(tk.dataset.ctask), 50); return; }
+  if(e.target.closest("a")) return;
+  const go = e.target.closest("[data-cgo]"); if(go && (calView === "month" || e.target.closest(".calhead"))){ calDate = go.dataset.cgo; calView = "day"; calRender(); return; }
+  const day = e.target.closest("[data-cday]"); if(day){
+    const r = day.getBoundingClientRect(), m = Math.max(H0*60, Math.min((H1 - 1)*60, Math.round(((e.clientY - r.top)/HR + H0) * 2) / 2 * 60)), iso = day.dataset.cday, hm = jbHM(m);
+    calClosePop(); calPop = document.createElement("div"); calPop.className = "cpop";
+    calPop.innerHTML = `<h4>${esc(jbNice(iso))} at ${hm}</h4><input id="calPopT" placeholder="What, e.g. Karl Harion, fix PoE camera"><div class="adds"><button class="btn small primary" data-cp="job">New job visit</button><button class="btn small" data-cp="todo">Add to-do</button><button class="btn small ghost" data-cp="x">Cancel</button></div>`;
+    document.body.appendChild(calPop);
+    const x = Math.min(innerWidth - 300, Math.max(8, e.clientX - 140)), y = Math.min(innerHeight - 140, e.clientY + 8); Object.assign(calPop.style, { left: x + "px", top: y + "px" });
+    calPop.dataset.iso = iso; calPop.dataset.hm = hm; setTimeout(()=>{ const i = $("#calPopT"); i && i.focus(); }, 30);
+    calPop.addEventListener("keydown", ev=>{ if(ev.key === "Enter"){ ev.preventDefault(); calPop.querySelector('[data-cp="job"]').click(); } if(ev.key === "Escape") calClosePop(); });
+    calPop.addEventListener("click", async ev=>{ const b = ev.target.closest("[data-cp]"); if(!b) return; const what = ($("#calPopT").value || "").trim(), iso = calPop.dataset.iso, hm = calPop.dataset.hm;
+      if(b.dataset.cp === "x"){ calClosePop(); return; }
+      if(b.dataset.cp === "todo"){ if(!what){ toast("Type what the to-do is first."); return; } calClosePop(); await tdAdd(what, { due: iso, time: hm }); toast("To-do added."); calRender(); return; }
+      calClosePop(); if(typeof jbDirty !== "undefined" && jbDirty) await jbSave();
+      const j = jbBlank(); j.description = what; j.customer = what.split(",")[0].trim(); j.visits.push({ id: uid(), date: iso, start: hm, end: jbHM(Math.min(jbMins(hm) + 120, 23*60)), staff: j.staff || "Ian Lamont", note: "", studio: true });
+      jbList.unshift(j); jbCur = jbNorm(clone(j)); jbSave(); setTab("jobs"); jbView = "job"; jbRenderList(); jbRender(); if(innerWidth <= 860) setView("preview");
+      toast(`${j.number} booked for ${jbNice(iso)} at ${hm}. Add the customer and details here.`); });
+  }
+}
+addEventListener("click", e=>{ if(calPop && !calPop.contains(e.target) && !e.target.closest("[data-cday]")) calClosePop(); });
+$("#tabCal").addEventListener("click", ()=>setTab("calendar"));
 
 /* ---- app feel 2: slide-in screens, back button, swipe back, pull to refresh, quick sheets, Today ---- */
 const PH = ()=>innerWidth <= 860;
