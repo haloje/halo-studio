@@ -1476,7 +1476,7 @@ async function poSaveSuppliers(){ if(mode === "db"){ try{ await db.doc("settings
 /* Free image blocks: a photo with an optional title and description, placed anywhere in the proposal. */
 const GAL_AT = p => [["summary","After the price summary"],["scope","After the scope of works"]].concat((p.systems||[]).map((s,i)=>["sys:"+i, "In " + (s.name || "System " + (i+1))])).concat([["own","On their own page, after the systems"],["end","Before the terms"]]);
 function galHtml(p, at){
-  const bl = (p.gallery || []).filter(g=>(g.img || g.title || g.desc) && (g.at || "own") === at);
+  const bl = (p.gallery || []).filter(g=>(g.img || g.title || g.desc) && (g.at || "own") === at && !(g.size === "C" && /^sys:/.test(at)));
   return bl.map(g=>`<div class="gblk g-${esc((g.size || "M").toLowerCase())}">${g.img ? `<div class="pic"><img src="${esc(g.img)}" alt="${esc(g.title || "")}" crossorigin="anonymous"></div>` : ""}${g.title || g.desc ? `<div class="txt">${g.title ? `<h4>${esc(g.title)}</h4>` : ""}${paras(g.desc || "").map(x=>`<p>${inline(x)}</p>`).join("")}</div>` : ""}</div>`).join("");
 }
 function renderDoc(p){
@@ -1546,7 +1546,9 @@ function renderDoc(p){
       + (oneTail || `<tr class="sub"><td></td><td colspan="${su ? 3 : 2}">${esc(s.name)} total</td><td class="r">${money(t.sys[i].total,p)}</td></tr>`);
     const work = lines(s.work);
     const feat = items.filter(it => (it.desc && it.desc.trim()) || it.img);
-    const cards = feat.length ? `<div class="prods">${feat.map(it=>`<div class="prod${feat.length===1?" solo":""}${it.img && it.imgSize && it.imgSize !== "M" ? " isz-" + esc(String(it.imgSize).toLowerCase()) : ""}">${it.img?`<div class="pic"><img src="${esc(it.img)}" alt="${esc(it.item)}" crossorigin="anonymous"></div>`:""}<div class="txt">${it.model && p.showParts !== false?`<div class="mono">${esc(it.model)}</div>`:""}<h4>${esc(it.item)}</h4>${paras(it.desc).map(x=>`<p>${inline(x)}</p>`).join("")}</div></div>`).join("")}</div>` : "";
+    const gcards = (p.gallery || []).filter(g=>g.size === "C" && (g.at || "") === "sys:" + i && (g.img || g.title || g.desc));
+    const gcardHtml = gcards.map(g=>`<div class="prod gcard">${g.img ? `<div class="pic"><img src="${esc(g.img)}" alt="${esc(g.title || "")}" crossorigin="anonymous"></div>` : ""}<div class="txt"><div class="mono">Option</div>${g.title ? `<h4>${esc(g.title)}</h4>` : ""}${paras(g.desc || "").map(x=>`<p>${inline(x)}</p>`).join("")}</div></div>`).join("");
+    const cards = (feat.length || gcards.length) ? `<div class="prods">${feat.map(it=>`<div class="prod${feat.length===1?" solo":""}${it.img && it.imgSize && it.imgSize !== "M" ? " isz-" + esc(String(it.imgSize).toLowerCase()) : ""}">${it.img?`<div class="pic"><img src="${esc(it.img)}" alt="${esc(it.item)}" crossorigin="anonymous"></div>`:""}<div class="txt">${it.model && p.showParts !== false?`<div class="mono">${esc(it.model)}</div>`:""}<h4>${esc(it.item)}</h4>${paras(it.desc).map(x=>`<p>${inline(x)}</p>`).join("")}</div></div>`).join("")}${gcardHtml}</div>` : "";
     const sysHtml = `${i===0?`<div class="mono kick">Scope</div><h2>What's <em>included.</em></h2>`:""}
       <h3>${esc(s.name)}</h3>${s.desc?paras(s.desc).map(x=>`<p>${inline(x)}</p>`).join(""):""}
       <table><tr><th>Qty</th><th>Item</th><th>${p.showParts !== false ? "Part number" : ""}</th>${su ? `<th class="r">Each</th>` : ""}<th class="r">${su ? "Total" : "Price"}</th></tr>${body}</table>${cards}
@@ -1790,7 +1792,7 @@ function buildEditor(){
       ${field("gallery."+k+".title","Title")}
       ${field("gallery."+k+".desc","Description","area",'rows="2"')}
       <div class="row"><label class="f"><span>Where it goes</span><select class="in" id="f_gallery_${k}_at" data-k="gallery.${k}.at">${GAL_AT(p).map(([v,l])=>`<option value="${esc(v)}" ${(g.at||"own")===v?"selected":""}>${esc(l)}</option>`).join("")}</select></label>
-        <label class="f"><span>Size</span><select class="in" id="f_gallery_${k}_size" data-k="gallery.${k}.size">${[["S","Small, beside the text"],["M","Medium, beside the text"],["L","Large, full width"]].map(([v,l])=>`<option value="${v}" ${(g.size||"M")===v?"selected":""}>${l}</option>`).join("")}</select></label></div>
+        <label class="f"><span>Size</span><select class="in" id="f_gallery_${k}_size" data-k="gallery.${k}.size">${[["S","Small, beside the text"],["M","Medium, beside the text"],["L","Large, full width"],["C","As a card beside the products (in a system)"]].map(([v,l])=>`<option value="${v}" ${(g.size||"M")===v?"selected":""}>${l}</option>`).join("")}</select></label></div>
     </div>`).join("")}
     <button class="btn add" data-act="galAdd">Add image</button>
   </div></details>
