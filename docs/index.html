@@ -1336,10 +1336,12 @@ const discText = (p, w = "") => { const l = String(p["disc" + w + "Label"] || ""
 const discNote = p => { const t = totals(p); return t.disc ? `Takes ${money(t.disc,{showPence:true})} off before GST in total${discRows(p, t).length > 1 ? ` (${discRows(p, t).map(([l,v])=>l.replace(/ \(.*\)$/, "") + " " + money(v,{showPence:true})).join(", ")})` : ""}. Each shows on the summary as its own line, so the client sees the saving.` : "Optional. Equipment comes off the equipment, labour off installation and contractor labour, then the overall discount comes off what's left. Each shows as its own line before GST."; };
 /* the discount lines, in order: equipment, labour, then the overall one on what's left */
 const discRows = (p, t) => [["Eq", t.discEq], ["Lab", t.discLab], ["", t.discAll]].filter(([,v])=>v > 0).map(([w,v])=>[discText(p, w), v]);
+function progRate(p){ return num(p.progRate) || num(p.rate); }
+function sysLab(p, s){ return num(s.hours) * num(p.rate) + num(s.progHours) * progRate(p); }
 function totals(p){
   const sys = p.systems.map(s => {
     const equip = s.items.reduce((a,i)=>a + num(i.qty)*sellUnit(p, i), 0);
-    const inst = num(s.hours) * num(p.rate);
+    const inst = sysLab(p, s);
     return { equip, inst, total: equip + inst };
   });
   const equip = sys.reduce((a,s)=>a+s.equip,0), inst = sys.reduce((a,s)=>a+s.inst,0);
@@ -1598,7 +1600,10 @@ function renderDoc(p){
     const items = s.items.filter(it => it.item || it.model || num(it.price));
     const sp = p.showParts !== false;
     const body = items.map(it=>`<tr${it.pb?' class="pb"':''}><td class="q">${esc(it.qty)}</td><td class="it"${sp?"":' colspan="2"'}>${esc(it.item)}${it.tag?`<span class="tag">${esc(it.tag)}</span>`:""}</td>${sp?`<td class="mm">${esc(it.model)}</td>`:""}${su ? `<td class="r ue">${num(it.price) ? money(sellUnit(p, it),p) : ""}</td>` : ""}<td class="r pr">${money(num(it.qty)*sellUnit(p, it),p)}</td></tr>`).join("")
-      + (num(s.hours) ? `<tr><td class="q"></td><td class="it">Installation, programming and commissioning</td><td class="mm">${esc(s.hours)} hours</td>${su ? `<td class="r ue">${money(num(p.rate),p)} per hour</td>` : ""}<td class="r pr">${money(t.sys[i].inst,p)}</td></tr>` : "")
+      + (num(s.progHours)
+        ? (num(s.hours) ? `<tr><td class="q"></td><td class="it">Installation and termination</td><td class="mm">${esc(s.hours)} hours</td>${su ? `<td class="r ue">${money(num(p.rate),p)} per hour</td>` : ""}<td class="r pr">${money(num(s.hours)*num(p.rate),p)}</td></tr>` : "")
+          + `<tr><td class="q"></td><td class="it">Programming and commissioning</td><td class="mm">${esc(s.progHours)} hours</td>${su ? `<td class="r ue">${money(progRate(p),p)} per hour</td>` : ""}<td class="r pr">${money(num(s.progHours)*progRate(p),p)}</td></tr>`
+        : num(s.hours) ? `<tr><td class="q"></td><td class="it">Installation, programming and commissioning</td><td class="mm">${esc(s.hours)} hours</td>${su ? `<td class="r ue">${money(num(p.rate),p)} per hour</td>` : ""}<td class="r pr">${money(t.sys[i].inst,p)}</td></tr>` : "")
       + (oneTail || `<tr class="sub"><td></td><td colspan="${su ? 3 : 2}">${esc(s.name)} total</td><td class="r">${money(t.sys[i].total,p)}</td></tr>`);
     const work = lines(s.work);
     const feat = items.filter(it => (it.desc && it.desc.trim()) || it.img);
@@ -1810,7 +1815,8 @@ function buildEditor(){
     ${field("intro","Opening paragraphs","area",'rows="6"')}
     <p class="note">Leave a blank line between paragraphs. Wrap words in **double stars** for bold.</p>
     ${field("pricedTo","Priced to (drawings or spec)")}
-    <div class="row">${field("rate","Labour rate £/hour","number",'step="1" min="0"')}${field("allowance","Allowance £","number",'step="1" min="0"')}</div>
+    <div class="row">${field("rate","Installation rate £/hour","number",'step="1" min="0"')}${field("progRate","Programming rate £/hour","number",'step="1" min="0" placeholder="Same as installation"')}</div>
+    <div class="row">${field("allowance","Allowance £","number",'step="1" min="0"')}<div></div></div>
     <div class="row">${field("uplift","Add to retail prices %","number",'step="0.5" min="0" max="100"')}<p class="note" style="align-self:end;margin:0">Built into each equipment price the client sees. See Costs &amp; margin above the preview.</p></div>
     ${field("allowanceLabel","Allowance wording")}
     <p class="note" style="margin-top:-6px">With an allowance amount this is a priced line in the summary. With £0 it shows as a note under the total.</p>
@@ -1934,7 +1940,7 @@ function sysBlock(s,i){
     </div>`).join("")}</div>
     <div class="adds"><button class="btn add" data-act="addItem" data-i="${i}">Add line</button>
       ${products.length?`<div class="libsearch"><input type="text" id="lq${i}" data-libq="${i}" placeholder="Search your library (${products.length})" autocomplete="off" aria-label="Search your product library" role="combobox" aria-expanded="false" aria-controls="lr${i}"><div class="libres" id="lr${i}" role="listbox" hidden></div></div>`:""}</div>
-    <div class="row"><label class="f"><span>Labour hours</span><input type="number" id="s${i}_h" data-k="systems.${i}.hours" value="${esc(s.hours)}" step="0.25" min="0"></label><div></div></div>
+    <div class="row"><label class="f"><span>Installation hours</span><input type="number" id="s${i}_h" data-k="systems.${i}.hours" value="${esc(s.hours)}" step="0.25" min="0"></label><label class="f"><span>Programming &amp; commissioning hours</span><input type="number" id="s${i}_ph" data-k="systems.${i}.progHours" value="${esc(s.progHours || "")}" step="0.25" min="0" placeholder="0, all in installation"></label></div>
     <label class="f"><span>The work, one per line</span><textarea id="s${i}_w" data-k="systems.${i}.work" rows="3">${esc(s.work)}</textarea></label>
     <div class="sys-total" id="st${i}"><span>Equipment ${money(t.equip,current)} · Labour ${money(t.inst,current)}</span><b>${money(t.total,current)}</b></div>
   </div>`;
@@ -2303,6 +2309,7 @@ function costRows(p){
       const own = it.cost !== undefined && it.cost !== "" && it.cost !== null, c = itemCost(it);
       rows.push({ kind: "item", sys: s.name, i, j, it, qty: num(it.qty), retail: num(it.price), sell: sellUnit(p, it), base: c, cost: c === null ? null : withGst(p, c), src: own || c === null ? "" : "from your price list" }); });
     if(num(s.hours)) rows.push({ kind: "labour", sys: s.name, i, qty: num(s.hours), retail: num(p.rate), sell: num(p.rate), cost: num(p.labourCost) });
+    if(num(s.progHours)) rows.push({ kind: "labour", sys: s.name, i, qty: num(s.progHours), retail: progRate(p), sell: progRate(p), cost: num(p.labourCost) });
   });
   (p.contractors || []).forEach((c,k)=>{ const charge = num(c.qty) * num(c.rate); if(!charge && !c.who) return; rows.push({ kind: "contr", k, c, qty: 1, retail: charge, sell: charge, cost: (c.cost === undefined || c.cost === "" || c.cost === null) ? null : num(c.cost) }); });
   return rows;
@@ -5997,7 +6004,7 @@ function plRenderHead(){
       <button class="btn small" data-pla="draw">${p.drawingId ? "Open drawings" : "Start drawing set"}</button>
       <label class="check" style="margin-left:4px"><input type="checkbox" data-pk="auto" data-bool="1" ${p.auto ? "checked" : ""}> Keep the proposal updated as I go</label></div>`;
 }
-function plQuoteTotal(q){ try{ return q.systems.reduce((a,s)=>a + s.items.reduce((b,it)=>b + num(it.qty) * sellUnit(q, it), 0) + num(s.hours) * num(q.rate), 0); }catch(_){ return null; } }
+function plQuoteTotal(q){ try{ return q.systems.reduce((a,s)=>a + s.items.reduce((b,it)=>b + num(it.qty) * sellUnit(q, it), 0) + sysLab(q, s), 0); }catch(_){ return null; } }
 function plCheck(p, it){ const on = plDone(p, it), auto = it.auto && it.auto(p);
   return `<label class="plck ${on ? "on" : ""}"><input type="checkbox" data-pc="${it.k}" ${on ? "checked" : ""} ${auto ? "disabled" : ""}><span>${esc(it.t)}${auto ? ` <em>done</em>` : ""}${it.h ? `<small>${esc(it.h)}</small>` : ""}</span></label>`; }
 function plRender(){
