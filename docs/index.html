@@ -1301,7 +1301,10 @@ const STD_STAGES = [
 /* ---------- maths ---------- */
 /* Allowance wording with no amount: shown as a note under the total rather than dropped. */
 const allowNote = p => { const l = String(p.allowanceLabel || "").trim(); return l && l !== "Allowance for design development on provisional items" ? l : ""; };
-const discText = p => { const l = String(p.discLabel || "").trim() || "Discount", v = readAmount(p.discount); return p.discType === "amt" || /%/.test(l) ? l : `${l} (${+v.toFixed(2)}%)`; };
+const discText = (p, w = "") => { const l = String(p["disc" + w + "Label"] || "").trim() || ({ "": "Discount", Eq: "Equipment discount", Lab: "Labour discount" })[w], v = readAmount(p[w ? "disc" + w : "discount"]); return p["disc" + w + "Type"] === "amt" || /%/.test(l) ? l : `${l} (${+v.toFixed(2)}%)`; };
+const discNote = p => { const t = totals(p); return t.disc ? `Takes ${money(t.disc,{showPence:true})} off before GST in total${discRows(p, t).length > 1 ? ` (${discRows(p, t).map(([l,v])=>l.replace(/ \(.*\)$/, "") + " " + money(v,{showPence:true})).join(", ")})` : ""}. Each shows on the summary as its own line, so the client sees the saving.` : "Optional. Equipment comes off the equipment, labour off installation and contractor labour, then the overall discount comes off what's left. Each shows as its own line before GST."; };
+/* the discount lines, in order: equipment, labour, then the overall one on what's left */
+const discRows = (p, t) => [["Eq", t.discEq], ["Lab", t.discLab], ["", t.discAll]].filter(([,v])=>v > 0).map(([w,v])=>[discText(p, w), v]);
 function totals(p){
   const sys = p.systems.map(s => {
     const equip = s.items.reduce((a,i)=>a + num(i.qty)*sellUnit(p, i), 0);
@@ -1312,9 +1315,11 @@ function totals(p){
   const contr = (p.contractors||[]).reduce((a,c)=>a + num(c.qty)*num(c.rate), 0);
   const ship = p.shipMode === "line" ? shipCharge(p) : 0;
   const sub = equip + inst + contr + ship, allow = num(p.allowance), pre = sub + allow;
-  const dv = readAmount(p.discount), disc = dv > 0 ? Math.min(pre, Math.round((p.discType === "amt" ? dv : pre * dv / 100) * 100) / 100) : 0;
+  const dcalc = (val, type, base) => { const dv = readAmount(val); return dv > 0 && base > 0 ? Math.min(base, Math.round((type === "amt" ? dv : base * dv / 100) * 100) / 100) : 0; };
+  const discEq = dcalc(p.discEq, p.discEqType, equip), discLab = dcalc(p.discLab, p.discLabType, inst + contr);
+  const discAll = dcalc(p.discount, p.discType, pre - discEq - discLab), disc = discEq + discLab + discAll;
   const net = pre - disc, gst = p.gst ? net*0.05 : 0;
-  return { sys, equip, inst, contr, ship, sub, allow, pre, disc, net, gst, grand: net + gst };
+  return { sys, equip, inst, contr, ship, sub, allow, pre, disc, discEq, discLab, discAll, net, gst, grand: net + gst };
 }
 
 
@@ -1329,7 +1334,7 @@ function depLines(p){
   const mode = p.invMode || "hardware", t = totals(p), doc = String(p.docType || "Quotation").toLowerCase(), ref = [p.ref, p.rev].filter(Boolean).join(" ");
   if(mode === "stage"){ const pct = num(p.depPct); return pct > 0 ? [{ desc: `${p.stageLabel ? p.stageLabel + ": " : "Stage payment: "}${pct}% of ${doc} ${ref}${p.titleA ? " – " + p.titleA : ""}`, qty: 1, unit: Math.round(t.grand * pct) / 100 }] : []; }
   if(mode === "final"){ const paid = invPaid(p), bal = Math.round((t.grand - paid) * 100) / 100; return bal > 0 ? [{ desc: `Final balance for ${doc} ${ref}${p.titleA ? " – " + p.titleA : ""} (total ${money(t.grand, {showPence:true})}${paid ? ` less ${money(paid, {showPence:true})} already invoiced` : ""})`, qty: 1, unit: bal }] : []; }
-  const pct = num(p.depPct) || 100, out = [], dk = t.pre > 0 ? 1 - t.disc / t.pre : 1;
+  const pct = num(p.depPct) || 100, out = [], rest = t.pre - t.discEq - t.discLab, dk = (t.equip > 0 ? 1 - t.discEq / t.equip : 1) * (rest > 0 ? 1 - t.discAll / rest : 1);
   p.systems.forEach(s=>s.items.forEach(it=>{ if(it.dep && (it.item || num(it.price))) out.push({ desc: [it.item, it.model].filter(Boolean).join(" – ") + (pct < 100 ? ` (${pct}% deposit)` : "") + (t.disc ? ", discount applied" : ""), qty: num(it.qty) || 1, unit: Math.round(sellUnit(p, it) * dk * pct) / 100 }); }));
   return out;
 }
@@ -1526,7 +1531,7 @@ function renderDoc(p){
   if(showSub) rows += p.split ? `<tr class="sub"><td>Subtotal</td><td class="r">${money(t.equip + t.ship,p)}</td><td class="r">${money(t.inst+t.contr,p)}</td><td class="r">${money(t.sub,p)}</td></tr>` : `<tr class="sub"><td>Subtotal</td><td class="r">${money(t.sub,p)}</td></tr>`;
   const span = p.split ? 3 : 1;
   if(t.allow) rows += `<tr class="plain"><td colspan="${span}">${esc(p.allowanceLabel)}</td><td class="r">${money(t.allow,p)}</td></tr>`;
-  if(t.disc) rows += `<tr class="plain"><td colspan="${span}">${esc(discText(p))}</td><td class="r">−${money(t.disc,p)}</td></tr>`;
+  discRows(p, t).forEach(([l,v])=>{ rows += `<tr class="plain"><td colspan="${span}">${esc(l)}</td><td class="r">−${money(v,p)}</td></tr>`; });
   if(p.gst) rows += `<tr class="plain"><td colspan="${span}">GST at 5%</td><td class="r">${money(t.gst,p)}</td></tr>`;
   const head = p.split ? `<tr><th>System</th><th class="r">Equipment</th><th class="r">Installation &amp; programming</th><th class="r">Total</th></tr>` : `<tr><th>Service</th><th class="r">Total</th></tr>`;
   pages.push(`<article class="sheet"><div class="mono kick">Summary</div><h2>Your price, <em>at a glance.</em></h2>
@@ -1555,7 +1560,7 @@ function renderDoc(p){
   const row = (l, v) => `<tr><td class="q"></td><td class="it">${l}</td><td class="mm"></td>${ue}<td class="r pr">${v}</td></tr>`;
   const oneTail = p.systems.length === 1 && Math.abs(t.grand - t.sys[0].total) > 0.004
     ? (t.contr ? row(esc(p.contractorTitle || "Contractor labour"), money(t.contr,p)) : "") + (t.ship ? row(esc(p.shipLabel || "Delivery to Jersey"), money(t.ship,p)) : "")
-      + (t.allow ? row(esc(p.allowanceLabel), money(t.allow,p)) : "") + (t.disc ? row(esc(discText(p)), "−" + money(t.disc,p)) : "") + (p.gst ? row("GST at 5%", money(t.gst,p)) : "")
+      + (t.allow ? row(esc(p.allowanceLabel), money(t.allow,p)) : "") + discRows(p, t).map(([l,v])=>row(esc(l), "−" + money(v,p))).join("") + (p.gst ? row("GST at 5%", money(t.gst,p)) : "")
       + `<tr class="sub"><td></td><td colspan="${su ? 3 : 2}">${esc(p.totalLabel || "Total")}</td><td class="r">${money(t.grand,p)}</td></tr>`
     : "";
   p.systems.forEach((s,i)=>{
@@ -1778,8 +1783,8 @@ function buildEditor(){
     <div class="row">${field("uplift","Add to retail prices %","number",'step="0.5" min="0" max="100"')}<p class="note" style="align-self:end;margin:0">Built into each equipment price the client sees. See Costs &amp; margin above the preview.</p></div>
     ${field("allowanceLabel","Allowance wording")}
     <p class="note" style="margin-top:-6px">With an allowance amount this is a priced line in the summary. With £0 it shows as a note under the total.</p>
-    <div class="row"><label class="f"><span>Discount</span><div style="display:flex;gap:6px"><input id="f_discount" type="text" inputmode="decimal" data-k="discount" value="${esc(p.discount ?? "")}" placeholder="0" style="flex:1;min-width:0"><select class="in" id="f_discType" data-k="discType" style="width:auto">${[["pct","%"],["amt","£ off"]].map(([v,l])=>`<option value="${v}" ${(p.discType||"pct")===v?"selected":""}>${l}</option>`).join("")}</select></div></label>${field("discLabel","Discount wording","text",'placeholder="Discount"')}</div>
-    <p class="note" id="discNote">${totals(p).disc ? `Takes ${money(totals(p).disc,{showPence:true})} off before GST. Shows on the summary as its own line, so the client sees the saving.` : "Optional. Taken off the total before GST and shown as its own line on the summary."}</p>
+    ${[["Eq","Discount on equipment","Equipment discount"],["Lab","Discount on labour","Labour discount"],["","Overall discount","Discount"]].map(([w,t,ph])=>{ const vk = w ? "disc" + w : "discount", tk = "disc" + w + "Type"; return `<div class="row"><label class="f"><span>${t}</span><div style="display:flex;gap:6px"><input id="f_${vk}" type="text" inputmode="decimal" data-k="${vk}" value="${esc(p[vk] ?? "")}" placeholder="0" style="flex:1;min-width:0"><select class="in" id="f_${tk}" data-k="${tk}" style="width:auto">${[["pct","%"],["amt","£ off"]].map(([v,l])=>`<option value="${v}" ${(p[tk]||"pct")===v?"selected":""}>${l}</option>`).join("")}</select></div></label>${field("disc" + w + "Label","Wording","text",`placeholder="${ph}"`)}</div>`; }).join("")}
+    <p class="note" id="discNote">${discNote(p)}</p>
     <label class="check"><input type="checkbox" id="f_split" data-k="split" ${p.split?"checked":""}> Split equipment and installation in the summary</label>
     <label class="check"><input type="checkbox" id="f_gst" data-k="gst" ${p.gst?"checked":""}> Add GST at 5%</label>
     <label class="check"><input type="checkbox" id="f_pence" data-k="showPence" ${p.showPence?"checked":""}> Show pence</label>
@@ -1911,7 +1916,7 @@ $("#editor").addEventListener("input", e=>{
   setPath(k, v); scheduleSave(); queuePreview();
   current.systems.forEach((s,i)=>{ const el = $("#st"+i); if(el){ const t = totals(current).sys[i]; el.innerHTML = `<span>Equipment ${money(t.equip,current)} · Labour ${money(t.inst,current)}</span><b>${money(t.total,current)}</b>`; }});
   if(k==="titleA"||k==="ref"||k==="qStatus") fillPickerLabel();
-  if(/^disc/.test(k)){ const dn = $("#discNote"), d = totals(current).disc; if(dn) dn.textContent = d ? `Takes ${money(d,{showPence:true})} off before GST. Shows on the summary as its own line, so the client sees the saving.` : "Optional. Taken off the total before GST and shown as its own line on the summary."; }
+  if(/^disc/.test(k)){ const dn = $("#discNote"); if(dn) dn.textContent = discNote(current); }
   if(k==="invMode"||k==="qStatus") buildEditor();
   if(/\.dep$|^depPct$|^stageLabel$/.test(k)){ const dt = $("#depTotal"); if(dt) dt.textContent = money(depTotal(current), {showPence:true}); const dh = $("#depHint"); if(dh) dh.textContent = depHint(current); }
   if(k==="acceptButton"||k==="docType") buildEditor();
@@ -2329,7 +2334,7 @@ function costsHtml(p){
       ${body || `<tr><td colspan="9" class="note">Add some lines to the proposal first.</td></tr>`}
       ${num(p.allowance) ? `<tr><td></td><td>${esc(p.allowanceLabel || "Allowance")}</td><td></td><td></td><td class="r"><b>${m(num(p.allowance))}</b></td><td></td><td class="r">–</td><td></td><td class="r">–</td></tr>` : ""}
       ${num(p.shipCost) || t.ship ? `<tr class="csys"><td colspan="9">Shipping</td></tr><tr><td></td><td>${esc(p.shipLabel || "Delivery to Jersey")}<small>${({ absorb: "You cover it", spread: "Built into equipment prices", line: "Separate line on the proposal" })[p.shipMode || "absorb"]}</small></td><td></td><td></td><td class="r"><b>${t.ship ? m(t.ship) : p.shipMode === "spread" ? "in prices" : m(0)}</b></td><td></td><td class="r">${m(shipCostTotal(p))}</td><td></td><td class="r"></td></tr>` : ""}
-      ${t.disc ? `<tr><td></td><td>${esc(discText(p))}<small>Comes straight off your profit</small></td><td></td><td></td><td class="r"><b>−${m(t.disc)}</b></td><td></td><td class="r">–</td><td></td><td class="r">−${m(t.disc)}</td></tr>` : ""}
+      ${discRows(p, t).map(([l,v])=>`<tr><td></td><td>${esc(l)}<small>Comes straight off your profit</small></td><td></td><td></td><td class="r"><b>−${m(v)}</b></td><td></td><td class="r">–</td><td></td><td class="r">−${m(v)}</td></tr>`).join("")}
       <tr class="ctot"><td></td><td>Totals${p.gst ? " (before the GST line)" : ""}</td><td></td><td></td><td class="r">${m(sell)}</td><td></td><td class="r">${m(cost)}</td><td></td><td class="r ${profit < 0 ? "neg" : ""}">${m(profit)}<small>${pctTxt(margin)}</small></td></tr>
     </table></div>
     <p class="note">Only you see this. It's never in the PDF, HTML or email. A cost you type on a line from your price list is saved to that product, so it's filled in next time. <button class="btn small ghost" data-ccsv="1">Download costing (CSV)</button></p>
@@ -2359,7 +2364,7 @@ $("#stage").addEventListener("click", e=>{
     const out = [["System","Item","Model","Qty","Retail each","Quoted each","Quoted total",`Cost each (incl. ${costGst(p)}% GST on equipment)`,"Cost total","Profit each","Profit total"].join(",")];
     costRows(p).forEach(r=>{ const ls = r.qty * r.sell, lc = r.cost === null ? null : r.qty * r.cost; out.push([r.kind === "contr" ? "Contractors" : r.sys, r.kind === "item" ? r.it.item : r.kind === "labour" ? "Labour" : (r.c.who || "Contractor"), r.kind === "item" ? r.it.model : "", r.qty, r.kind === "item" ? r.retail.toFixed(2) : "", r.sell.toFixed(2), ls.toFixed(2), r.cost === null ? "" : num(r.cost).toFixed(2), lc === null ? "" : lc.toFixed(2), lc === null || !r.qty ? "" : ((ls - lc) / r.qty).toFixed(2), lc === null ? "" : (ls - lc).toFixed(2)].map(q).join(",")); });
     if(num(p.shipCost) || totals(p).ship){ const sc = shipCostTotal(p), sv = totals(p).ship; out.push(["Shipping", p.shipLabel || "Delivery to Jersey", ({ absorb: "You cover it", spread: "Built into prices", line: "Separate line" })[p.shipMode || "absorb"], 1, "", sv.toFixed(2), sv.toFixed(2), sc.toFixed(2), sc.toFixed(2), "", (sv - sc).toFixed(2)].map(q).join(",")); }
-    { const td = totals(p).disc; if(td) out.push(["Discount", discText(p), "", 1, "", (-td).toFixed(2), (-td).toFixed(2), "", "", "", (-td).toFixed(2)].map(q).join(",")); }
+    discRows(p, totals(p)).forEach(([l,td])=>out.push(["Discount", l, "", 1, "", (-td).toFixed(2), (-td).toFixed(2), "", "", "", (-td).toFixed(2)].map(q).join(",")));
     offer(`${fileBase()} costing.csv`, out.join("\r\n") + "\r\n");
   }
 });
