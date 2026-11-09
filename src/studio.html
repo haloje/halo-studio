@@ -1325,14 +1325,16 @@ function totals(p){
     return { equip, inst, total: equip + inst };
   });
   const equip = sys.reduce((a,s)=>a+s.equip,0), inst = sys.reduce((a,s)=>a+s.inst,0);
+  /* lines marked "no discount" stay at full price: the equipment discount only comes off the rest */
+  const equipD = p.systems.reduce((a,s)=>a + s.items.reduce((b,i)=>b + (i.noDisc ? 0 : num(i.qty)*sellUnit(p, i)), 0), 0);
   const contr = (p.contractors||[]).reduce((a,c)=>a + num(c.qty)*num(c.rate), 0);
   const ship = p.shipMode === "line" ? shipCharge(p) : 0;
   const sub = equip + inst + contr + ship, allow = num(p.allowance), pre = sub + allow;
   const dcalc = (val, type, base) => { const dv = readAmount(val); return dv > 0 && base > 0 ? Math.min(base, Math.round((type === "amt" ? dv : base * dv / 100) * 100) / 100) : 0; };
-  const discEq = dcalc(p.discEq, p.discEqType, equip), discLab = dcalc(p.discLab, p.discLabType, inst + contr);
+  const discEq = dcalc(p.discEq, p.discEqType, equipD), discLab = dcalc(p.discLab, p.discLabType, inst + contr);
   const discAll = dcalc(p.discount, p.discType, pre - discEq - discLab), disc = discEq + discLab + discAll;
   const net = pre - disc, gst = p.gst ? net*0.05 : 0;
-  return { sys, equip, inst, contr, ship, sub, allow, pre, disc, discEq, discLab, discAll, net, gst, grand: net + gst };
+  return { sys, equip, equipD, inst, contr, ship, sub, allow, pre, disc, discEq, discLab, discAll, net, gst, grand: net + gst };
 }
 
 
@@ -1347,8 +1349,8 @@ function depLines(p){
   const mode = p.invMode || "hardware", t = totals(p), doc = String(p.docType || "Quotation").toLowerCase(), ref = [p.ref, p.rev].filter(Boolean).join(" ");
   if(mode === "stage"){ const pct = num(p.depPct); return pct > 0 ? [{ desc: `${p.stageLabel ? p.stageLabel + ": " : "Stage payment: "}${pct}% of ${doc} ${ref}${p.titleA ? " – " + p.titleA : ""}`, qty: 1, unit: Math.round(t.grand * pct) / 100 }] : []; }
   if(mode === "final"){ const paid = invPaid(p), bal = Math.round((t.grand - paid) * 100) / 100; return bal > 0 ? [{ desc: `Final balance for ${doc} ${ref}${p.titleA ? " – " + p.titleA : ""} (total ${money(t.grand, {showPence:true})}${paid ? ` less ${money(paid, {showPence:true})} already invoiced` : ""})`, qty: 1, unit: bal }] : []; }
-  const pct = num(p.depPct) || 100, out = [], rest = t.pre - t.discEq - t.discLab, dk = (t.equip > 0 ? 1 - t.discEq / t.equip : 1) * (rest > 0 ? 1 - t.discAll / rest : 1);
-  p.systems.forEach(s=>s.items.forEach(it=>{ if(it.dep && (it.item || num(it.price))) out.push({ desc: [it.item, it.model].filter(Boolean).join(" – ") + (pct < 100 ? ` (${pct}% deposit)` : "") + (t.disc ? ", discount applied" : ""), qty: num(it.qty) || 1, unit: Math.round(sellUnit(p, it) * dk * pct) / 100 }); }));
+  const pct = num(p.depPct) || 100, out = [], rest = t.pre - t.discEq - t.discLab, ka = rest > 0 ? 1 - t.discAll / rest : 1, ke = t.equipD > 0 ? 1 - t.discEq / t.equipD : 1;
+  p.systems.forEach(s=>s.items.forEach(it=>{ if(it.dep && (it.item || num(it.price))){ const dk = (it.noDisc ? 1 : ke) * ka; out.push({ desc: [it.item, it.model].filter(Boolean).join(" – ") + (pct < 100 ? ` (${pct}% deposit)` : "") + (dk < 1 ? ", discount applied" : ""), qty: num(it.qty) || 1, unit: Math.round(sellUnit(p, it) * dk * pct) / 100 }); } }));
   return out;
 }
 const depTotal = p => depLines(p).reduce((a,l)=>a + l.qty*l.unit, 0);
@@ -1906,11 +1908,12 @@ function sysBlock(s,i){
       <input type="number" id="s${i}i${j}p" data-k="systems.${i}.items.${j}.price" value="${esc(it.price)}" step="0.01" min="0" aria-label="Unit price">
       <button class="icon" title="Remove line" data-act="rmItem" data-i="${i}" data-j="${j}">×</button>
       <span class="imove"><button class="icon" title="Move line up${j===0&&i>0?" into the system above":""}" aria-label="Move line up" data-act="itemUp" data-i="${i}" data-j="${j}" ${i===0&&j===0?"disabled":""}>↑</button><button class="icon" title="Move line down${j===s.items.length-1&&i<current.systems.length-1?" into the system below":""}" aria-label="Move line down" data-act="itemDown" data-i="${i}" data-j="${j}" ${i===current.systems.length-1&&j===s.items.length-1?"disabled":""}>↓</button></span><span class="wide"><input type="text" id="s${i}i${j}m" data-k="systems.${i}.items.${j}.model" value="${esc(it.model)}" placeholder="Part number / model" aria-label="Part number or model">
-      <select class="in" id="s${i}i${j}t" data-k="systems.${i}.items.${j}.tag" aria-label="Tag">${["","Allowance","Provisional"].map(o=>`<option value="${o}" ${it.tag===o?"selected":""}>${o||"Fixed price"}</option>`).join("")}</select></span>
-      <button class="more" data-act="more" data-i="${i}" data-j="${j}">${openDetails.has(i+"-"+j)?"Hide":(it.desc||it.img?"Edit":"Add")} photo, description &amp; page break${it.desc||it.img?" ✓":""}${it.pb?" · new page":""}</button>
+      <select class="in" id="s${i}i${j}t" data-k="systems.${i}.items.${j}.tag" aria-label="Tag">${["","Allowance","Provisional","To be clarified"].concat(it.tag && !["Allowance","Provisional","To be clarified"].includes(it.tag) ? [it.tag] : []).map(o=>`<option value="${o}" ${it.tag===o?"selected":""}>${o||"Fixed price"}</option>`).join("")}</select></span>
+      <button class="more" data-act="more" data-i="${i}" data-j="${j}">${openDetails.has(i+"-"+j)?"Hide":(it.desc||it.img?"Edit":"Add")} photo, description &amp; page break${it.desc||it.img?" ✓":""}${it.pb?" · new page":""}${it.noDisc?" · no discount":""}</button>
       ${openDetails.has(i+"-"+j)?`<div class="details">
         <textarea id="s${i}i${j}d" data-k="systems.${i}.items.${j}.desc" placeholder="What it is and why it's worth having, in a sentence or two" aria-label="Product description">${esc(it.desc)}</textarea>
         <label class="check"><input type="checkbox" id="s${i}i${j}pb" data-k="systems.${i}.items.${j}.pb" ${it.pb?"checked":""}> Start a new page from this line</label>
+        <label class="check"><input type="checkbox" id="s${i}i${j}nd" data-k="systems.${i}.items.${j}.noDisc" ${it.noDisc?"checked":""}> No equipment discount on this line</label>
         <div class="imgrow"><span class="thumb" style="${it.img?`background-image:url('${esc(it.img)}')`:""}"></span>
           <span class="btn small filebtn">${it.img?"Replace photo":"Add photo"}<input type="file" accept="image/*" data-img="${i}-${j}" aria-label="Upload a product photo"></span>
           ${window.haloPhotoFromUrl ? `<input class="in imgurl" type="url" data-imgurl="${i}-${j}" placeholder="or paste a product page link" aria-label="Product page or photo link" style="width:220px">` : ""}
