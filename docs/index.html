@@ -2758,6 +2758,7 @@ function dwNextSeq(p, room, type, exceptId){
 }
 
 /* ---------- printed sheets ---------- */
+function dwFl(f){ const n = String((f && f.name) || ""); return /floor/i.test(n) ? n : n + " floor"; }
 function dwSheetList(p){
   const rows = dwCableRows(p), per = 38, n = Math.ceil(rows.length / per);
   const s = [
@@ -2767,8 +2768,8 @@ function dwSheetList(p){
   const pr = p.print || {};
   p.floors.forEach(f=>{
     const base = f.number || "LX";
-    s.push({ kind:"lx", floor:f, num:base, title:`${f.name} floor device layout${pr.split ? ", all systems" : ""}`, html:`${esc(f.name)} floor device <em>layout</em>`, sub:pr.split ? "Device layout · all systems overview" : "Device layout · first fix", size:f.size || "A1" });
-    if(pr.split && f.img) dwSysGroups(p, f).forEach(g=>s.push({ kind:"lx", floor:f, grp:g, num:`${base}-${g.code}`, title:`${f.name} floor ${g.name.toLowerCase()} layout`, html:`${esc(f.name)} floor ${esc(g.name.toLowerCase())} <em>layout</em>`, sub:`${g.name} · first fix`, size:f.size || "A1" }));
+    s.push({ kind:"lx", floor:f, num:base, title:`${dwFl(f)} device layout${pr.split ? ", all systems" : ""}`, html:`${esc(dwFl(f))} device <em>layout</em>`, sub:pr.split ? "Device layout · all systems overview" : "Device layout · first fix", size:f.size || "A1" });
+    if(pr.split && f.img) dwSysGroups(p, f).forEach(g=>s.push({ kind:"lx", floor:f, grp:g, num:`${base}-${g.code}`, title:`${dwFl(f)} ${g.name.toLowerCase()} layout`, html:`${esc(dwFl(f))} ${esc(g.name.toLowerCase())} <em>layout</em>`, sub:`${g.name} · first fix`, size:f.size || "A1" }));
   });
   for(let i=0;i<n;i++) s.push({ kind:"cs", page:i, rows: rows.slice(i*per, (i+1)*per), num:`CS-${dwPad(i+1,3)}`, title:`Cable schedule, sheet ${i+1} of ${n}`, html:`Cable <em>schedule</em>, sheet ${i+1} of ${n}`, sub:"Cable schedule", size:"A3" });
   return s;
@@ -3091,7 +3092,7 @@ function dwRender(){
   if(!rooms.some(r=>r.no===dwTool.room)) dwTool.room = rooms[0] ? rooms[0].no : "";
   tools.innerHTML = `<div class="pal" role="group" aria-label="View"><button class="sel" data-dview="plan" aria-pressed="${dwView==="plan"}">Place devices</button><button class="sel" data-dview="doc" aria-pressed="${dwView==="doc"}">Drawing set</button></div>
     ${dwView==="plan" ? `
-    <select id="dwFloorSel" aria-label="Floor">${p.floors.map((x,i)=>`<option value="${i}" ${i===dwFloor?"selected":""}>${esc(x.name)} floor</option>`).join("")}</select>
+    <select id="dwFloorSel" aria-label="Floor">${p.floors.map((x,i)=>`<option value="${i}" ${i===dwFloor?"selected":""}>${esc(dwFl(x))}</option>`).join("")}</select>
     <div class="pal" role="group" aria-label="Device type"><button class="sel" data-dtool="" aria-pressed="${!dwTool.type}" title="Select and move">Select</button>${p.types.map(t=>`<button data-dtool="${esc(t.tag)}" aria-pressed="${dwTool.type===t.tag}" title="Place ${esc(t.name)} (${esc(t.tag)})" aria-label="Place ${esc(t.name)}" style="background:${esc(t.color)}">${dwBadge(t)}</button>`).join("")}</div>
     <div class="grp"><span class="lbl">Room</span><select id="dwRoomSel" aria-label="Room for new devices">${rooms.length ? rooms.map(r=>`<option value="${esc(r.no)}" ${r.no===dwTool.room?"selected":""}>${esc(r.no)} ${esc(r.name)}</option>`).join("") : `<option value="">Add rooms first</option>`}</select></div>
     <div class="grp"><label class="check"><input type="checkbox" id="dwLabels" ${dwLabels?"checked":""}> Labels</label><button class="icon" data-dzoom="-1" title="Zoom out">−</button><button class="icon" data-dzoom="1" title="Zoom in">+</button></div>` : `<span class="note">${dwSheetList(p).length} sheets, A3 landscape.</span>`}`;
@@ -3100,7 +3101,7 @@ function dwRender(){
     sc.innerHTML = `<div class="dsheets" id="dwSheets">${dwDocSheets(p)}</div>`; dwFitSheets(); return;
   }
   if(!f.img){
-    sc.innerHTML = `<div class="planempty"><h2>${esc(f.name)} floor</h2><p>Upload the plan for this floor in Floors &amp; plans on the left. A PDF from the architect works; pick the page and it's trimmed to the drawing.</p></div>`; return;
+    sc.innerHTML = `<div class="planempty"><h2>${esc(dwFl(f))}</h2><p>Upload the plan for this floor in Floors &amp; plans on the left. A PDF from the architect works; pick the page and it's trimmed to the drawing.</p></div>`; return;
   }
   const baseW = Math.max(600, Math.min(sc.clientWidth - 40, 1400)), w = Math.round(baseW * dwZoom);
   const sel = dwSel && f.devices.find(d=>d.id===dwSel);
