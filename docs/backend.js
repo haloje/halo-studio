@@ -85,6 +85,10 @@
   const outbox = lsGet(LSK + "outbox") || [];
   let online = navigator.onLine !== false;
   const saveCache = c => { const m = store.get(c); if(m) lsSet(LSK + "c:" + c, [...m.entries()]); };
+  const base = lsGet(LSK + "base") || {};   // "c|id" -> server 'updated' this device last saw
+  const verOf = d => (d && typeof d.updated === "number") ? d.updated : (d && d.data && typeof d.data.updated === "number" ? d.data.updated : null);
+  const saveBase = ()=>lsSet(LSK + "base", base);
+  function toast(t){ try{ let el = document.getElementById("syncToast"); if(!el){ el = document.createElement("div"); el.id = "syncToast"; el.style.cssText = "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99999;max-width:560px;background:#1d1b19;color:#f4efe7;border:1px solid #c98a3b;border-radius:12px;padding:14px 18px;font:14px/1.45 system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.4)"; el.onclick = ()=>el.remove(); document.body.appendChild(el); } el.textContent = t; clearTimeout(el._t); el._t = setTimeout(()=>el.remove(), 15000); }catch(_){} }
   const emit = c => { (subs.get(c) || new Set()).forEach(fn=>{ try{ fn(); }catch(e){ console.error(e); } }); };
   function coll(c){ if(!store.has(c)){ const cached = lsGet(LSK + "c:" + c); store.set(c, new Map(cached || [])); } return store.get(c); }
   async function fetchCollection(c){
@@ -92,6 +96,7 @@
     for(;;){ const { data, error } = await sb.from("docs").select("id,data").eq("collection", c).range(from, from + 999); if(error) throw error; all.push(...data); if(data.length < 1000) break; from += 1000; }
     const m = coll(c); const pending = new Set(outbox.filter(o=>o.collection === c).map(o=>o.id));
     const next = new Map(all.map(r=>[r.id, r.data]));
+    all.forEach(r=>{ if(!pending.has(r.id)){ const v = verOf(r.data); if(v != null) base[c + "|" + r.id] = v; } }); saveBase();
     pending.forEach(id=>{ if(m.has(id)) next.set(id, m.get(id)); else next.delete(id); });
     store.set(c, next); saveCache(c); emit(c);
   }
@@ -100,19 +105,37 @@
     if(!outbox.length || !online) return;
     while(outbox.length){
       const o = outbox[0];
+      if(o.op === "set" && o.base != null){
+        const cur = await sb.from("docs").select("data").eq("collection", o.collection).eq("id", o.id).maybeSingle();
+        if(cur.error){ console.warn("sync check", cur.error); if(/fetch|network|Failed/i.test(cur.error.message || "")){ online = false; } break; }
+        const sv = cur.data ? verOf(cur.data.data) : null;
+        if(sv != null && sv > o.base){
+          // changed on another device since this one last saw it: keep the newer copy, park this device's edit
+          await sb.from("docs").upsert({ collection: "conflicts", id: o.collection + "-" + o.id + "-" + Date.now(), data: { collection: o.collection, id: o.id, savedAt: Date.now(), device: navigator.userAgent, data: o.data } });
+          outbox.shift(); lsSet(LSK + "outbox", outbox);
+          const m = coll(o.collection); m.set(o.id, cur.data.data); base[o.collection + "|" + o.id] = sv; saveBase(); saveCache(o.collection); emit(o.collection);
+          toast("This was changed on your other device, so I've loaded the newer version here. Your edit from this device is kept as a copy, nothing is lost. Please make that change again.");
+          continue;
+        }
+      }
       const r = o.op === "del" ? await sb.from("docs").delete().eq("collection", o.collection).eq("id", o.id)
                                : await sb.from("docs").upsert({ collection: o.collection, id: o.id, data: o.data });
       if(r.error){ console.warn("sync", r.error); if(/fetch|network|Failed/i.test(r.error.message || "")){ online = false; } break; }
+      if(o.op === "set"){ const v = verOf(o.data); if(v != null){ base[o.collection + "|" + o.id] = v; saveBase(); } }
       outbox.shift(); lsSet(LSK + "outbox", outbox);
     }
   }
   addEventListener("online", ()=>{ online = true; flush(); [...loaded.keys()].forEach(c=>fetchCollection(c).catch(()=>{})); });
   addEventListener("offline", ()=>{ online = false; });
+  // coming back to this tab (or waking the computer): pick up anything changed on the other device
+  let lastSeen = Date.now();
+  document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState !== "visible") { lastSeen = Date.now(); return; } if(Date.now() - lastSeen < 5000) return; ready.then(()=>{ flush().finally(()=>[...loaded.keys()].forEach(c=>fetchCollection(c).catch(()=>{}))); }); });
   setInterval(()=>{ if(outbox.length){ online = true; flush(); } }, 15000);
   function write(c, id, data){
     const m = coll(c); if(data === null) m.delete(id); else m.set(id, clone(data)); saveCache(c); emit(c);
-    for(let i = outbox.length - 1; i >= 0; i--) if(outbox[i].collection === c && outbox[i].id === id) outbox.splice(i, 1);
-    outbox.push(data === null ? { op: "del", collection: c, id } : { op: "set", collection: c, id, data: clone(data) });
+    let b = base[c + "|" + id];
+    for(let i = outbox.length - 1; i >= 0; i--) if(outbox[i].collection === c && outbox[i].id === id){ if(outbox[i].base != null) b = outbox[i].base; outbox.splice(i, 1); }
+    outbox.push(data === null ? { op: "del", collection: c, id } : { op: "set", collection: c, id, data: clone(data), base: b == null ? null : b });
     lsSet(LSK + "outbox", outbox);
     return ready.then(flush);
   }
@@ -123,7 +146,7 @@
       const c = row.collection; if(!store.has(c)) return;
       if(outbox.some(o=>o.collection === c && o.id === row.id)) return;
       const m = coll(c);
-      if(p.eventType === "DELETE") m.delete(row.id); else m.set(row.id, p.new.data);
+      if(p.eventType === "DELETE") m.delete(row.id); else { m.set(row.id, p.new.data); const v = verOf(p.new.data); if(v != null){ base[c + "|" + row.id] = v; saveBase(); } }
       saveCache(c); emit(c);
     }).subscribe();
     flush();
