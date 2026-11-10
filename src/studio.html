@@ -1536,7 +1536,7 @@ function optHtml(p, at, list){
   if(!list.length) return "";
   const n = Math.min(list.length, 3), first = firstOptAt(p) === at;
   return `<div class="gopts">${`<div class="mono ohd">Options</div>`}${first ? `<p class="onote">These are optional extras and are not included in the total. Just let me know if you'd like to add any of them.</p>` : ""}<div class="ogrid c${n}">${list.map(g=>{ const pr = num(g.price), pn = String(g.priceNote || "").trim();
-    return `<div class="ocard">${g.img ? `<div class="pic"><img src="${esc(g.img)}" alt="${esc(g.title || "")}" crossorigin="anonymous"></div>` : ""}<div class="txt">${g.title ? `<h4>${esc(g.title)}</h4>` : ""}${paras(g.desc || "").map(x=>`<p>${inline(x)}</p>`).join("")}<div class="oprice">${pr ? `+${money(sellUnit(p, { price: pr }), p)}${pn ? ` <span>${esc(pn)}</span>` : ""}` : `Price on request${pn ? ` <span>${esc(pn)}</span>` : ""}`}</div></div></div>`; }).join("")}</div></div>`;
+    return `<div class="ocard">${g.img ? `<div class="pic"><img src="${esc(g.img)}" alt="${esc(g.title || "")}" crossorigin="anonymous"></div>` : ""}<div class="txt">${g.title ? `<h4>${esc(g.title)}</h4>` : ""}${paras(g.desc || "").map(x=>`<p>${inline(x)}</p>`).join("")}<div class="oprice">${pr ? `+${money(sellUnit(p, { price: pr }), p)}${pn ? ` <span>${esc(pn)}</span>` : ""}` : (pn ? esc(pn) : "Price on request")}</div></div></div>`; }).join("")}</div></div>`;
 }
 function galHtml(p, at){
   const all = (p.gallery || []).filter(g=>galShow(g) && (g.at || "own") === at);
