@@ -244,6 +244,18 @@ body.pdfvon .tabbar{display:none}
 .sheet .gblk.g-s{grid-template-columns:32% 1fr}.sheet .gblk.g-s .pic img{max-height:150px}
 .sheet .gblk.g-m{grid-template-columns:52% 1fr}.sheet .gblk.g-m .pic img{max-height:260px}
 .sheet .gblk.g-l{grid-template-columns:1fr}.sheet .gblk.g-l .pic img{max-height:420px;width:100%}
+.sheet .gopts{margin-top:26px;break-inside:avoid}
+.sheet .gopts .ohd{color:var(--d-gold);margin-bottom:6px}
+.sheet .gopts .onote{margin:0 0 12px;font-size:.92em;color:var(--d-brown)}
+.sheet .ogrid{display:grid;gap:14px;align-items:stretch}.sheet .ogrid.c1{grid-template-columns:minmax(0,60%)}.sheet .ogrid.c2{grid-template-columns:1fr 1fr}.sheet .ogrid.c3{grid-template-columns:1fr 1fr 1fr}
+.sheet .ocard{border:1px solid #e6e0d6;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;break-inside:avoid;background:#fff}
+.sheet .ocard .pic{background:#f6f3ee;display:flex;align-items:center;justify-content:center;height:150px}
+.sheet .ocard .pic img{display:block;max-width:100%;max-height:150px;object-fit:contain}
+.sheet .ocard .txt{padding:12px 14px 14px;display:flex;flex-direction:column;flex:1}
+.sheet .ocard h4{margin:0 0 6px;font-family:var(--f-display);font-weight:400;font-size:17px;color:var(--d-ink)}
+.sheet .ocard p{margin:0 0 8px;font-size:.95em}
+.sheet .ocard .oprice{margin-top:auto;padding-top:8px;border-top:1px solid #efe9df;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;color:var(--d-ink)}
+.sheet .ocard .oprice span{color:var(--d-brown);letter-spacing:0;font-family:inherit}
 .sheet .gblk:not(:has(.pic)){grid-template-columns:1fr}.sheet .gblk:not(:has(.txt)) {grid-template-columns:1fr}
 .sheet .prod.isz-s .pic{height:96px;padding:12px}.sheet .prod.isz-s .pic img{max-width:60%}
 .sheet .prod.isz-l .pic{height:220px;padding:10px}
@@ -1515,9 +1527,21 @@ async function poSaveSuppliers(){ if(mode === "db"){ try{ await db.doc("settings
 /* ---------- document renderer (shared by preview and HTML export) ---------- */
 /* Free image blocks: a photo with an optional title and description, placed anywhere in the proposal. */
 const GAL_AT = p => [["summary","After the price summary"],["scope","After the scope of works"]].concat((p.systems||[]).map((s,i)=>["sys:"+i, "In " + (s.name || "System " + (i+1))])).concat([["own","On their own page, after the systems"],["end","Before the terms"]]);
+/* Option cards (size "O"): extras shown side by side under an Options heading, priced but never in the total.
+   The "not included" line shows once, on the first group of options in the document. */
+const galShow = g => g.img || g.title || g.desc;
+const optAtOrder = p => ["summary","scope"].concat(p.systems.map((s,i)=>"sys:"+i)).concat(["own","end"]);
+function firstOptAt(p){ const has = new Set((p.gallery||[]).filter(g=>g.size === "O" && galShow(g)).map(g=>{ const a = g.at || "own"; return /^sys:/.test(a) && !p.systems[+a.slice(4)] ? "own" : a; })); return optAtOrder(p).find(a=>has.has(a)) || ""; }
+function optHtml(p, at, list){
+  if(!list.length) return "";
+  const n = Math.min(list.length, 3), first = firstOptAt(p) === at;
+  return `<div class="gopts">${`<div class="mono ohd">Options</div>`}${first ? `<p class="onote">These are optional extras and are not included in the total. Just let me know if you'd like to add any of them.</p>` : ""}<div class="ogrid c${n}">${list.map(g=>{ const pr = num(g.price), pn = String(g.priceNote || "").trim();
+    return `<div class="ocard">${g.img ? `<div class="pic"><img src="${esc(g.img)}" alt="${esc(g.title || "")}" crossorigin="anonymous"></div>` : ""}<div class="txt">${g.title ? `<h4>${esc(g.title)}</h4>` : ""}${paras(g.desc || "").map(x=>`<p>${inline(x)}</p>`).join("")}<div class="oprice">${pr ? `+${money(sellUnit(p, { price: pr }), p)}${pn ? ` <span>${esc(pn)}</span>` : ""}` : `Price on request${pn ? ` <span>${esc(pn)}</span>` : ""}`}</div></div></div>`; }).join("")}</div></div>`;
+}
 function galHtml(p, at){
-  const bl = (p.gallery || []).filter(g=>(g.img || g.title || g.desc) && (g.at || "own") === at && !(g.size === "C" && /^sys:/.test(at)));
-  return bl.map(g=>`<div class="gblk g-${esc((g.size || "M").toLowerCase())}">${g.img ? `<div class="pic"><img src="${esc(g.img)}" alt="${esc(g.title || "")}" crossorigin="anonymous"></div>` : ""}${g.title || g.desc ? `<div class="txt">${g.title ? `<h4>${esc(g.title)}</h4>` : ""}${paras(g.desc || "").map(x=>`<p>${inline(x)}</p>`).join("")}</div>` : ""}</div>`).join("");
+  const all = (p.gallery || []).filter(g=>galShow(g) && (g.at || "own") === at);
+  const bl = all.filter(g=>g.size !== "O" && !(g.size === "C" && /^sys:/.test(at)));
+  return bl.map(g=>`<div class="gblk g-${esc((g.size || "M").toLowerCase())}">${g.img ? `<div class="pic"><img src="${esc(g.img)}" alt="${esc(g.title || "")}" crossorigin="anonymous"></div>` : ""}${g.title || g.desc ? `<div class="txt">${g.title ? `<h4>${esc(g.title)}</h4>` : ""}${paras(g.desc || "").map(x=>`<p>${inline(x)}</p>`).join("")}</div>` : ""}</div>`).join("") + optHtml(p, at, all.filter(g=>g.size === "O"));
 }
 function renderDoc(p){
   const t = totals(p), pages = [];
@@ -1827,7 +1851,7 @@ function buildEditor(){
   </div></details>
 
   <details class="sec" data-s="gal" ${isOpen("gal",false)}><summary><span class="t">Images</span><span class="hint">${(p.gallery||[]).length ? (p.gallery.length + " on the " + esc(p.docType.toLowerCase())) : "Photos anywhere, with a title"}</span></summary><div class="body">
-    <p class="note">Add a photo with a title and a short description, then choose where it sits: after the summary, inside a system, on its own page, or before the terms.</p>
+    <p class="note">Add a photo with a title and a short description, then choose where it sits: after the summary, inside a system, on its own page, or before the terms. Set the size to Option for extras the client can choose: options in the same place sit side by side under an Options heading, with an optional price that is never added to the total.</p>
     ${(p.gallery||[]).map((g,k)=>`<div class="galrow">
       <div class="imgrow"><span class="thumb" style="${g.img?`background-image:url('${esc(g.img)}')`:""}"></span>
         <span class="btn small filebtn">${g.img?"Replace photo":"Add photo"}<input type="file" accept="image/*" data-gimg="${k}" aria-label="Upload a photo"></span>
@@ -1836,7 +1860,8 @@ function buildEditor(){
       ${field("gallery."+k+".title","Title")}
       ${field("gallery."+k+".desc","Description","area",'rows="2"')}
       <div class="row"><label class="f"><span>Where it goes</span><select class="in" id="f_gallery_${k}_at" data-k="gallery.${k}.at">${GAL_AT(p).map(([v,l])=>`<option value="${esc(v)}" ${(g.at||"own")===v?"selected":""}>${esc(l)}</option>`).join("")}</select></label>
-        <label class="f"><span>Size</span><select class="in" id="f_gallery_${k}_size" data-k="gallery.${k}.size">${[["S","Small, beside the text"],["M","Medium, beside the text"],["L","Large, full width"],["C","As a card beside the products (in a system)"]].map(([v,l])=>`<option value="${v}" ${(g.size||"M")===v?"selected":""}>${l}</option>`).join("")}</select></label></div>
+        <label class="f"><span>Size</span><select class="in" id="f_gallery_${k}_size" data-k="gallery.${k}.size">${[["S","Small, beside the text"],["M","Medium, beside the text"],["L","Large, full width"],["C","As a card beside the products (in a system)"],["O","Option, side by side with other options"]].map(([v,l])=>`<option value="${v}" ${(g.size||"M")===v?"selected":""}>${l}</option>`).join("")}</select></label></div>
+      ${g.size==="O" ? `<div class="row">${field("gallery."+k+".price","Option price £ (blank for price on request)","number",'step="0.01" min="0"')}${field("gallery."+k+".priceNote","Price wording (optional, e.g. per room)")}</div>` : ""}
     </div>`).join("")}
     <button class="btn add" data-act="galAdd">Add image</button>
   </div></details>
@@ -1939,7 +1964,7 @@ $("#editor").addEventListener("input", e=>{
   if(/^disc/.test(k)){ const dn = $("#discNote"); if(dn) dn.textContent = discNote(current); }
   if(k==="invMode"||k==="qStatus") buildEditor();
   if(/\.dep$|^depPct$|^stageLabel$/.test(k)){ const dt = $("#depTotal"); if(dt) dt.textContent = money(depTotal(current), {showPence:true}); const dh = $("#depHint"); if(dh) dh.textContent = depHint(current); }
-  if(k==="acceptButton"||k==="docType") buildEditor();
+  if(k==="acceptButton"||k==="docType"||/^gallery\.\d+\.size$/.test(k)) buildEditor();
   if(k==="qStatus" && v==="Accepted" && !current.acceptedOn){ current.acceptedOn = jbToday(); const el = $("#f_acceptedOn"); if(el) el.value = current.acceptedOn; }
   const cm = k.match(/^contractors\.(\d+)\.(\w+)$/);
   if(cm){ const c = current.contractors[+cm[1]], el = $("#ct"+cm[1]); if(el && c) el.textContent = money(num(c.qty)*num(c.rate), current); if(cm[2]==="unit") buildEditor(); }
