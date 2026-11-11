@@ -29,5 +29,7 @@ jobs:
           cd docs && zip -qr "../studio-$VER.zip" . -x "promo/*" && cd ..
           gh release view web-bundle >/dev/null 2>&1 || gh release create web-bundle --title "App web bundle" --notes "Studio web files for the iPhone app. Updated automatically." --latest=false
           gh release upload web-bundle "studio-$VER.zip" --clobber
-          for a in $(gh release view web-bundle --json assets -q '.assets[].name'); do [ "$a" = "studio-$VER.zip" ] || gh release delete-asset web-bundle "$a" -y; done
+          # Keep the five newest bundles. The website's version.json is cached for a few minutes after
+          # each push, so a phone can still ask for the previous zip; deleting it straight away broke updates.
+          for a in $(gh api "repos/${{ github.repository }}/releases/tags/web-bundle" -q '.assets | sort_by(.updated_at) | reverse | .[5:] | .[].name'); do gh release delete-asset web-bundle "$a" -y; done
           ls -la "studio-$VER.zip"
