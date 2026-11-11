@@ -18,7 +18,7 @@ const MS_SECRET = Deno.env.get("MS_CLIENT_SECRET") || "";
 const XERO_ID = Deno.env.get("XERO_CLIENT_ID") || "";
 const XERO_SECRET = Deno.env.get("XERO_CLIENT_SECRET") || "";
 const FN_BASE = `${SB_URL}/functions/v1/api`;
-const MS_SCOPES = "offline_access openid email User.Read Calendars.ReadWrite Mail.Send Mail.Read";
+const MS_SCOPES = "offline_access openid email User.Read Calendars.ReadWrite Mail.Send Mail.Read People.Read Contacts.Read";
 const MS_SCOPES_V1 = "offline_access openid email User.Read Calendars.ReadWrite Mail.Send"; // what connections made before Mail.Read were granted
 const XERO_SCOPES = "openid profile email offline_access accounting.invoices accounting.contacts accounting.settings accounting.attachments";
 
@@ -101,6 +101,21 @@ async function msCall(action: string, i: any) {
     if (i.attachments?.length) message.attachments = i.attachments.map((a: any) => ({ "@odata.type": "#microsoft.graph.fileAttachment", name: a.name, contentType: a.contentType || "application/octet-stream", contentBytes: a.contentBytes }));
     await graph("POST", "/me/sendMail", { message, saveToSentItems: true });
     return { sent: true };
+  }
+  if (action === "people_search") {
+    const { conn } = await accessToken("ms");
+    if (!/people\.read\b/i.test(String(conn.scope || ""))) throw new ApiError("needs_reauth", "To suggest addresses from Outlook, press Reconnect for Microsoft 365 in Reports › Connections.", 409);
+    const q = String(i.q || "").trim().slice(0, 60); if (q.length < 2) return { people: [] };
+    const out = new Map<string, any>();
+    const add = (name: string, email: string, company: string) => { const e = String(email || "").trim(); if (!/@/.test(e) || out.has(e.toLowerCase())) return; out.set(e.toLowerCase(), { name: name || "", email: e, company: company || "" }); };
+    const qs = q.replace(/'/g, "''");
+    const [ppl, cts]: any[] = await Promise.all([
+      graph("GET", `/me/people?$search=${encodeURIComponent('"' + q.replace(/"/g, "") + '"')}&$top=10&$select=displayName,scoredEmailAddresses,companyName`).catch(() => ({ value: [] })),
+      /contacts\.read\b/i.test(String(conn.scope || "")) ? graph("GET", `/me/contacts?$filter=${encodeURIComponent(`startswith(displayName,'${qs}') or startswith(givenName,'${qs}') or startswith(surname,'${qs}') or startswith(companyName,'${qs}')`)}&$top=10&$select=displayName,emailAddresses,companyName`).catch(() => ({ value: [] })) : Promise.resolve({ value: [] }),
+    ]);
+    (cts.value || []).forEach((c: any) => (c.emailAddresses || []).forEach((a: any) => add(c.displayName, a.address, c.companyName)));
+    (ppl.value || []).forEach((p: any) => (p.scoredEmailAddresses || []).forEach((a: any) => add(p.displayName, a.address, p.companyName)));
+    return { people: [...out.values()].slice(0, 10) };
   }
   if (action === "planning_sync") return await planningSync(i);
   if (action === "planning_register") return await planningRegister(i);
