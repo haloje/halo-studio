@@ -7006,7 +7006,13 @@ if(PH()){ let v = "1"; try{ v = localStorage.getItem(LS + ".today") || "1"; }cat
     }catch(e){ UPD.state = "error"; UPD.err = String((e && (e.message || e.code)) || e || "failed").slice(0, 120); updShow(); } };
     UPD.run = check;
     setTimeout(check, 4000);
-    document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "visible") setTimeout(check, 1500); });
+    /* iOS rarely relaunches the app from scratch, so a downloaded update could wait for days.
+       Apply it as soon as the app goes into the background: edits are already saved, and the
+       next time the app opens it is on the new version. */
+    document.addEventListener("visibilitychange", ()=>{
+      if(document.visibilityState === "visible") setTimeout(check, 1500);
+      else if(UPD.state === "ready" && UPD.id){ try{ P.CapacitorUpdater.set({ id: UPD.id }); }catch(_){} }
+    });
   })();
 
   /* Face ID: lock on launch and after five minutes away; cover the screen in the app switcher */
