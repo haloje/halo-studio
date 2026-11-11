@@ -26,7 +26,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VER=$(python3 -c "import json;print(json.load(open('docs/app/version.json'))['version'])")
-          cd docs && zip -qr "../studio-$VER.zip" . -x "promo/*" && cd ..
+          SUM=$(python3 tools/bundle.py "studio-$VER.zip")
+          WANT=$(python3 -c "import json;print(json.load(open('docs/app/latest.json'))['checksum'])")
+          [ "$SUM" = "$WANT" ] || { echo "::error::Bundle checksum $SUM does not match latest.json $WANT. Run tools/build.py and commit."; exit 1; }
           gh release view web-bundle >/dev/null 2>&1 || gh release create web-bundle --title "App web bundle" --notes "Studio web files for the iPhone app. Updated automatically." --latest=false
           gh release upload web-bundle "studio-$VER.zip" --clobber
           # Keep the five newest bundles. The website's version.json is cached for a few minutes after

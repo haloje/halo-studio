@@ -73,4 +73,10 @@ sw = (ROOT / "tools/sw.template.js").read_text().replace("__VERSION__", ver)
 (ROOT / "docs/sw.js").write_text(sw)
 (ROOT / "docs/app").mkdir(exist_ok=True)
 (ROOT / "docs/app/version.json").write_text('{"version": "%s", "url": "https://github.com/haloje/halo-studio/releases/download/web-bundle/studio-%s.zip"}\n' % (ver, ver))
-print("built docs/index.html", len(out), "bytes, cache", ver)
+# latest.json is what the iPhone app checks: the version, where to get it, and the zip's checksum
+# (the app's updater refuses a download without one). It is left out of the zip itself.
+import importlib.util, json
+_spec = importlib.util.spec_from_file_location("bundle", ROOT / "tools/bundle.py"); _b = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_b)
+_sum = hashlib.sha256(_b.make_zip()).hexdigest()
+(ROOT / "docs/app/latest.json").write_text(json.dumps({"version": ver, "url": "https://github.com/haloje/halo-studio/releases/download/web-bundle/studio-%s.zip" % ver, "checksum": _sum}) + "\n")
+print("built docs/index.html", len(out), "bytes, cache", ver, "bundle", _sum[:12])

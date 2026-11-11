@@ -6976,11 +6976,11 @@ if(PH()){ let v = "1"; try{ v = localStorage.getItem(LS + ".today") || "1"; }cat
     const check = async (now)=>{ if(UPD.state === "checking" || UPD.state === "downloading") return; try{
       UPD.state = "checking"; updShow();
       const mine = await (await fetch("app/version.json", { cache: "no-store" })).json(); UPD.mine = mine.version || "";
-      const live = await (await fetch("https://haloje.github.io/halo-studio/app/version.json?t=" + Date.now(), { cache: "no-store" })).json();
+      const live = await (await fetch("https://haloje.github.io/halo-studio/app/latest.json?t=" + Date.now(), { cache: "no-store" })).json();
       if(!live.version || live.version === mine.version){ UPD.state = "current"; UPD.err = ""; updShow(); return; }
       if(UPD.id && UPD.live === live.version){ UPD.state = "ready"; updShow(); if(now) await P.CapacitorUpdater.set({ id: UPD.id }); return; }
       UPD.state = "downloading"; UPD.live = live.version; updShow();
-      const b = await P.CapacitorUpdater.download({ url: live.url, version: live.version });
+      const b = await P.CapacitorUpdater.download({ url: live.url, version: live.version, checksum: live.checksum || "" });
       UPD.id = b.id; await P.CapacitorUpdater.next({ id: b.id }); UPD.state = "ready"; UPD.err = ""; updShow();
       if(now) await P.CapacitorUpdater.set({ id: b.id }); else toast("A Studio update is ready. Tap Restart to update on the Today screen.");
     }catch(e){ UPD.state = "error"; UPD.err = String((e && (e.message || e.code)) || e || "failed").slice(0, 120); updShow(); } };
