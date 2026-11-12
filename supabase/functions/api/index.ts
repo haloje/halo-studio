@@ -341,6 +341,22 @@ async function xero(method: string, path: string, body?: unknown) {
   if (!r.ok && r.status !== 400) throw new ApiError("tool_error", j?.Detail || j?.Message || j?.Title || `Xero error ${r.status}`, 400);
   return { status: r.status, body: j };
 }
+/* Give the invoice's contact a billing address, so the template's "Billed to" isn't blank. Xero only
+   uses address details on an invoice when it creates a new contact, so an existing contact without a
+   billing address is updated first. An address already in Xero is never overwritten. */
+async function xeroContactAddress(inv: any, p: any) {
+  const line1 = String(p.contact_address__line1 || "").trim(); if (!line1) return;
+  const addr: any = { AddressType: "POBOX", AddressLine1: line1, AddressLine2: p.contact_address__line2 || "", City: p.contact_address__city || "", PostalCode: p.contact_address__postal_code || "", Country: p.contact_address__country || "" };
+  try {
+    const q = (v: string) => v.replace(/"/g, '\\"');
+    const f = await xero("GET", `/Contacts?where=${encodeURIComponent(`Name=="${q(String(p.contact_name || ""))}"`)}`);
+    const c = (f.body?.Contacts || []).find((x: any) => x.ContactStatus !== "ARCHIVED");
+    if (!c) { inv.Contact.Addresses = [addr]; return; }
+    inv.Contact = { ContactID: c.ContactID };
+    const has = (c.Addresses || []).some((a: any) => a.AddressType === "POBOX" && String(a.AddressLine1 || "").trim());
+    if (!has) await xero("POST", "/Contacts", { Contacts: [{ ContactID: c.ContactID, Addresses: [addr] }] });
+  } catch (_) { if (!inv.Contact.ContactID) inv.Contact.Addresses = [addr]; }
+}
 const xeroErrors = (o: any) => (o?.ValidationErrors || []).map((v: any) => v.Message).join("; ");
 async function xeroCall(action: string, p: any) {
   if (action === "create_invoice") {
@@ -348,6 +364,7 @@ async function xeroCall(action: string, p: any) {
       LineItems: (p.line_items || []).map((l: any) => { const o: any = { Description: l.line_description, Quantity: l.line_quantity, UnitAmount: l.line_unit_amount, AccountCode: l.line_account_code || "200" }; if (l.line_tax_type) o.TaxType = l.line_tax_type; return o; }) };
     if (p.email_address) inv.Contact.EmailAddress = p.email_address;
     if (p.number) inv.InvoiceNumber = p.number;
+    await xeroContactAddress(inv, p);
     const r = await xero("POST", "/Invoices?summarizeErrors=false", { Invoices: [inv] });
     const out = r.body?.Invoices?.[0];
     if (!out || out.HasErrors || r.status === 400) throw new ApiError("tool_error", xeroErrors(out) || r.body?.Message || "Xero refused the invoice.", 400);
