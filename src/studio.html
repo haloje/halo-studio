@@ -4231,7 +4231,7 @@ async function jxSheetPdf(j, sigDataUrl){
 function jxLines(j){
   const u = jxUninv(j), out = [], rate = jxRate(j);
   const work = String(j.description || "").trim(); if(work) out.push({ desc: work, qty: 0, unit: 0, kind: "desc" });
-  if(j.invTime !== false){ const byDay = new Map(), notes = new Map(); u.t.forEach(t=>{ byDay.set(t.date, (byDay.get(t.date) || 0) + num(t.hours)); const n = String(t.note || "").trim(); if(n){ notes.set(t.date, (notes.get(t.date) || []).concat(n)); } });
+  if(j.invTime !== false){ const byDay = new Map(), notes = new Map(); u.t.forEach(t=>{ byDay.set(t.date, (byDay.get(t.date) || 0) + num(t.hours)); const n = String(t.note || "").trim(); if(n && !/^(automatic:|clocked (on|off)( with siri)?\b)/i.test(n)){ notes.set(t.date, (notes.get(t.date) || []).concat(n)); } });
     [...byDay.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([d, h])=>{ const n = (notes.get(d) || []).join(". ").replace(/\.\./g, "."); out.push({ desc: `Labour on ${jbNice(d)} (${(Math.round(h*100)/100)} hrs)${n ? ": " + n : ""}`, qty: Math.round(h * 10000) / 10000, unit: rate, kind: "time" }); }); }
   if(j.invMat !== false) u.m.forEach(x=>out.push({ desc: [x.item, x.model].filter(Boolean).join(" – "), qty: num(x.qty) || 1, unit: Math.round(num(x.price) * 100) / 100, kind: "mat" }));
   return out.some(l=>l.kind !== "desc") ? out : [];
