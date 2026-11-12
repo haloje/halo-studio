@@ -361,7 +361,7 @@ const xeroErrors = (o: any) => (o?.ValidationErrors || []).map((v: any) => v.Mes
 async function xeroCall(action: string, p: any) {
   if (action === "create_invoice") {
     const inv: any = { Type: "ACCREC", Contact: { Name: p.contact_name }, Date: p.date, DueDate: p.due_date, Reference: p.reference || "", Status: (p.status || "draft").toUpperCase() === "AUTHORISED" ? "AUTHORISED" : "DRAFT", LineAmountTypes: "NoTax", CurrencyCode: p.currency || "GBP",
-      LineItems: (p.line_items || []).map((l: any) => { const o: any = { Description: l.line_description, Quantity: l.line_quantity, UnitAmount: l.line_unit_amount, AccountCode: l.line_account_code || "200" }; if (l.line_tax_type) o.TaxType = l.line_tax_type; return o; }) };
+      LineItems: (p.line_items || []).map((l: any) => { if (l.description_only) return { Description: String(l.line_description || "").slice(0, 4000) }; const o: any = { Description: l.line_description, Quantity: l.line_quantity, UnitAmount: l.line_unit_amount, AccountCode: l.line_account_code || "200" }; if (l.line_tax_type) o.TaxType = l.line_tax_type; return o; }) };
     if (p.email_address) inv.Contact.EmailAddress = p.email_address;
     if (p.number) inv.InvoiceNumber = p.number;
     await xeroContactAddress(inv, p);

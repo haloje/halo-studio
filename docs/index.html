@@ -4250,10 +4250,11 @@ async function jxSheetPdf(j, sigDataUrl){
 /* invoicing a job */
 function jxLines(j){
   const u = jxUninv(j), out = [], rate = jxRate(j);
+  const work = String(j.description || "").trim(); if(work) out.push({ desc: work, qty: 0, unit: 0, kind: "desc" });
   if(j.invTime !== false){ const byDay = new Map(), notes = new Map(); u.t.forEach(t=>{ byDay.set(t.date, (byDay.get(t.date) || 0) + num(t.hours)); const n = String(t.note || "").trim(); if(n){ notes.set(t.date, (notes.get(t.date) || []).concat(n)); } });
     [...byDay.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([d, h])=>{ const n = (notes.get(d) || []).join(". ").replace(/\.\./g, "."); out.push({ desc: `Labour on ${jbNice(d)} (${(Math.round(h*100)/100)} hrs)${n ? ": " + n : ""}`, qty: Math.round(h * 10000) / 10000, unit: rate, kind: "time" }); }); }
   if(j.invMat !== false) u.m.forEach(x=>out.push({ desc: [x.item, x.model].filter(Boolean).join(" – "), qty: num(x.qty) || 1, unit: Math.round(num(x.price) * 100) / 100, kind: "mat" }));
-  return out;
+  return out.some(l=>l.kind !== "desc") ? out : [];
 }
 function jxContact(j){ const c = (j.clientId && clientById(j.clientId)) || clients.find(x=>cuNorm(x.name) === cuNorm(j.customer)); return { name: (c && (c.xeroName || c.name)) || j.customer, email: (c && c.email) || j.email || "", address: sitesOf(c)[0] || String(j.address || j.site || "").replace(/\s*\n\s*/g, ", ") }; }
 function jxMarkInvoiced(j, label){ const u = jxUninv(j); if(j.invTime !== false) u.t.forEach(t=>t.inv = label); if(j.invMat !== false) u.m.forEach(m=>m.inv = label); }
@@ -4267,13 +4268,13 @@ async function jxInvoice(btn, viaFile){
     const inv = (j.invNo || "").trim() || `${j.number}-${j.invoices.length + 1}`, dmy = iso => { const d = new Date(iso + "T12:00:00"); return `${dwPad(d.getDate())}/${dwPad(d.getMonth()+1)}/${d.getFullYear()}`; };
     const H = ["*ContactName","EmailAddress","POAddressLine1","POAddressLine2","POAddressLine3","POAddressLine4","POCity","PORegion","POPostalCode","POCountry","*InvoiceNumber","Reference","*InvoiceDate","*DueDate","Total","InventoryItemCode","*Description","*Quantity","*UnitAmount","Discount","*AccountCode","*TaxType","TaxAmount","TrackingName1","TrackingOption1","TrackingName2","TrackingOption2","Currency","BrandingTheme"];
     const q = v => { const t = String(v ?? ""); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g,'""')}"` : t; };
-    const rows = ls.map(l=>{ const r = {}; H.forEach(h=>r[h] = ""); const ad = xeAddrParams(ct.address); Object.assign(r, { "POAddressLine1": ad.contact_address__line1 || "", "POAddressLine2": ad.contact_address__line2 || "", "POCity": ad.contact_address__city || "", "POPostalCode": ad.contact_address__postal_code || "", "POCountry": ad.contact_address__country || "" }); Object.assign(r, { "*ContactName": ct.name, "EmailAddress": ct.email, "*InvoiceNumber": inv, "Reference": ref, "*InvoiceDate": dmy(jbToday()), "*DueDate": dmy(due), "*Description": l.desc, "*Quantity": l.qty, "*UnitAmount": l.unit.toFixed(2), "*AccountCode": j.invAcct || "200", "Currency": "GBP" }); return H.map(h=>q(r[h])).join(","); });
+    const rows = ls.filter(l=>l.kind !== "desc").map(l=>{ const r = {}; H.forEach(h=>r[h] = ""); const ad = xeAddrParams(ct.address); Object.assign(r, { "POAddressLine1": ad.contact_address__line1 || "", "POAddressLine2": ad.contact_address__line2 || "", "POCity": ad.contact_address__city || "", "POPostalCode": ad.contact_address__postal_code || "", "POCountry": ad.contact_address__country || "" }); Object.assign(r, { "*ContactName": ct.name, "EmailAddress": ct.email, "*InvoiceNumber": inv, "Reference": ref, "*InvoiceDate": dmy(jbToday()), "*DueDate": dmy(due), "*Description": l.desc, "*Quantity": l.qty, "*UnitAmount": l.unit.toFixed(2), "*AccountCode": j.invAcct || "200", "Currency": "GBP" }); return H.map(h=>q(r[h])).join(","); });
     await offer(`${inv} invoice.csv`, [H.join(",")].concat(rows).join("\r\n") + "\r\n");
     jxMarkInvoiced(j, inv); j.invoices.push({ at: jbToday(), inv, total, file: true }); j.invNo = ""; if(j.status !== "Completed") j.status = "Invoiced, Awaiting Payment"; jbSchedule(); jbRender(); jbRenderList(); return;
   }
   const m = await olGet(); if(!m){ toast("This only works when Studio is open in claude.ai. Use the import file instead."); return; }
   const params = { organization: XERO_ORG, contact_name: ct.name, status: "draft", date: jbToday(), due_date: due, reference: ref, currency: "GBP",
-    line_items: ls.map(l=>({ line_description: l.desc, line_quantity: l.qty, line_unit_amount: l.unit, line_account_code: j.invAcct || "200", line_items_type: "NoTax" })) };
+    line_items: ls.filter(l=>l.kind !== "desc" || window.STUDIO_NATIVE).map(l=>l.kind === "desc" ? { line_description: l.desc, description_only: true } : ({ line_description: l.desc, line_quantity: l.qty, line_unit_amount: l.unit, line_account_code: j.invAcct || "200", line_items_type: "NoTax" })) };
   if(ct.email) params.email_address = ct.email; if((j.invNo || "").trim()) params.number = j.invNo.trim();
   Object.assign(params, xeAddrParams(ct.address));
   jxBusy = true; btn.disabled = true; btn.textContent = "Creating in Xero…";
