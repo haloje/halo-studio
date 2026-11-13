@@ -7108,7 +7108,7 @@ if(PH()){ let v = "1"; try{ v = localStorage.getItem(LS + ".today") || "1"; }cat
   /* visit reminders: 7:30 on days with visits, and 45 minutes before each visit */
   const LN = P.LocalNotifications; if(LN){
     let sig = "", asked = false;
-    LN.addListener("localNotificationActionPerformed", a=>{ const jid = a && a.notification && a.notification.extra && a.notification.extra.jobId;
+    LN.addListener("localNotificationActionPerformed", a=>{ const tid = a && a.notification && a.notification.extra && a.notification.extra.todoId; if(tid){ if($("#app").classList.contains("todayon")) todayClose(); setTab("todo"); setTimeout(()=>{ try{ tdOpen(tid); }catch(_){} }, 300); return; } const jid = a && a.notification && a.notification.extra && a.notification.extra.jobId;
       if(jid && typeof jbOpen === "function"){ if($("#app").classList.contains("todayon")) todayClose(); setTab("jobs"); const w = setInterval(()=>{ if(jbList.some(x=>x.id === jid)){ clearInterval(w); jbOpen(jid); setView("preview"); } }, 150); setTimeout(()=>clearInterval(w), 6000); }
       else todayOpen(); });
     const plan = ()=>{
@@ -7120,6 +7120,10 @@ if(PH()){ let v = "1"; try{ v = localStorage.getItem(LS + ".today") || "1"; }cat
         const m = new Date(day + "T07:30:00"); if(m.getTime() > now) out.push({ id: 700000 + k, title: vs.length === 1 ? "1 visit today" : `${vs.length} visits today`, body: vs.slice(0, 4).map(x=>`${x.v.start} ${x.j.customer || x.j.site || x.j.number}`).join("\n"), schedule: { at: m }, extra: { day } });
         vs.forEach((x, i)=>{ const t = new Date(`${day}T${x.v.start}:00`).getTime() - 45 * 60e3; if(t > now) out.push({ id: 710000 + k * 50 + i, title: `${x.v.start} ${x.j.customer || x.j.site || "Visit"}`, body: [String(x.j.address || x.j.site || "").replace(/\s*\n\s*/g, ", "), x.v.note].filter(Boolean).join(" · ") || x.j.number, schedule: { at: new Date(t) }, extra: { jobId: x.j.id } }); });
       }
+      /* to-dos with a due date and time pop up at that time */
+      (typeof tdList !== "undefined" ? tdList : []).forEach((t, i)=>{ if(t.done || !t.due || !t.time) return; const at = new Date(`${t.due}T${t.time}:00`).getTime(); if(!(at > now) || at - now > 14 * 864e5) return;
+        let h = 0; for(const ch of String(t.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+        out.push({ id: 750000 + (h % 40000), title: t.title || "To-do", body: String(t.notes || "").split("\n")[0].slice(0, 120) || "Reminder from Studio", schedule: { at: new Date(at) }, extra: { todoId: t.id } }); });
       return out;
     };
     const sync = async ()=>{ const list = plan(); if(!list) return; const s = JSON.stringify(list.map(n=>[n.id, n.title, n.body, +n.schedule.at])); if(s === sig) return;
@@ -7128,7 +7132,7 @@ if(PH()){ let v = "1"; try{ v = localStorage.getItem(LS + ".today") || "1"; }cat
         if(mine.length) await LN.cancel({ notifications: mine.map(n=>({ id: n.id })) });
         if(list.length) await LN.schedule({ notifications: list });
         sig = s; }catch(_){} };
-    const kick = ()=>{ if(mode === "loading") return; try{ jbStart(); }catch(_){} sync(); };
+    const kick = ()=>{ if(mode === "loading") return; try{ jbStart(); }catch(_){} try{ tdStart(); }catch(_){} sync(); };
     setTimeout(kick, 6000); setInterval(kick, 60e3);
     document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "hidden") sync(); });
   }
