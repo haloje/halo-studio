@@ -1569,7 +1569,32 @@ function galHtml(p, at){
   const bl = all.filter(g=>g.size !== "O" && !(g.size === "C" && /^sys:/.test(at)));
   return bl.map(g=>`<div class="gblk g-${esc((g.size || "M").toLowerCase())}">${g.img ? `<div class="pic"><img src="${esc(g.img)}" alt="${esc(g.title || "")}" crossorigin="anonymous"></div>` : ""}${g.title || g.desc ? `<div class="txt">${g.title ? `<h4>${esc(g.title)}</h4>` : ""}${paras(g.desc || "").map(x=>`<p>${inline(x)}</p>`).join("")}</div>` : ""}</div>`).join("") + optHtml(p, at, all.filter(g=>g.size === "O"));
 }
-function renderDoc(p){
+/* "No prices" copy: the same proposal with every price, total and rate taken out, for sharing with
+   architects, designers or contractors. Saved proposals are never changed by it. */
+let noPrice = false;
+function renderDoc(p){ const h = renderDocFull(p); return noPrice ? stripPrices(h) : h; }
+function stripPrices(html){
+  const d = document.createElement("template"); d.innerHTML = html; const r = d.content;
+  r.querySelectorAll(".cover .card").forEach(c=>{ const pill = c.querySelector(".pill"); if(pill) c.replaceChildren(document.createElement("div"), pill); else c.remove(); });
+  r.querySelectorAll(".sheet").forEach(sh=>{ const g = sh.querySelector(".grand"); if(!g) return;
+    sh.querySelectorAll("table, .grand").forEach(x=>x.remove());
+    const h2 = sh.querySelector("h2"); if(h2) h2.innerHTML = "Your project, <em>at a glance.</em>";
+    const k = sh.querySelector(".kick"); if(k) k.textContent = "Overview";
+    sh.querySelectorAll("p").forEach(x=>{ if(/\b(price|priced|pricing|total|allowance|provisional)\b/i.test(x.textContent)) x.remove(); });
+    const left = [...sh.children].filter(x=>!x.classList.contains("foot") && !x.classList.contains("kick") && x.tagName !== "H2");
+    if(!left.length) sh.remove(); });
+  r.querySelectorAll("table").forEach(tb=>{
+    tb.querySelectorAll("tr.sub, tr.plain").forEach(x=>x.remove());
+    tb.querySelectorAll("td.ue, td.pr").forEach(x=>x.remove());
+    tb.querySelectorAll("tr").forEach(tr=>{ const ths = [...tr.querySelectorAll("th")]; if(ths.length){ ths.forEach(th=>{ if(/^(each|total|price)$/i.test(th.textContent.trim())) th.remove(); }); }
+      const tds = [...tr.querySelectorAll("td")]; if(tds.length && !tr.querySelector("td.it, td.q:not(:empty), td.mm:not(:empty)")) tr.remove(); });
+    tb.querySelectorAll("tr").forEach(tr=>{ const it = tr.querySelector("td.it"); if(it && !tr.querySelector("td.q:not(:empty)") && /^(Contractor labour|Delivery|Allowance|Discount|GST)/i.test(it.textContent.trim())) tr.remove(); }); });
+  r.querySelectorAll(".oprice").forEach(x=>x.remove());
+  let n = 1; r.querySelectorAll(".sheet").forEach(sh=>{ n++; const f = sh.querySelector(".foot span:last-child"); if(f && /^Page \d+$/.test(f.textContent)) f.textContent = "Page " + (n - 1 + (sh.classList.contains("cover") ? 0 : 0)); });
+  r.querySelectorAll(".onote").forEach(x=>{ x.textContent = "These are optional extras. Just let me know if you'd like to add any of them."; });
+  return d.innerHTML;
+}
+function renderDocFull(p){
   const t = totals(p), pages = [];
   const foot = n => `<div class="foot"><span>halo.je · ${esc(p.ref)} ${esc(p.rev)}</span><span>${esc(p.titleA)}</span><span>Page ${n}</span></div>`;
   const meta = [["Prepared for",p.preparedFor],["Client",p.client],["Site",p.site],["Reference",[p.ref,p.rev].filter(Boolean).join(" ")],["Date",longDate(p.date)],["Valid until",longDate(p.validUntil)]].filter(m=>m[1]);
@@ -2317,7 +2342,7 @@ function renderPreview(){
     const b = $("#emptyNew"); b && b.addEventListener("click", ()=>createNew()); return;
   }
   const y = st.scrollTop;
-  const bar = `<div class="pvbar" role="tablist"><button data-pv="doc" aria-pressed="${pvMode!=="costs" && pvMode!=="parts"}">Proposal</button><button data-pv="parts" aria-pressed="${pvMode==="parts"}">Parts list</button><button data-pv="costs" aria-pressed="${pvMode==="costs"}">Costs &amp; margin <small>private</small></button></div>`;
+  const bar = `<div class="pvbar" role="tablist"><button data-pv="doc" aria-pressed="${pvMode!=="costs" && pvMode!=="parts"}">Proposal</button><button data-pv="parts" aria-pressed="${pvMode==="parts"}">Parts list</button><button data-pv="costs" aria-pressed="${pvMode==="costs"}">Costs &amp; margin <small>private</small></button><button data-noprice aria-pressed="${noPrice}" title="Show and download this proposal with every price taken out">No prices</button></div>`;
   if(pvMode === "parts"){ st.innerHTML = bar + partsHtml(current); st.scrollTop = y; return; }
   if(pvMode === "costs"){ const ae = document.activeElement, keep = ae && st.contains(ae) && ae.dataset.ck2 ? ae.dataset.ck2 : "", raw = keep ? ae.value : "", caret = keep ? ae.selectionStart : 0; st.innerHTML = bar + costsHtml(current); st.scrollTop = y; if(keep){ const el = st.querySelector(`[data-ck2="${keep}"]`); if(el){ el.value = raw; el.focus(); try{ el.setSelectionRange(caret, caret); }catch(_){} } } return; }
   st.innerHTML = bar + `<div class="sheets" id="sheets">${layoutDoc(current)}</div>`;
@@ -2441,6 +2466,7 @@ function shipHtml(p, m){
 }
 $("#stage").addEventListener("click", e=>{
   const sm = e.target.closest("[data-shipmode]"); if(sm && current){ current.shipMode = sm.dataset.shipmode; scheduleSave(); renderPreview(); return; }
+  if(e.target.closest(".pvbar [data-noprice]")){ noPrice = !noPrice; if(pvMode !== "doc") pvMode = "doc"; renderPreview(); toast(noPrice ? "Showing the proposal without prices. Downloads and Send use this version." : "Prices are back on."); return; }
   const b = e.target.closest(".pvbar [data-pv]"); if(b){ pvMode = b.dataset.pv; try{ localStorage.setItem(LS + ".pv", pvMode); }catch(_){} renderPreview(); return; }
   if(e.target.closest("[data-ccsv]") && current){
     const p = current, q = v => { const t = String(v ?? ""); return /[",\n]/.test(t) ? `"${t.replace(/"/g,'""')}"` : t; };
@@ -2469,7 +2495,7 @@ $("#stage").addEventListener("input", e=>{
 
 /* ---------- exports ---------- */
 async function getDownloads(){ try{ return window.claude ? await claude.use("downloads") : null; }catch(e){ return null; } }
-function fileBase(){ return [current.ref, current.rev, current.titleA].filter(Boolean).join(" ").replace(/[\\/:*?"<>|]+/g,"").trim() || "proposal"; }
+function fileBase(){ return ([current.ref, current.rev, current.titleA].filter(Boolean).join(" ").replace(/[\\/:*?"<>|]+/g,"").trim() || "proposal") + (noPrice ? " (no prices)" : ""); }
 function toast(msg){ if(/^(Saved|Sent|Added|Marked|Booked|Done|Copied|Plan added|Synced|Clocked)/.test(String(msg))) hap("ok"); const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 3800); }
 const undoQ = new Set();
 function undoToast(msg, onUndo, onCommit, ms = 8000){
