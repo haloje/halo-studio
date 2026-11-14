@@ -2596,7 +2596,7 @@ $("#btnSend").addEventListener("click", async ()=>{
   const c = current.clientId && clientById(current.clientId), first = String(current.client || (c && (c.contact || c.name)) || current.preparedFor || "").trim().split(/\s+/)[0] || "there";
   const text = `Hi ${first},\n\nPlease find attached ${String(current.docType || "quotation").toLowerCase()} ${[current.ref, current.rev].filter(Boolean).join(" ")}${current.titleA ? " for " + current.titleA : ""}. Any questions, just reply.\n\nThanks,\nIan Lamont\nhalo.je`;
   const markSent = ()=>{ if(current && (!current.qStatus || current.qStatus === "Draft")){ current.qStatus = "Sent"; buildEditor(); fillPickerLabel(); scheduleSave(); } };
-  if(window.STUDIO_NATIVE){ sendMailPanel({ blob, file, fname, text, to: (c && c.email) || String(current.clientEmail || "").split(/[;,\s]+/)[0] || "", markSent }); return; }
+  if(window.STUDIO_NATIVE){ sendMailPanel({ blob, file, fname, text, to: (c && c.email) || String(current.clientEmail || "").split(/[;,\s]+/)[0] || (()=>{ const n = cuNorm(current.client || current.preparedFor || ""); const k = n && clients.find(x=>cuNorm(x.name) === n && mpEmailOf(x)); return k ? mpEmailOf(k) : ""; })(), markSent }); return; }
   let shared = false;
   try{ if(navigator.canShare && navigator.canShare({ files: [file] })){ await navigator.share({ files: [file], title: fname, text }); shared = true; } }
   catch(e){ if(e && e.name === "AbortError") return; }
@@ -2617,14 +2617,16 @@ function sendMailPanel({ blob, file, fname, text, to, markSent }){
   const kb = Math.round(blob.size / 1024), subj = `${[current.ref, current.rev].filter(Boolean).join(" ")}${current.titleA ? " – " + current.titleA : ""} · halo.je`;
   const m = document.createElement("div"); m.className = "aimodal";
   m.innerHTML = `<div class="aibox" role="dialog" aria-modal="true" aria-label="Email the PDF"><h2>Email from info@halo.je</h2>
-    <label class="f"><span>To</span><input type="text" inputmode="email" id="smTo" value="${esc(to)}" placeholder="customer@example.com" autocomplete="email"></label>
-    <label class="f"><span>Cc (optional)</span><input type="text" id="smCc" placeholder="Separate addresses with commas"></label>
+    <label class="f"><span>To</span><input type="text" id="smTo" name="sm-recipient" value="${esc(to)}" placeholder="Type a name or address" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-form-type="other"></label>
+    <label class="f"><span>Cc (optional)</span><input type="text" id="smCc" name="sm-copy" placeholder="Separate addresses with commas" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-form-type="other"></label>
     <label class="f"><span>Subject</span><input type="text" id="smSubj" value="${esc(subj)}"></label>
     <label class="f"><span>Message</span><textarea id="smBody" style="min-height:170px">${esc(text)}</textarea></label>
     <p class="note" style="margin:0">📎 ${esc(fname)} · ${kb >= 1024 ? (kb/1024).toFixed(1) + " MB" : kb + " KB"}. It goes from your Outlook and a copy is kept in Sent Items.</p>
     <div class="adds"><button class="btn small primary" id="smSend">Send</button><button class="btn small" id="smShare">Share another way</button><button class="btn small" id="smSave">Download PDF</button><button class="btn small ghost" id="smClose">Cancel</button></div></div>`;
   document.body.appendChild(m);
-  const close = ()=>m.remove();
+  /* no address on file: look the client's name up straight away, so a tap fills it in */
+  if(!to){ const nm = String(current.client || current.preparedFor || "").trim(); const el = m.querySelector("#smTo"); if(nm && nm.toLowerCase() !== "client"){ el.focus(); setTimeout(()=>acLookup(el, nm), 50); } }
+  const close = ()=>{ acClose(); m.remove(); };
   m.querySelector("#smClose").onclick = close; m.addEventListener("click", e=>{ if(e.target === m) close(); });
   m.querySelector("#smSave").onclick = ()=>offer(fname, blob);
   m.querySelector("#smShare").onclick = async ()=>{ try{ if(navigator.canShare && navigator.canShare({ files: [file] })){ await navigator.share({ files: [file], title: fname, text }); close(); markSent(); toast("Shared. Status set to Sent."); } else toast("This device has no share sheet here. Use Send or Download PDF."); }catch(e){} };
@@ -2640,6 +2642,7 @@ function sendMailPanel({ blob, file, fname, text, to, markSent }){
       const body = m.querySelector("#smBody").value.trim().split(/\n\s*\n/).map(x=>`<p>${esc(x).replace(/\n/g, "<br>")}</p>`).join("");
       await mcp.callTool(OL_SRV, "outlook_send_mail", { to: tos, cc: ccs, subject: m.querySelector("#smSubj").value.trim(), body, bodyType: "html", attachments: [{ name: fname, contentType: "application/pdf", contentBytes: b64 }] }, { cache: false });
       current.sendLog = (current.sendLog || []).concat([{ at: new Date().toISOString().slice(0, 16).replace("T", " "), to: tos.join(", ") }]).slice(-20);
+      if(!current.clientEmail) current.clientEmail = tos[0];
       markSent(); scheduleSave(); close(); toast(`Sent to ${tos.join(", ")}.`);
     }catch(e){
       sendBtn.disabled = false; sendBtn.textContent = "Send";
@@ -6988,8 +6991,8 @@ function acPick(k){
   el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true }));
   acClose(); el.focus();
 }
-async function acLookup(el){
-  const q = acTok(el.value), seq = ++acSeq;
+async function acLookup(el, qIn){
+  const q = qIn || acTok(el.value), seq = ++acSeq;
   if(q.length < 2 || /@.+\./.test(q)){ acClose(); return; }
   acFor = el; acSel = -1;
   const local = acLocal(q); acList = local; acRender(el);
