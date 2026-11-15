@@ -20,7 +20,7 @@ const XERO_SECRET = Deno.env.get("XERO_CLIENT_SECRET") || "";
 const FN_BASE = `${SB_URL}/functions/v1/api`;
 const MS_SCOPES = "offline_access openid email User.Read Calendars.ReadWrite Mail.Send Mail.Read People.Read Contacts.Read";
 const MS_SCOPES_V1 = "offline_access openid email User.Read Calendars.ReadWrite Mail.Send"; // what connections made before Mail.Read were granted
-const XERO_SCOPES = "openid profile email offline_access accounting.invoices accounting.contacts accounting.settings accounting.attachments";
+const XERO_SCOPES = "openid profile email offline_access accounting.invoices accounting.contacts accounting.settings accounting.attachments accounting.banktransactions.read";
 
 const admin = createClient(SB_URL, SERVICE, { auth: { persistSession: false } });
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-key", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
@@ -436,6 +436,54 @@ async function xeroBill(p: any) {
   return { InvoiceID: id, created, status, total, attached, attachError, link: `https://go.xero.com/AccountsPayable/View.aspx?InvoiceID=${id}` };
 }
 
+/* Attach a supplier's emailed invoice PDF to the payment that is already in Xero. Never creates or changes
+   anything else: it looks for a bill with the same invoice number, then a Spend Money bank transaction for the
+   same total dated 7 days before to 45 days after the invoice, and only attaches when the record has no file yet. */
+async function xeroAttachReceipt(p: any) {
+  const number = String(p.number || "").trim(), supplier = String(p.supplier || "").trim(), total = Math.round(Number(p.total) * 100) / 100;
+  if (!number || !isFinite(total) || !p.date) throw new ApiError("bad_request", "number, date and total are required.");
+  if (!p.message_id || !p.attachment_id) throw new ApiError("bad_request", "message_id and attachment_id are required.");
+  const q = (s: string) => s.replace(/"/g, '\\"');
+  let target = "", id = "", contact = "", when = "";
+  const bills = await fetchXeroRaw(`/Invoices?where=${encodeURIComponent(`Type=="ACCPAY"&&InvoiceNumber=="${q(number)}"`)}`);
+  const bill = (bills.Invoices || []).find((x: any) => x.Status !== "DELETED" && x.Status !== "VOIDED");
+  if (bill) { target = "bill"; id = bill.InvoiceID; contact = bill.Contact?.Name || ""; when = String(bill.DateString || "").slice(0, 10); }
+  else {
+    const d = new Date(String(p.date).slice(0, 10) + "T00:00:00Z"), from = new Date(d.getTime() - 7 * 864e5), to = new Date(d.getTime() + 45 * 864e5);
+    const dt = (x: Date) => `DateTime(${x.getUTCFullYear()},${x.getUTCMonth() + 1},${x.getUTCDate()})`;
+    const r = await fetchXeroRaw(`/BankTransactions?where=${encodeURIComponent(`Type=="SPEND"&&Date>=${dt(from)}&&Date<=${dt(to)}`)}`);
+    const list = (r.BankTransactions || []).filter((x: any) => x.Status !== "DELETED" && Math.abs(Number(x.Total) - total) < 0.015);
+    const norm = (s: string) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    let pick = list;
+    if (list.length > 1 && supplier) { const sn = norm(supplier); const byName = list.filter((x: any) => { const cn = norm(x.Contact?.Name); return cn && (cn.includes(sn.slice(0, 5)) || sn.includes(cn.slice(0, 5))); }); if (byName.length) pick = byName; }
+    if (pick.length > 1) return { matched: false, ambiguous: true, candidates: pick.slice(0, 6).map((x: any) => ({ id: x.BankTransactionID, date: String(x.DateString || "").slice(0, 10), contact: x.Contact?.Name || "", total: x.Total, reference: x.Reference || "" })) };
+    if (!pick.length) return { matched: false, ambiguous: false };
+    target = "bank_transaction"; id = pick[0].BankTransactionID; contact = pick[0].Contact?.Name || ""; when = String(pick[0].DateString || "").slice(0, 10);
+  }
+  const ep = target === "bill" ? "Invoices" : "BankTransactions";
+  const has = ((await fetchXeroRaw(`/${ep}/${id}/Attachments`)).Attachments || []).length > 0;
+  if (has) return { matched: true, target, id, contact, date: when, alreadyHadAttachment: true };
+  const a: any = await graph("GET", `/me/messages/${encodeURIComponent(p.message_id)}/attachments/${encodeURIComponent(p.attachment_id)}`);
+  if (!a.contentBytes) throw new ApiError("tool_error", "The email attachment couldn't be read.");
+  const bin = Uint8Array.from(atob(a.contentBytes), (ch) => ch.charCodeAt(0));
+  const { token, conn } = await accessToken("xero");
+  const name = String(p.file_name || a.name || `${number}.pdf`).replace(/[^\w.\- ]/g, "_");
+  const r = await fetch(`https://api.xero.com/api.xro/2.0/${ep}/${id}/Attachments/${encodeURIComponent(name)}`, { method: "PUT", headers: { Authorization: `Bearer ${token}`, "Xero-tenant-id": conn.tenantId, "Content-Type": a.contentType || "application/pdf", Accept: "application/json" }, body: bin });
+  if (r.status === 401 || r.status === 403) throw new ApiError("needs_reauth", "Reconnect Xero in Studio › Reports › Connections so I can attach invoices.", 409);
+  if (!r.ok) throw new ApiError("tool_error", `Xero attachment error ${r.status}`, 400);
+  return { matched: true, target, id, contact, date: when, alreadyHadAttachment: false, attached: true };
+}
+/* GET from Xero, turning a missing permission into a clear "reconnect" message. */
+async function fetchXeroRaw(path: string) {
+  const { token, conn } = await accessToken("xero");
+  if (!conn.tenantId) throw new ApiError("not_connected", "Xero is connected but no organisation was chosen. Connect again.", 409);
+  const r = await fetch("https://api.xero.com/api.xro/2.0" + path, { headers: { Authorization: `Bearer ${token}`, "Xero-tenant-id": conn.tenantId, Accept: "application/json" } });
+  if (r.status === 401 || r.status === 403) throw new ApiError("needs_reauth", "Reconnect Xero in Studio › Reports › Connections so I can attach invoices.", 409);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new ApiError("tool_error", j?.Detail || j?.Message || `Xero error ${r.status}`, 400);
+  return j;
+}
+
 /* ---------- router ---------- */
 /* ---------- push notifications to the Studio iPhone app ---------- */
 const APNS_TEAM = "P7B325A469", APNS_TOPIC = "je.halo.studio";
@@ -479,10 +527,11 @@ async function pushScan() {
   if (!state.last) { await admin.from("docs").upsert({ collection: "settings", id: "pushscan", data: { last: now, seen: [] }, updated_at: now }); return { started: now }; }
   const j: any = await graph("GET", `/me/mailFolders/inbox/messages?$filter=receivedDateTime ge ${encodeURIComponent(state.last)}&$orderby=receivedDateTime asc&$top=50&$select=id,subject,from,receivedDateTime`);
   const seen: string[] = state.seen || [], sent: any[] = []; let last = state.last;
+  const own = String((await getConn("ms"))?.account || "").toLowerCase(); // the connected mailbox: skip its own messages
   for (const m of j.value || []) {
     last = m.receivedDateTime > last ? m.receivedDateTime : last; if (seen.includes(m.id)) continue; seen.push(m.id);
     const subj = String(m.subject || ""), addr = String(m.from?.emailAddress?.address || ""), name = String(m.from?.emailAddress?.name || addr);
-    if (/^info@halo\.je$/i.test(addr)) continue;
+    if (own && addr.toLowerCase() === own) continue;
     if (ACCEPT_RX.test(subj)) sent.push({ kind: "accept", res: await pushAll("Quote accepted", `${name}: ${subj.replace(/^(re|fw|fwd):\s*/i, "")}`.slice(0, 180), { kind: "accept", messageId: m.id }) });
     else if (SUPPLIER_RX.test(addr) && DISPATCH_RX.test(subj)) sent.push({ kind: "dispatch", res: await pushAll(/delivered/i.test(subj) ? "Delivered" : "Order on its way", `${name}: ${subj}`.slice(0, 180), { kind: "dispatch", messageId: m.id }) });
   }
@@ -561,6 +610,7 @@ Deno.serve(async (req) => {
       if (!k) throw new ApiError("not_allowed", "Unknown key.", 401);
       if (action === "push.scan") return json({ result: await pushScan() });
       if (action === "push.test") return json({ result: await pushAll(input?.title || "halo.je Studio", input?.body || "Notifications are working.", { kind: "test" }) });
+      if (action === "xero.attach_receipt") return json({ result: await xeroAttachReceipt(input || {}) });
       if (action !== "xero.create_bill") throw new ApiError("bad_request", "Unknown action.");
       return json({ result: await xeroBill(input || {}) });
     }
