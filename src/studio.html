@@ -4122,9 +4122,13 @@ async function emSend(btn, vid){
 
 /* ================= Job extras: materials, invoicing, files, job sheets, repeats ================= */
 const jxRate = j => num(j.rate) || defRate;
+const jxQ = h => Math.round(num(h) * 4) / 4;
+/* How labour shows on the invoice: hours and rate for time-based work, one installation line for quoted (proposal) work. */
+const jxStyle = j => j.invStyle === "hours" || j.invStyle === "fixed" ? j.invStyle : (j.proposalId ? "fixed" : "hours");
 function jxUninv(j){
   const t = j.time.filter(x=>!x.inv && num(x.hours) > 0), m = j.materials.filter(x=>!x.inv && (x.item || num(x.price)));
-  const th = t.reduce((a,x)=>a + num(x.hours), 0);
+  const days = new Map(); t.forEach(x=>days.set(x.date, (days.get(x.date) || 0) + num(x.hours)));
+  const th = [...days.values()].reduce((a,h)=>a + jxQ(h), 0); // each day's hours to the nearest quarter hour
   return { t, m, th, tv: Math.round(th * jxRate(j) * 100) / 100, mv: Math.round(m.reduce((a,x)=>a + num(x.qty) * num(x.price), 0) * 100) / 100 };
 }
 function jxCardsHtml(j){
@@ -4147,6 +4151,7 @@ function jxCardsHtml(j){
   <div class="jcard"><h3>Invoice <small>${j.invoices.length ? `${j.invoices.length} raised` : "Not invoiced"}</small></h3>
     <div class="invsum">
       <label class="check"><input type="checkbox" data-jxk="invTime" ${incT ? "checked" : ""}> Time not yet invoiced: ${u.th.toFixed(2)} hrs at £<input type="number" data-jxk="rate" value="${esc(jxRate(j))}" step="1" min="0" style="width:64px;padding:2px 6px;display:inline-block"> <b style="margin-left:auto">${money(u.tv, {showPence:true})}</b></label>
+      <label class="f" style="margin:0 0 4px 26px"><span>Labour shows as</span><select class="in" data-jxk="invStyle" style="width:auto"><option value="" ${!j.invStyle ? "selected" : ""}>Automatic: ${j.proposalId ? "one installation line (quoted job)" : "hours and rate"}</option><option value="hours" ${j.invStyle === "hours" ? "selected" : ""}>Hours and rate, per day</option><option value="fixed" ${j.invStyle === "fixed" ? "selected" : ""}>One installation line</option></select></label>
       <label class="check"><input type="checkbox" data-jxk="invMat" ${incM ? "checked" : ""}> Materials not yet invoiced: ${u.m.length} line${u.m.length===1?"":"s"} <b style="margin-left:auto">${money(u.mv, {showPence:true})}</b></label>
       <div style="border-top:1px solid var(--line);padding-top:6px"><span>Invoice total</span><b>${money(invTotal, {showPence:true})}</b></div>
     </div>
@@ -4188,7 +4193,7 @@ $("#jbScroll").addEventListener("input", e=>{
   if(mid){ const x = jbCur.materials.find(m=>m.id === mid); if(!x) return; const k = e.target.dataset.jmK; x[k] = k === "item" ? e.target.value : (e.target.value === "" ? "" : num(e.target.value));
     const el = $("#ml_" + mid); if(el) el.textContent = money(num(x.qty)*num(x.price), {showPence:true}); jbSchedule(); return; }
   const k = e.target.dataset.jxk;
-  if(k){ jbCur[k] = e.target.type === "checkbox" ? e.target.checked : e.target.value; jbSchedule(); if(["invTime","invMat","recurEvery"].includes(k) || (k === "rate" && e.type === "change")) jbRender(); return; }
+  if(k){ jbCur[k] = e.target.type === "checkbox" ? e.target.checked : e.target.value; jbSchedule(); if(["invTime","invMat","invStyle","recurEvery"].includes(k) || (k === "rate" && e.type === "change")) jbRender(); return; }
   if(e.target.dataset.jxlib){ jxLibResults(); }
 });
 $("#jbScroll").addEventListener("change", e=>{ if(jbCur && e.target.dataset.jxk === "rate") jbRender(); });
@@ -4261,7 +4266,10 @@ function jxLines(j){
   const u = jxUninv(j), out = [], rate = jxRate(j);
   const work = String(j.description || "").trim(); if(work) out.push({ desc: work, qty: 0, unit: 0, kind: "desc" });
   if(j.invTime !== false){ const byDay = new Map(), notes = new Map(); u.t.forEach(t=>{ byDay.set(t.date, (byDay.get(t.date) || 0) + num(t.hours)); const n = String(t.note || "").trim(); if(n && !/^(automatic:|clocked (on|off)( with siri)?\b)/i.test(n)){ notes.set(t.date, (notes.get(t.date) || []).concat(n)); } });
-    [...byDay.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([d, h])=>{ const n = (notes.get(d) || []).join(". ").replace(/\.\./g, "."); out.push({ desc: `Labour on ${jbNice(d)} (${(Math.round(h*100)/100)} hrs)${n ? ": " + n : ""}`, qty: Math.round(h * 10000) / 10000, unit: rate, kind: "time" }); }); }
+    if(jxStyle(j) === "fixed"){
+      const p = j.proposalId && typeof list !== "undefined" && list.find(x=>x.id === j.proposalId), val = Math.round(u.th * rate * 100) / 100;
+      if(val > 0) out.push({ desc: "Installation, programming and commissioning" + (p && p.ref ? ` as quoted (${[p.ref, p.rev].filter(Boolean).join(" ")})` : ""), qty: 1, unit: val, kind: "time" });
+    } else [...byDay.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([d, h])=>{ const n = (notes.get(d) || []).join(". ").replace(/\.\./g, "."), q = jxQ(h); if(q > 0) out.push({ desc: `Labour on ${jbNice(d)}${n ? ": " + n : ""}`, qty: q, unit: rate, kind: "time" }); }); }
   if(j.invMat !== false) u.m.forEach(x=>out.push({ desc: [x.item, x.model].filter(Boolean).join(" – "), qty: num(x.qty) || 1, unit: Math.round(num(x.price) * 100) / 100, kind: "mat" }));
   return out.some(l=>l.kind !== "desc") ? out : [];
 }
