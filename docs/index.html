@@ -4145,13 +4145,13 @@ async function emSend(btn, vid){
 
 /* ================= Job extras: materials, invoicing, files, job sheets, repeats ================= */
 const jxRate = j => num(j.rate) || defRate;
-const jxQ = h => num(h) > 0 ? Math.max(1, Math.round(num(h) * 4) / 4) : 0; // one-hour minimum a day, then the nearest quarter hour
+const jxQ = h => num(h) > 0 ? Math.max(1, Math.ceil(num(h) * 2 - 0.02) / 2) : 0; // one-hour minimum a day, then up to the next half hour
 /* How labour shows on the invoice: hours and rate for time-based work, one installation line for quoted (proposal) work. */
 const jxStyle = j => j.invStyle === "hours" || j.invStyle === "fixed" ? j.invStyle : (j.proposalId ? "fixed" : "hours");
 function jxUninv(j){
   const t = j.time.filter(x=>!x.inv && num(x.hours) > 0), m = j.materials.filter(x=>!x.inv && (x.item || num(x.price)));
   const days = new Map(); t.forEach(x=>days.set(x.date, (days.get(x.date) || 0) + num(x.hours)));
-  const th = [...days.values()].reduce((a,h)=>a + jxQ(h), 0); // each day: one hour minimum, then the nearest quarter hour
+  const th = [...days.values()].reduce((a,h)=>a + jxQ(h), 0); // each day: one hour minimum, then up to the next half hour
   return { t, m, th, tv: Math.round(th * jxRate(j) * 100) / 100, mv: Math.round(m.reduce((a,x)=>a + num(x.qty) * num(x.price), 0) * 100) / 100 };
 }
 function jxCardsHtml(j){
@@ -4174,7 +4174,7 @@ function jxCardsHtml(j){
   <div class="jcard"><h3>Invoice <small>${j.invoices.length ? `${j.invoices.length} raised` : "Not invoiced"}</small></h3>
     <div class="invsum">
       <label class="check"><input type="checkbox" data-jxk="invTime" ${incT ? "checked" : ""}> Time not yet invoiced: ${u.th.toFixed(2)} hrs at £<input type="number" data-jxk="rate" value="${esc(jxRate(j))}" step="1" min="0" style="width:64px;padding:2px 6px;display:inline-block"> <b style="margin-left:auto">${money(u.tv, {showPence:true})}</b></label>
-      <div class="adds" style="margin:0 0 4px 26px;gap:6px"><button class="btn small ${jxRate(j) === defRate ? "primary" : "ghost"}" data-jx="rateStd">Standard £${esc(defRate)}</button><button class="btn small ${jxRate(j) === specRate ? "primary" : "ghost"}" data-jx="rateSpec">Specialist £${esc(specRate)}</button><small class="note">One hour minimum a day, then quarter hours.</small></div>
+      <div class="adds" style="margin:0 0 4px 26px;gap:6px"><button class="btn small ${jxRate(j) === defRate ? "primary" : "ghost"}" data-jx="rateStd">Standard £${esc(defRate)}</button><button class="btn small ${jxRate(j) === specRate ? "primary" : "ghost"}" data-jx="rateSpec">Specialist £${esc(specRate)}</button><small class="note">One hour minimum a day, then rounded up to the next half hour.</small></div>
       <label class="f" style="margin:0 0 4px 26px"><span>Labour shows as</span><select class="in" data-jxk="invStyle" style="width:auto"><option value="" ${!j.invStyle ? "selected" : ""}>Automatic: ${j.proposalId ? "one installation line (quoted job)" : "hours and rate"}</option><option value="hours" ${j.invStyle === "hours" ? "selected" : ""}>Hours and rate, per day</option><option value="fixed" ${j.invStyle === "fixed" ? "selected" : ""}>One installation line</option></select></label>
       <label class="check"><input type="checkbox" data-jxk="invMat" ${incM ? "checked" : ""}> Materials not yet invoiced: ${u.m.length} line${u.m.length===1?"":"s"} <b style="margin-left:auto">${money(u.mv, {showPence:true})}</b></label>
       <div style="border-top:1px solid var(--line);padding-top:6px"><span>Invoice total</span><b>${money(invTotal, {showPence:true})}</b></div>
