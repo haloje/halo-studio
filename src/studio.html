@@ -1281,10 +1281,13 @@ function shipSpread(p){
 }
 const sellUnit = (p, it) => Math.round(num(it.price) * (1 + num(p && p.uplift) / 100) * (1 + shipSpread(p)) * 100) / 100;
 /* Default labour rate: used for new proposals and jobs, and for report figures. Set in Reports. */
-let defRate = 85;
-try{ defRate = num(localStorage.getItem("halojeProposals.v1.rate")) || 85; }catch(_){}
-function setDefRate(v, fromDb){ const r = num(v); if(!r) return; defRate = r; try{ localStorage.setItem("halojeProposals.v1.rate", String(r)); }catch(_){} if(!fromDb && mode === "db" && db){ db.doc("settings/defaults").set({ rate: r, updated: Date.now() }).catch(()=>{}); } }
-(function(){ const w = setInterval(()=>{ if(mode === "loading") return; clearInterval(w); if(mode === "db" && db) db.doc("settings/defaults").onSnapshot(d=>{ const b = d.exists ? d.data() : null; if(b && num(b.rate)) setDefRate(b.rate, true); }, ()=>{}); }, 300); })();
+let defRate = 75; // standard on-site work; specialist programming and proposals use specRate
+try{ defRate = num(localStorage.getItem("halojeProposals.v1.rate")) || 75; }catch(_){}
+let specRate = 85;
+try{ specRate = num(localStorage.getItem("halojeProposals.v1.specRate")) || 85; }catch(_){}
+function setSpecRate(v, fromDb){ const r = num(v); if(!r) return; specRate = r; try{ localStorage.setItem("halojeProposals.v1.specRate", String(r)); }catch(_){} if(!fromDb && mode === "db" && db){ db.doc("settings/defaults").set({ rate: defRate, specRate: r, updated: Date.now() }).catch(()=>{}); } }
+function setDefRate(v, fromDb){ const r = num(v); if(!r) return; defRate = r; try{ localStorage.setItem("halojeProposals.v1.rate", String(r)); }catch(_){} if(!fromDb && mode === "db" && db){ db.doc("settings/defaults").set({ rate: r, specRate, updated: Date.now() }).catch(()=>{}); } }
+(function(){ const w = setInterval(()=>{ if(mode === "loading") return; clearInterval(w); if(mode === "db" && db) db.doc("settings/defaults").onSnapshot(d=>{ const b = d.exists ? d.data() : null; if(b && num(b.rate)) setDefRate(b.rate, true); if(b && num(b.specRate)) setSpecRate(b.specRate, true); }, ()=>{}); }, 300); })();
 function blankProposal(){
   const today = new Date(), valid = new Date(Date.now() + 29*864e5);
   return {
@@ -1297,7 +1300,7 @@ function blankProposal(){
     intro: "Thank you for the opportunity to price the systems at this property.\n\nThe price covers supply, termination, programming, commissioning and handover. Where the design isn't fixed, I've shown the item as an allowance or a provisional sum so you can see exactly where the price may move.",
     scopeIntro: "", scopeStages: "",
     contractorTitle: "Contractor labour", contractorNote: "", contractors: [],
-    pricedTo: "", rate: defRate, split: true, showPence: false, gst: false, uplift: 5, labourCost: 0,
+    pricedTo: "", rate: specRate, split: true, showPence: false, gst: false, uplift: 5, labourCost: 0,
     allowanceLabel: "Allowance for design development on provisional items", allowance: 0,
     afterTotal: "Items marked Allowance or Provisional depend on information still to come. I'll confirm them as soon as that information is issued.",
     systems: [{ name: "Lighting & shading", desc: "", hours: 0, work: "", items: [newItem()] }],
@@ -1484,7 +1487,7 @@ async function qMakeJob(){
   const p = current; if(!p) return; await jxJobsReady();
   const c = p.clientId && clientById(p.clientId);
   const j = jbNorm(jbBlank());
-  Object.assign(j, { customer: (c && c.name) || p.signedFor || p.preparedFor || "", clientId: p.clientId || "", email: (c && c.email) || "", phone: (c && c.phone) || "", contact: p.client || "", address: p.site || "", reference: [p.ref, p.rev].filter(Boolean).join(" "), status: "To Book", proposalId: p.id,
+  Object.assign(j, { customer: (c && c.name) || p.signedFor || p.preparedFor || "", clientId: p.clientId || "", email: (c && c.email) || "", phone: (c && c.phone) || "", contact: p.client || "", address: p.site || "", reference: [p.ref, p.rev].filter(Boolean).join(" "), status: "To Book", proposalId: p.id, rate: num(p.rate) || specRate,
     description: [[p.titleA, p.titleB].filter(Boolean).join(" "), p.lede].filter(Boolean).join("\n"),
     materials: p.systems.flatMap(s=>s.items.filter(it=>it.item || num(it.price)).map(it=>({ id: uid(), libId: it.libId || "", item: it.item, model: it.model || "", qty: num(it.qty) || 1, price: sellUnit(p, it), cost: num(it.cost) || itemCost(it) || 0, supplier: poSupOf(it), fromQuote: true }))) });
   if(!(await jbWriteJob(j))) return;
@@ -4122,13 +4125,13 @@ async function emSend(btn, vid){
 
 /* ================= Job extras: materials, invoicing, files, job sheets, repeats ================= */
 const jxRate = j => num(j.rate) || defRate;
-const jxQ = h => Math.round(num(h) * 4) / 4;
+const jxQ = h => num(h) > 0 ? Math.max(1, Math.round(num(h) * 4) / 4) : 0; // one-hour minimum a day, then the nearest quarter hour
 /* How labour shows on the invoice: hours and rate for time-based work, one installation line for quoted (proposal) work. */
 const jxStyle = j => j.invStyle === "hours" || j.invStyle === "fixed" ? j.invStyle : (j.proposalId ? "fixed" : "hours");
 function jxUninv(j){
   const t = j.time.filter(x=>!x.inv && num(x.hours) > 0), m = j.materials.filter(x=>!x.inv && (x.item || num(x.price)));
   const days = new Map(); t.forEach(x=>days.set(x.date, (days.get(x.date) || 0) + num(x.hours)));
-  const th = [...days.values()].reduce((a,h)=>a + jxQ(h), 0); // each day's hours to the nearest quarter hour
+  const th = [...days.values()].reduce((a,h)=>a + jxQ(h), 0); // each day: one hour minimum, then the nearest quarter hour
   return { t, m, th, tv: Math.round(th * jxRate(j) * 100) / 100, mv: Math.round(m.reduce((a,x)=>a + num(x.qty) * num(x.price), 0) * 100) / 100 };
 }
 function jxCardsHtml(j){
@@ -4151,6 +4154,7 @@ function jxCardsHtml(j){
   <div class="jcard"><h3>Invoice <small>${j.invoices.length ? `${j.invoices.length} raised` : "Not invoiced"}</small></h3>
     <div class="invsum">
       <label class="check"><input type="checkbox" data-jxk="invTime" ${incT ? "checked" : ""}> Time not yet invoiced: ${u.th.toFixed(2)} hrs at £<input type="number" data-jxk="rate" value="${esc(jxRate(j))}" step="1" min="0" style="width:64px;padding:2px 6px;display:inline-block"> <b style="margin-left:auto">${money(u.tv, {showPence:true})}</b></label>
+      <div class="adds" style="margin:0 0 4px 26px;gap:6px"><button class="btn small ${jxRate(j) === defRate ? "primary" : "ghost"}" data-jx="rateStd">Standard £${esc(defRate)}</button><button class="btn small ${jxRate(j) === specRate ? "primary" : "ghost"}" data-jx="rateSpec">Specialist £${esc(specRate)}</button><small class="note">One hour minimum a day, then quarter hours.</small></div>
       <label class="f" style="margin:0 0 4px 26px"><span>Labour shows as</span><select class="in" data-jxk="invStyle" style="width:auto"><option value="" ${!j.invStyle ? "selected" : ""}>Automatic: ${j.proposalId ? "one installation line (quoted job)" : "hours and rate"}</option><option value="hours" ${j.invStyle === "hours" ? "selected" : ""}>Hours and rate, per day</option><option value="fixed" ${j.invStyle === "fixed" ? "selected" : ""}>One installation line</option></select></label>
       <label class="check"><input type="checkbox" data-jxk="invMat" ${incM ? "checked" : ""}> Materials not yet invoiced: ${u.m.length} line${u.m.length===1?"":"s"} <b style="margin-left:auto">${money(u.mv, {showPence:true})}</b></label>
       <div style="border-top:1px solid var(--line);padding-top:6px"><span>Invoice total</span><b>${money(invTotal, {showPence:true})}</b></div>
@@ -4316,6 +4320,7 @@ $("#jbScroll").addEventListener("click", async e=>{
     if(a === "directMat"){ x.st = "direct"; } else { if(!skStarted) skStart(); await skFit(j, x, a === "fitMat"); }
     jbSchedule(); jbRender(); return; }
   if(a === "addMat"){ j.materials.push({ id: uid(), item: "", model: "", qty: 1, price: 0 }); jbSchedule(); jbRender(); const els = document.querySelectorAll('[data-jm-k="item"]'); els.length && els[els.length-1].focus(); }
+  else if(a === "rateStd" || a === "rateSpec"){ j.rate = a === "rateStd" ? defRate : specRate; jbSchedule(); jbRender(); return; }
   else if(a === "rmMat"){ const gone = j.materials.find(x=>x.id === id); if(!gone) return; const idx = j.materials.indexOf(gone); j.materials = j.materials.filter(x=>x.id !== id); jbSchedule(); jbRender();
     undoToast(`${gone.item || "Line"} removed.`, ()=>{ const jj = olFind(j.id); if(jj){ jj.materials.splice(idx, 0, gone); if(jbCur && jbCur.id === jj.id){ jbSchedule(); jbRender(); } } }, null); }
   else if(a === "rmFile"){ const gone = j.files.find(x=>x.id === id); if(!gone) return; const idx = j.files.indexOf(gone); j.files = j.files.filter(x=>x.id !== id); jbSchedule(); jbRender();
@@ -4365,7 +4370,7 @@ function rpHtml(){
     <div class="adds"><div class="pal">${[["month","This month"],["last","Last month"],["year","This year"],["all","All time"]].map(([k,l])=>`<button class="sel" data-rp="${k}" aria-pressed="${rpPeriod===k}">${l}</button>`).join("")}</div><button class="btn small" data-rpbackup="1" style="margin-left:auto">Back up everything</button>${window.STUDIO_NATIVE ? `<label class="btn small filebtn">Import from old Studio<input type="file" accept=".json,application/json" data-rpimport="1"></label><button class="btn small ghost" data-rpsignout="1">Sign out</button>` : `<button class="btn small" data-rpmigrate="1">Export for the new app</button>`}</div>
     ${window.STUDIO_NATIVE ? rpConnHtml() : ""}
     ${window.studioSiteWatch && studioSiteWatch.available ? swCardHtml() : ""}
-    <div class="jcard"><h3>Labour rate</h3><div class="row"><label class="f"><span>Default rate £ per hour</span><input type="number" id="rpRate" value="${esc(defRate)}" step="1" min="0"></label><div></div></div>
+    <div class="jcard"><h3>Labour rate</h3><div class="row"><label class="f"><span>Standard rate £ per hour (Wi-Fi, cameras, call-outs)</span><input type="number" id="rpRate" value="${esc(defRate)}" step="1" min="0"></label><label class="f"><span>Specialist rate £ per hour (programming, proposals)</span><input type="number" id="rpSpec" value="${esc(specRate)}" step="1" min="0"></label></div>
       <p class="note">Used for new proposals and new jobs. Existing ones keep their own rate: change it in a proposal under Summary &amp; pricing, or on a job beside the time to invoice.</p></div>
     <div class="kpis">
       <div class="kpi"><small>Invoiced · ${esc(label)}</small><b>${money(invoiced, {showPence:false})}</b><span>${jobInv.length + propInv.length} invoices from Studio</span></div>
@@ -4384,7 +4389,7 @@ function rpHtml(){
     </div>
   </div>`;
 }
-$("#jbScroll").addEventListener("change", e=>{ if(e.target.id === "rpRate"){ setDefRate(e.target.value); toast(`Default labour rate set to £${defRate} an hour.`); } });
+$("#jbScroll").addEventListener("change", e=>{ if(e.target.id === "rpRate"){ setDefRate(e.target.value); toast(`Standard rate set to £${defRate} an hour.`); } if(e.target.id === "rpSpec"){ setSpecRate(e.target.value); toast(`Specialist rate set to £${specRate} an hour.`); } });
 $("#jbScroll").addEventListener("click", async e=>{
   const p = e.target.closest("[data-rp]"); if(p){ rpPeriod = p.dataset.rp; jbRender(); return; }
   const r = e.target.closest("[data-rpjob]"); if(r){ jbOpen(r.dataset.rpjob); return; }
@@ -6399,7 +6404,7 @@ function hvRenderList(){ const el = $("#hvRows"); if(!el) return; const q = (($(
 /* ---------- editor ---------- */
 const hvI = (path, label, ph = "", type = "text") => { const v = path.split(".").reduce((o,k)=>o == null ? o : o[k], hvCur); return `<label class="f"><span>${label}</span><input type="${type}" data-hk="${path}" value="${esc(v ?? "")}" placeholder="${esc(ph)}"></label>`; };
 const hvSel = (path, opts, cls = "in") => { const v = path.split(".").reduce((o,k)=>o == null ? o : o[k], hvCur); return `<select class="${cls}" data-hk="${path}">${opts.map(o=>{ const [k,t] = Array.isArray(o) ? o : [o,o]; return `<option value="${esc(k)}" ${String(v) === String(k) ? "selected" : ""}>${esc(t)}</option>`; }).join("")}</select>`; };
-function hvChips(C){ const tot = hvBom(hvCur, C).reduce((a,l)=>a + l.qty * l.price, 0) + C.hours * num(typeof defRate !== "undefined" ? defRate : 0);
+function hvChips(C){ const tot = hvBom(hvCur, C).reduce((a,l)=>a + l.qty * l.price, 0) + C.hours * num(typeof specRate !== "undefined" ? specRate : 0);
   return `<div class="hvchips"><span><b>${C.th}</b> thermostats</span><span><b>${C.vz}</b> virtual zones</span><span><b>${C.acif}</b> AC interfaces</span><span><b>${C.umc}</b> wiring centres</span><span><b>${C.act}</b> actuators${C.actKnown ? "" : "*"}</span><span><b>${C.hours}</b> hrs</span><span class="t"><b>${money(tot, HVP)}</b> est.</span></div>`; }
 function hvLearn(k){ const L = HV_LEARN[k]; return `<aside class="hvlearn"><div class="hvlk">Learn</div><h4>${L.h}</h4>${L.b.map(x=>`<p>${x}</p>`).join("")}<button class="btn small ghost" data-ha="guide">Open the full guide</button></aside>`; }
 function hvStep(k, C){ const p = hvCur;
@@ -6467,7 +6472,7 @@ function hvStep(k, C){ const p = hvCur;
       <div class="adds"><button class="btn small ghost" data-ha="addq">Add a question</button>${offs.length ? `<button class="btn small ghost" data-ha="qon">Bring back ${offs.length} hidden</button>` : ""}</div>`; }
   if(k === "resp"){ return `<div class="hvresp">${[["us","halo.je"],["elec", p.elecBy || "Electrical contractor"],["ac", p.acBy || "AC contractor"],["heat", p.heatBy || "Heating engineer"]].filter(([k])=>k !== "ac" || p.ac.type !== "none").map(([k,t])=>`<label class="f"><span>${esc(t)}</span><textarea rows="6" data-hk="resp.${k}">${esc(hvFill(p, p.resp[k]))}</textarea></label>`).join("")}</div>
       <label class="f" style="margin-top:12px"><span>General notes on the title block, one per line</span><textarea rows="4" data-hk="notes">${esc(p.notes)}</textarea></label>`; }
-  if(k === "price"){ const bom = hvBom(p, C), parts = bom.reduce((a,l)=>a + l.qty * l.price, 0), cost = bom.reduce((a,l)=>a + l.qty * l.cost, 0), rate = num(typeof defRate !== "undefined" ? defRate : 0), lab = C.hours * rate;
+  if(k === "price"){ const bom = hvBom(p, C), parts = bom.reduce((a,l)=>a + l.qty * l.price, 0), cost = bom.reduce((a,l)=>a + l.qty * l.cost, 0), rate = num(typeof specRate !== "undefined" ? specRate : 0), lab = C.hours * rate;
     const props = (typeof list !== "undefined" ? list : []).slice().sort((a,b)=>b.updated - a.updated);
     return `<div class="ctable"><table class="hvbom"><tr><th>Qty</th><th>Item</th><th>Model</th><th class="r">Cost each</th><th class="r">Price each</th><th class="r">Line</th><th class="r">Profit</th></tr>
       ${bom.map(l=>`<tr><td><input type="number" min="0" data-hq="${l.qk}" value="${l.qty}" title="Change to override the count"></td><td><input data-hb="${l.k}.item" value="${esc(l.item)}">${l.tag ? `<span class="tag mid">${l.tag}</span>` : ""}${l.desc ? `<small class="note">${esc(l.desc)}</small>` : ""}</td><td><textarea rows="3" data-hb="${l.k}.model">${esc(l.model)}</textarea></td><td class="r"><input type="number" step="0.01" data-hb="${l.k}.cost" value="${esc(p.book[l.k].cost)}"></td><td class="r"><input type="number" step="0.01" data-hb="${l.k}.price" value="${esc(p.book[l.k].price)}"></td><td class="r">${money(l.qty * l.price, HVP)}</td><td class="r">${money(l.qty * (l.price - l.cost), HVP)}</td></tr>`).join("")}
