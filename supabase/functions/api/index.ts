@@ -6,7 +6,8 @@
 //   POST /api/disconnect                  (signed-in member)  -> { provider }
 //   POST /api/call                        (signed-in member)  -> { provider, action, input }
 //   POST /api/svc                         (scheduled tasks)   -> { key, action, input }; key must be in public.svc_keys
-//                                         actions: xero.create_bill, push.scan (every 10 min), push.test
+//                                         actions: xero.create_bill, xero.attach_receipt, xero.create_invoice (draft only),
+//                                         xero.invoice_status, push.scan (every 10 min), push.test
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
@@ -611,6 +612,9 @@ Deno.serve(async (req) => {
       if (action === "push.scan") return json({ result: await pushScan() });
       if (action === "push.test") return json({ result: await pushAll(input?.title || "halo.je Studio", input?.body || "Notifications are working.", { kind: "test" }) });
       if (action === "xero.attach_receipt") return json({ result: await xeroAttachReceipt(input || {}) });
+      /* Claude raising a customer invoice from chat: always a draft, so nothing reaches the customer until Ian approves it in Xero. */
+      if (action === "xero.create_invoice") return json({ result: await xeroCall("create_invoice", { ...(input || {}), status: "draft" }) });
+      if (action === "xero.invoice_status") return json({ result: await xeroCall("invoice_status", input || {}) });
       if (action !== "xero.create_bill") throw new ApiError("bad_request", "Unknown action.");
       return json({ result: await xeroBill(input || {}) });
     }
