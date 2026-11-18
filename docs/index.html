@@ -4149,7 +4149,7 @@ const jxQ = h => num(h) > 0 ? Math.max(1, Math.ceil(num(h) * 2 - 0.02) / 2) : 0;
 /* How labour shows on the invoice: hours and rate for time-based work, one installation line for quoted (proposal) work. */
 const jxStyle = j => j.invStyle === "hours" || j.invStyle === "fixed" ? j.invStyle : (j.proposalId ? "fixed" : "hours");
 function jxUninv(j){
-  const t = j.time.filter(x=>!x.inv && num(x.hours) > 0), m = j.materials.filter(x=>!x.inv && (x.item || num(x.price)));
+  const t = j.time.filter(x=>!x.inv && num(x.hours) > 0), m = j.materials.filter(x=>!x.inv && !x.pre && (x.item || num(x.price)));
   const days = new Map(); t.forEach(x=>days.set(x.date, (days.get(x.date) || 0) + num(x.hours)));
   const th = [...days.values()].reduce((a,h)=>a + jxQ(h), 0); // each day: one hour minimum, then up to the next half hour
   return { t, m, th, tv: Math.round(th * jxRate(j) * 100) / 100, mv: Math.round(m.reduce((a,x)=>a + num(x.qty) * num(x.price), 0) * 100) / 100 };
@@ -4167,7 +4167,7 @@ function jxCardsHtml(j){
       <span class="lt" id="ml_${esc(x.id)}">${money(num(x.qty)*num(x.price), {showPence:true})}</span>
       <button class="icon" title="Remove" data-jx="rmMat" data-id="${esc(x.id)}">×</button>
       ${x.inv ? `<small class="invd">Invoiced on ${esc(x.inv)}</small>` : (x.model || x.supplier) ? `<small class="sub">${esc([x.model, x.supplier].filter(Boolean).join(" · "))}</small>` : ""}
-      ${!x.inv && (x.item || x.model) ? (()=>{ const [l, c] = skLineState(j, x); return `<div class="mstk">${l ? `<span class="mst ${c}">${esc(l)}${x.st === "fitted" && x.fitAt ? " " + esc(x.fitAt) : ""}</span>` : ""}${x.st ? `<button class="linkbtn" data-jx="unfitMat" data-id="${esc(x.id)}">Undo</button>` : `<button class="linkbtn" data-jx="fitMat" data-id="${esc(x.id)}">Mark fitted</button><button class="linkbtn" data-jx="directMat" data-id="${esc(x.id)}">Supplied direct</button>`}</div>`; })() : ""}
+      ${!x.inv && (x.item || x.model) ? (()=>{ const [l, c] = skLineState(j, x); return `<div class="mstk">${l ? `<span class="mst ${c}">${esc(l)}${x.st === "fitted" && x.fitAt ? " " + esc(x.fitAt) : ""}</span>` : ""}${x.st ? `<button class="linkbtn" data-jx="unfitMat" data-id="${esc(x.id)}">Undo</button>` : `<button class="linkbtn" data-jx="fitMat" data-id="${esc(x.id)}">Mark fitted</button><button class="linkbtn" data-jx="directMat" data-id="${esc(x.id)}">Supplied direct</button>`}${x.pre ? `<span class="mst ok">Paid up front</span><button class="linkbtn" data-jx="unpreMat" data-id="${esc(x.id)}">Undo</button>` : `<button class="linkbtn" data-jx="preMat" data-id="${esc(x.id)}">Paid up front</button>`}</div>`; })() : ""}
     </div>`).join("") || `<p class="note">Nothing used yet. Add items from your library as you fit them.</p>`}
     <div class="adds"><div class="jxlib"><input type="text" id="jxLq" data-jxlib="1" placeholder="Add from your library (${products.length})" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="jxLr"><div class="libres" id="jxLr" role="listbox" hidden></div></div><button class="btn small ghost" data-jx="addMat">Add custom line</button></div>
   </div>
@@ -4177,6 +4177,7 @@ function jxCardsHtml(j){
       <div class="adds" style="margin:0 0 4px 26px;gap:6px"><button class="btn small ${jxRate(j) === defRate ? "primary" : "ghost"}" data-jx="rateStd">Standard £${esc(defRate)}</button><button class="btn small ${jxRate(j) === specRate ? "primary" : "ghost"}" data-jx="rateSpec">Specialist £${esc(specRate)}</button><small class="note">One hour minimum a day, then rounded up to the next half hour.</small></div>
       <label class="f" style="margin:0 0 4px 26px"><span>Labour shows as</span><select class="in" data-jxk="invStyle" style="width:auto"><option value="" ${!j.invStyle ? "selected" : ""}>Automatic: ${j.proposalId ? "one installation line (quoted job)" : "hours and rate"}</option><option value="hours" ${j.invStyle === "hours" ? "selected" : ""}>Hours and rate, per day</option><option value="fixed" ${j.invStyle === "fixed" ? "selected" : ""}>One installation line</option></select></label>
       <label class="check"><input type="checkbox" data-jxk="invMat" ${incM ? "checked" : ""}> Materials not yet invoiced: ${u.m.length} line${u.m.length===1?"":"s"} <b style="margin-left:auto">${money(u.mv, {showPence:true})}</b></label>
+      ${u.m.length ? `<div class="adds" style="margin:0 0 4px 26px;gap:6px"><button class="btn small ghost" data-jx="preAll">Customer paid these up front</button></div>` : ""}${j.materials.some(x=>x.pre && !x.inv) ? `<small class="note" style="margin:0 0 4px 26px;display:block">${j.materials.filter(x=>x.pre && !x.inv).length} line${j.materials.filter(x=>x.pre && !x.inv).length===1?"":"s"} paid up front, left off the invoice.</small>` : ""}
       <div style="border-top:1px solid var(--line);padding-top:6px"><span>Invoice total</span><b>${money(invTotal, {showPence:true})}</b></div>
     </div>
     <div class="row3"><label class="f"><span>Invoice number</span><input type="text" data-jxk="invNo" value="${esc(j.invNo || "")}" placeholder="Xero's next number"></label><label class="f"><span>Due date</span><input type="date" data-jxk="invDue" value="${esc(j.invDue || "")}"></label><label class="f"><span>Account</span><input type="text" data-jxk="invAcct" value="${esc(j.invAcct || "200")}"></label></div>
@@ -4336,6 +4337,8 @@ async function jxInvoice(btn, viaFile){
 $("#jbScroll").addEventListener("click", async e=>{
   const b = e.target.closest("[data-jx]"); if(!b || !jbCur) return; e.preventDefault();
   const a = b.dataset.jx, id = b.dataset.id, j = jbCur;
+  if(a === "preMat" || a === "unpreMat"){ const x = j.materials.find(m=>m.id === id); if(!x) return; if(a === "preMat") x.pre = true; else delete x.pre; jbSchedule(); jbRender(); return; }
+  if(a === "preAll"){ j.materials.forEach(x=>{ if(!x.inv) x.pre = true; }); jbSchedule(); jbRender(); toast("Materials marked as paid up front. They won't go on the invoice."); return; }
   if(a === "fitMat" || a === "unfitMat" || a === "directMat"){ const x = j.materials.find(m=>m.id === id); if(!x) return;
     if(a === "directMat"){ x.st = "direct"; } else { if(!skStarted) skStart(); await skFit(j, x, a === "fitMat"); }
     jbSchedule(); jbRender(); return; }
