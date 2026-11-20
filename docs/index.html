@@ -6917,8 +6917,15 @@ function qaMenu(){
     <button data-qa="clock">${IC2.time}${jbCur.clock ? `Clock off <small style="margin-left:auto;color:var(--muted);font-size:13px">on since ${esc(jbCur.clock.slice(11,16))}</small>` : "Clock on"}</button>
     <button data-qa="visit">${IC2.visit}Add a visit</button><button data-qa="time">${IC2.time}Log time</button><button data-qa="mat">${IC2.mat}Add a material</button>
     <button data-qa="prop">${IC2.doc}${jbCur.proposalId && typeof list !== "undefined" && list.some(x=>x.id === jbCur.proposalId) ? "Open proposal" : "Start a proposal"}</button>
-    <button data-qa="plan">${IC2.plan}${jbCur.planId && typeof plList !== "undefined" && plList.some(x=>x.id === jbCur.planId) ? "Open plan" : "Start a plan"}</button></div>`,
-    p=>p.querySelector(".menu").addEventListener("click", e=>{ const b = e.target.closest("[data-qa]"); if(!b) return; ({ clock: qaClock, visit: qaVisit, time: qaTime, mat: qaMat, prop: qaProp, plan: qaPlan })[b.dataset.qa](); }));
+    <button data-qa="plan">${IC2.plan}${jbCur.planId && typeof plList !== "undefined" && plList.some(x=>x.id === jbCur.planId) ? "Open plan" : "Start a plan"}</button>
+    ${jbCur.planId || jbCur.proposalId ? `<button data-qa="relink">${IC2.open}Change the linked plan or proposal</button>` : ""}</div>`,
+    p=>p.querySelector(".menu").addEventListener("click", e=>{ const b = e.target.closest("[data-qa]"); if(!b) return; ({ clock: qaClock, visit: qaVisit, time: qaTime, mat: qaMat, prop: qaProp, plan: qaPlan, relink: qaRelink })[b.dataset.qa](); }));
+}
+function qaRelink(){
+  sheetOpen(`<h3>Change the link for ${esc(jbCur.number)}</h3><div class="menu">
+    <button data-rl="plan">${IC2.plan}Choose a different plan</button><button data-rl="prop">${IC2.doc}Choose a different proposal</button></div>`,
+    p=>p.querySelector(".menu").addEventListener("click", e=>{ const b = e.target.closest("[data-rl]"); if(!b) return;
+      if(b.dataset.rl === "plan"){ jbCur.planId = ""; qaPlan(); } else { jbCur.proposalId = ""; qaProp(); } }));
 }
 function qaProp(){
   if(!jbCur) return; const has = jbCur.proposalId && list.some(x=>x.id === jbCur.proposalId);
