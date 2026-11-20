@@ -6907,14 +6907,32 @@ const IC2 = {
   mat: '<svg viewBox="0 0 24 24"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>',
   nav: '<svg viewBox="0 0 24 24"><path d="M3 11 21 3l-8 18-2-8z"/></svg>',
   call: '<svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>',
-  open: '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>'
+  open: '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
+  doc: '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>',
+  plan: '<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M3.5 12h9M12.5 3.5v13M12.5 16.5h8"/></svg>'
 };
 function qaMenu(){
   if(!jbCur) return;
   sheetOpen(`<h3>${esc(jbCur.number)} ${esc(jbCur.customer || "")}</h3><div class="menu">
     <button data-qa="clock">${IC2.time}${jbCur.clock ? `Clock off <small style="margin-left:auto;color:var(--muted);font-size:13px">on since ${esc(jbCur.clock.slice(11,16))}</small>` : "Clock on"}</button>
-    <button data-qa="visit">${IC2.visit}Add a visit</button><button data-qa="time">${IC2.time}Log time</button><button data-qa="mat">${IC2.mat}Add a material</button></div>`,
-    p=>p.querySelector(".menu").addEventListener("click", e=>{ const b = e.target.closest("[data-qa]"); if(!b) return; ({ clock: qaClock, visit: qaVisit, time: qaTime, mat: qaMat })[b.dataset.qa](); }));
+    <button data-qa="visit">${IC2.visit}Add a visit</button><button data-qa="time">${IC2.time}Log time</button><button data-qa="mat">${IC2.mat}Add a material</button>
+    <button data-qa="prop">${IC2.doc}${jbCur.proposalId && typeof list !== "undefined" && list.some(x=>x.id === jbCur.proposalId) ? "Open proposal" : "Start a proposal"}</button>
+    <button data-qa="plan">${IC2.plan}${jbCur.planId && typeof plList !== "undefined" && plList.some(x=>x.id === jbCur.planId) ? "Open plan" : "Start a plan"}</button></div>`,
+    p=>p.querySelector(".menu").addEventListener("click", e=>{ const b = e.target.closest("[data-qa]"); if(!b) return; ({ clock: qaClock, visit: qaVisit, time: qaTime, mat: qaMat, prop: qaProp, plan: qaPlan })[b.dataset.qa](); }));
+}
+function qaProp(){
+  sheetClose(); if(!jbCur) return; const has = jbCur.proposalId && list.some(x=>x.id === jbCur.proposalId);
+  const b = document.createElement("button"); b.dataset.ja = has ? "openProp" : "newProp"; b.hidden = true; $("#jbScroll").appendChild(b); b.click(); b.remove();
+}
+async function qaPlan(){
+  sheetClose(); if(!jbCur) return; if(jbDirty) await jbSave();
+  let f = jbCur.planId ? plList.find(x=>x.id === jbCur.planId) : null;
+  if(!f){
+    const c = clients.find(x=>x.name === jbCur.customer);
+    f = plNorm({ name: jbCur.site || jbCur.customer || "", client: jbCur.customer || "", clientId: c ? c.id : "", site: (jbCur.address || "").replace(/\n/g, ", "), proposalId: jbCur.proposalId || "", jobId: jbCur.id, sys: { light: true, shade: true, hvac: true, audio: true, video: true, control: true, net: true } });
+    plList.unshift(f); jbCur.planId = f.id; jbSchedule(); toast("Plan started from the job and linked to it.");
+  }
+  setTab("planner"); if(plDirty) await plSave(); plCur = clone(f); plOpen = new Set(["brief"]); if(!plList.some(x=>x.id === f.id)) plList.unshift(f); await plSave(); plRenderList(); plRender(); if(PH()) setView("preview");
 }
 function qaClock(){
   sheetClose(); if(!jbCur) return; const on = !jbCur.clock, b = document.querySelector(`#jbScroll [data-ja="${on ? "clockOn" : "clockOff"}"]`);
