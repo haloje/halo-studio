@@ -5840,7 +5840,8 @@ const PL_SYS = [
   { k:"cinema",  name:"Cinema",                  brands:["Crestron","Other"] },
   { k:"control", name:"Control and touch panels",brands:["Crestron Home","Control4","Savant"] },
   { k:"net",     name:"Network and Wi-Fi",       brands:["UniFi","Other"] },
-  { k:"sec",     name:"Security and access",     brands:["UniFi Protect / Access","AES Global","Other"] }
+  { k:"sec",     name:"Security and access",     brands:["UniFi Protect / Access","AES Global","Other"] },
+  { k:"starlink",name:"Starlink backup internet",brands:["Starlink Standard","Starlink Mini"] }
 ];
 /* Room devices (counted per room) and head-end equipment (worked out from the rooms). hrs = install hours each. */
 const PL_TYPES = [
@@ -5924,6 +5925,25 @@ const PL_STAGES = [
     { k:"placed", t:"Every device placed on the plans", auto:p=>{ const d = plDrawing(p); if(!d) return false; const placed = d.floors.reduce((a,f)=>a + f.devices.length, 0), need = PL_TYPES.filter(t=>!t.head).reduce((a,t)=>a + plCount(p, t.tag), 0); return need > 0 && placed >= need; } },
     { k:"cs",     t:"Cable schedule issued to the electrician before first fix" },
     { k:"strat",  t:"Control strategy and room schedule written" } ] },
+  { k:"starlink", t:"Starlink survey and options", sys:"starlink", items:[
+    { k:"slSky",   t:"Clear view of the sky found for the dish", h:"Check with the Starlink app's obstruction tool from the proposed spot." },
+    { k:"slMount", t:"Mount type and position agreed (wall, pole, roof or ground)" },
+    { k:"slRoute", t:"Cable route to the rack agreed and length measured", h:"Standard kit cable is 15 m as supplied; longer cables are available from Starlink." },
+    { k:"slEntry", t:"Weatherproof cable entry point agreed" },
+    { k:"slRack",  t:"Rack space and a socket for the Starlink router or adapter" },
+    { k:"slRouter",t:"Current router checked for a second internet line (failover)", h:"If it can't, add the new router option." },
+    { k:"slLoad",  t:"Devices to keep running in a power cut listed (router, switch, core WiFi)" },
+    { k:"slUps",   t:"UPS size agreed from the load and the runtime wanted" },
+    { k:"slAccess",t:"Access for high level work checked (ladder, tower or scaffold)" },
+    { k:"slPkgRec",t:"Package: Recommended, Standard kit, installation and battery backup, about £1,300 to £1,700" },
+    { k:"slPkgSim",t:"Package: Simple backup, Standard kit and installation, about £770 to £920" },
+    { k:"slPkgLow",t:"Package: Lowest cost, residential kit and installation, about £470 to £620" },
+    { k:"slPlBiz", t:"Plan: Business 50 GB, about £37 a month (recommended for backup)" },
+    { k:"slPlSby", t:"Plan: Standby mode, about £9 a month (low speed, not instant)" },
+    { k:"slPlRes", t:"Plan: Residential, £40 (100 Mbps), £60 (200 Mbps) or £80 (Max) a month" },
+    { k:"slKitMini",t:"Kit: Mini instead of Standard (lower power, longer on batteries)" },
+    { k:"slRouterNew",t:"New router needed, £300 to £450" },
+    { k:"slOrder", t:"Client orders the Starlink kit and plan in their own name" } ] },
   { k:"prop", t:"Proposal", items:[
     { k:"built",  t:"Proposal built from this plan", auto:p=>!!p.proposalId },
     { k:"review", t:"Proposal read through and wording checked" },
@@ -5938,7 +5958,13 @@ const PL_QS = {
   video: [["Confirm TV sizes and positions for each room.","Client","A TV point at 1400 mm to centre in each room shown."]],
   audio: [["Confirm which rooms need music and any outside zones.","Client","One stereo zone per room shown with speakers."]],
   net:   [["Who is the broadband provider, and where does the line come in?","Client","Fibre to the AV rack location."]],
-  sec:   [["Confirm camera coverage and the gate or door entry requirements.","Client","Cameras on each entrance and the drive."]]
+  sec:   [["Confirm camera coverage and the gate or door entry requirements.","Client","Cameras on each entrance and the drive."]],
+  starlink: [["Is Starlink purely a backup, or could it become the main connection?","Client","Backup only, on the Business 50 GB plan."],
+          ["How long should the internet stay up in a power cut, and which devices matter most?","Client","About an hour for Starlink, the router and the core WiFi."],
+          ["Who is the broadband provider, and can the current router run two internet lines?","Client","The current router supports failover; if not, I'll quote a UniFi gateway."],
+          ["Are there any limits on where the dish can be seen from (planning, listed building, neighbours)?","Client","A discreet wall or pole mount below the ridge line, agreed with you before fixing."],
+          ["Who will hold the Starlink account and pay the subscription?","Client","The account is in your name and paid directly to Starlink."],
+          ["Is there easy access for high level work?","Client","Ladder access is enough; any scaffold or tower is by others."]]
 };
 const PL_RESP = [
   ["fix",   "All first fix cabling, back boxes and containment by the electrical contractor, to my cable schedule.", true],
@@ -6104,8 +6130,8 @@ function plRender(){
   const sc = $("#plScroll"); if(!sc) return;
   if(!plCur){ sc.innerHTML = `<div class="planempty"><h2>Plan a build.</h2><p>Tick through the brief, rooms, heating, head ends, pricing, coordination and drawings. The proposal builds itself as you go.</p><div class="adds" style="justify-content:center"><button class="btn primary" data-pla="new">New plan</button></div></div>`; return; }
   const p = plCur, top = sc.scrollTop;
-  const stage = (st, i, body)=>{ const its = plStageItems(p, st); if(st.sys && !p.sys[st.sys]) return ""; const d = its.filter(it=>plDone(p, it)).length;
-    return `<details class="plst" data-ps="${st.k}" ${plOpen.has(st.k) ? "open" : ""}><summary><span class="num">${String(i + 1).padStart(2, "0")}</span><span class="t">${esc(st.t)}</span><span class="cnt ${d === its.length && its.length ? "ok" : ""}">${d} of ${its.length}</span></summary><div class="body">${its.map(it=>plCheck(p, it)).join("")}${body || ""}</div></details>`; };
+  const stage = (st, i, body, lab)=>{ const its = plStageItems(p, st); if(st.sys && !p.sys[st.sys]) return ""; const d = its.filter(it=>plDone(p, it)).length;
+    return `<details class="plst" data-ps="${st.k}" ${plOpen.has(st.k) ? "open" : ""}><summary><span class="num">${lab || String(i + 1).padStart(2, "0")}</span><span class="t">${esc(st.t)}</span><span class="cnt ${d === its.length && its.length ? "ok" : ""}">${d} of ${its.length}</span></summary><div class="body">${its.map(it=>plCheck(p, it)).join("")}${body || ""}</div></details>`; };
   const clientOpts = `<datalist id="plClients">${clients.slice(0, 400).map(c=>`<option value="${esc(c.name)}">`).join("")}</datalist>`;
   const brief = `<div class="plgrid">${plF("name","Project name","e.g. Baymont House")}${plF("client","Client","Name","plClients")}${plF("site","Site address","Address, Jersey")}${plF("arch","Architect's drawings","e.g. CWA25001 008 P5, 010 P2")}${plF("budget","Budget or level","e.g. high end, phase 1 only")}</div>${clientOpts}
     <div class="plsub">Systems in scope and brand</div><div class="plsys">${PL_SYS.map(s=>`<div class="plsysr ${p.sys[s.k] ? "on" : ""}"><label class="check"><input type="checkbox" data-psys="${s.k}" ${p.sys[s.k] ? "checked" : ""}> ${esc(s.name)}</label>${p.sys[s.k] ? `<select class="in" data-pk="brand.${s.k}"><option value="">Brand…</option>${s.brands.map(b=>`<option ${p.brand[s.k] === b ? "selected" : ""}>${esc(b)}</option>`).join("")}</select>` : ""}</div>`).join("")}</div>`;
@@ -6141,10 +6167,19 @@ function plRender(){
   const d = plDrawing(p);
   const draw = `<p class="note">${p.drawingId ? (d ? `${d.floors.reduce((a,f)=>a + f.devices.length, 0)} of ${PL_TYPES.filter(t=>!t.head).reduce((a,t)=>a + plCount(p, t.tag), 0)} devices placed so far.` : "Linked to a drawing set.") : "Starting the drawing set copies your floors, rooms and device types into Drawings, ready to upload the plans and place devices. The cable schedule builds from there."}</p>
     <div class="adds"><button class="btn small" data-pla="draw">${p.drawingId ? "Open drawings" : "Start drawing set"}</button></div>`;
+  const slBody = `<div class="plsub">Prices to quote from <small>Starlink prices change by area, check starlink.com for the postcode</small></div>
+    <div class="pltab" style="font-size:13px;line-height:1.5">
+    <p><b>Starlink plans, per month to Starlink:</b> Business 50 GB about £37 (£20 access + £17 per 50 GB, 500 GB £84) · Standby about £9 · Residential 100 Mbps £40, 200 Mbps £60, Max £80.</p>
+    <p><b>Starlink kit, one off:</b> Standard from £299 + £19 delivery (free on residential in some areas) · Mini from £179 + £19.</p>
+    <p><b>My installation:</b> A. Installation and failover £450 to £600 · B. Battery backup £525 to £775 (about 1 h on 1500 VA, 2 to 3 h on 3000 VA) · C. New router if needed £300 to £450.</p>
+    <p><b>Packages:</b> Recommended about £1,300 to £1,700 + £37/month · Simple about £770 to £920 + £37/month · Lowest about £470 to £620 + £9/month.</p></div>
+    ${(()=>{ const sq = new Set(PL_QS.starlink.map(x=>x[0])); const rows = p.qs.map((x,i)=>[x,i]).filter(([x])=>sq.has(x.q)); return rows.length ? `<div class="plsub">Questions for the client <small>type the answer as you go</small></div>${rows.map(([x,i])=>`<div class="plq"><textarea rows="2" readonly>${esc(x.q)}</textarea><input type="text" data-pqs="${i}.ans" value="${esc(x.ans || "")}" placeholder="Answer"><input type="text" data-pqs="${i}.assume" value="${esc(x.assume)}" placeholder="What I'll assume until then"></div>`).join("")}` : ""; })()}
+    <label class="f"><span>Survey notes</span><textarea rows="5" data-pk="notes.starlink" placeholder="Dish position, cable length, rack, router model, load, client answers">${esc((p.notes || {}).starlink || "")}</textarea></label>
+    <div class="adds"><button class="btn small ghost" data-pla="stdq">Add the Starlink questions</button></div>`;
   const q = plProposal(p);
   const prop = `<p class="note">${q ? `${esc(q.ref)} · ${esc(q.qStatus || "Draft")}. Lines in the systems this plan made are rebuilt as you change the plan; your own prices, descriptions and extra systems are kept.` : "The proposal starts as soon as the plan has a name and its first devices."}</p>`;
   sc.innerHTML = `<div class="jdetail pldetail"><div class="jhead"><span class="num">PLAN</span><h2>${esc(p.name || "New plan")}</h2></div><div id="plHead"></div>
-    ${stage(PL_STAGES[0], 0, brief)}${stage(PL_STAGES[1], 1, rooms)}${stage(PL_STAGES[2], 2, hv)}${stage(PL_STAGES[3], 3, head)}${stage(PL_STAGES[4], 4, price)}${stage(PL_STAGES[5], 5, coord)}${stage(PL_STAGES[6], 6, draw)}${stage(PL_STAGES[7], 7, prop)}
+    ${stage(PL_STAGES[0], 0, brief)}${stage(PL_STAGES.find(x=>x.k === "starlink"), 0, slBody, "SL")}${stage(PL_STAGES[1], 1, rooms)}${stage(PL_STAGES[2], 2, hv)}${stage(PL_STAGES[3], 3, head)}${stage(PL_STAGES[4], 4, price)}${stage(PL_STAGES[5], 5, coord)}${stage(PL_STAGES[6], 6, draw)}${stage(PL_STAGES[7], 7, prop)}
     <div class="adds" style="margin-top:22px"><button class="btn small ghost danger" data-pla="del">Delete plan</button></div></div>`;
   plRenderHead(); sc.scrollTop = top;
   const pq = $("#plPickQ"); if(pq && plPick){ pq.focus(); pq.setSelectionRange(pq.value.length, pq.value.length); }
