@@ -6901,12 +6901,28 @@ function qaMenu(){
     p=>p.querySelector(".menu").addEventListener("click", e=>{ const b = e.target.closest("[data-qa]"); if(!b) return; ({ clock: qaClock, visit: qaVisit, time: qaTime, mat: qaMat, prop: qaProp, plan: qaPlan })[b.dataset.qa](); }));
 }
 function qaProp(){
-  sheetClose(); if(!jbCur) return; const has = jbCur.proposalId && list.some(x=>x.id === jbCur.proposalId);
+  if(!jbCur) return; const has = jbCur.proposalId && list.some(x=>x.id === jbCur.proposalId);
+  if(!has && list.length && !qaProp.pick){ return qaPicker("proposal", list.map(x=>({ id: x.id, t: x.titleA || x.ref || "Untitled", s: [x.ref, x.preparedFor || x.client].filter(Boolean).join(" · "), m: (x.preparedFor || x.client || "") === jbCur.customer })), id=>{ if(id){ jbCur.proposalId = id; jbSchedule(); jbRender(); toast("Proposal linked to the job."); } else { qaProp.pick = true; qaProp(); qaProp.pick = false; } }); }
+  sheetClose();
   const b = document.createElement("button"); b.dataset.ja = has ? "openProp" : "newProp"; b.hidden = true; $("#jbScroll").appendChild(b); b.click(); b.remove();
 }
-async function qaPlan(){
-  sheetClose(); if(!jbCur) return; if(jbDirty) await jbSave();
+function qaPicker(kind, items, done){
+  const used = new Set(jbList.filter(j=>j.id !== jbCur.id).map(j=>kind === "plan" ? j.planId : j.proposalId).filter(Boolean));
+  const rows = items.slice().sort((a,b)=>(b.m - a.m) || (used.has(a.id) - used.has(b.id)));
+  sheetOpen(`<h3>${kind === "plan" ? "Plan" : "Proposal"} for ${esc(jbCur.number)}</h3><p class="sub">Link one you've already started, or start a new one.</p><div class="menu">
+    <button data-pk="">${kind === "plan" ? IC2.plan : IC2.doc}Start a new ${kind}</button>
+    ${rows.slice(0, 40).map(x=>`<button data-pk="${esc(x.id)}">${IC2.open}<span style="display:flex;flex-direction:column;align-items:flex-start;text-align:left">${esc(x.t)}<small style="color:var(--muted);font-size:13px">${esc(x.s)}${used.has(x.id) ? " · linked to another job" : ""}</small></span></button>`).join("")}</div>`,
+    p=>p.querySelector(".menu").addEventListener("click", e=>{ const b = e.target.closest("[data-pk]"); if(!b) return; sheetClose(); done(b.dataset.pk); }));
+}
+async function qaPlan(link){
+  if(!jbCur) return;
+  if(link === undefined && !(jbCur.planId && plList.some(x=>x.id === jbCur.planId)) && plList.length){
+    return qaPicker("plan", plList.map(x=>({ id: x.id, t: x.name || "Untitled plan", s: [x.client, x.site].filter(Boolean).join(" · "), m: (x.client || "") === jbCur.customer })), id=>qaPlan(id || null));
+  }
+  sheetClose(); if(link){ jbCur.planId = link; jbSchedule(); toast("Plan linked to the job."); }
+  if(jbDirty) await jbSave();
   let f = jbCur.planId ? plList.find(x=>x.id === jbCur.planId) : null;
+  if(f && !f.proposalId && jbCur.proposalId){ f.proposalId = jbCur.proposalId; }
   if(!f){
     const c = clients.find(x=>x.name === jbCur.customer);
     f = plNorm({ name: jbCur.site || jbCur.customer || "", client: jbCur.customer || "", clientId: c ? c.id : "", site: (jbCur.address || "").replace(/\n/g, ", "), proposalId: jbCur.proposalId || "", jobId: jbCur.id, sys: { light: true, shade: true, hvac: true, audio: true, video: true, control: true, net: true } });
