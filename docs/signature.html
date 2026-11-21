@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>halo.je email signature</title>
+<meta name="robots" content="noindex">
+<style>
+body{margin:0;background:#f3f1ec;font-family:-apple-system,Helvetica,Arial,sans-serif;color:#141414;padding:32px 16px}
+.wrap{max-width:640px;margin:0 auto}
+h1{font-size:20px;margin:0 0 6px}
+p.note{font-size:14px;color:#555;line-height:1.5;margin:0 0 20px}
+.card{background:#fff;border-radius:10px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+button{margin-top:16px;font:inherit;font-size:14px;padding:10px 16px;border-radius:8px;border:0;background:#141414;color:#fff;cursor:pointer}
+</style></head><body><div class="wrap">
+<h1>halo.je email signature</h1>
+<p class="note">Click <b>Copy signature</b>, then in Outlook go to Settings › Signatures, click in the signature box and press ⌘V.</p>
+<div class="card">
+<div id="sig">
+<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:Helvetica,Arial,sans-serif;color:#141414">
+<tr><td style="padding:0 0 10px 0;font-size:14px;line-height:20px">Kind regards,</td></tr>
+<tr><td style="padding:0 0 2px 0;font-size:15px;line-height:20px;font-weight:bold">Ian Lamont</td></tr>
+<tr><td style="padding:0 0 12px 0;font-size:13px;line-height:18px;color:#6b6b6b">Smart home, AV and networks · Jersey</td></tr>
+<tr><td style="padding:0 0 12px 0"><a href="https://halo.je" style="text-decoration:none"><img src="https://haloje.github.io/halo-studio/icons/email-logo.png" width="220" height="99" alt="halo.je" style="display:block;border:0;width:220px;height:99px;border-radius:6px"></a></td></tr>
+<tr><td style="font-size:13px;line-height:19px;color:#141414">
+<a href="tel:+447797789894" style="color:#141414;text-decoration:none">07797 789894</a>
+<span style="color:#b8893f">&nbsp;·&nbsp;</span>
+<a href="mailto:info@halo.je" style="color:#141414;text-decoration:none">info@halo.je</a>
+<span style="color:#b8893f">&nbsp;·&nbsp;</span>
+<a href="https://halo.je" style="color:#b8893f;text-decoration:none">halo.je</a>
+</td></tr>
+</table>
+</div>
+<button id="copy">Copy signature</button>
+</div></div>
+<script>
+document.getElementById("copy").addEventListener("click",async()=>{
+  const el=document.getElementById("sig"), b=document.getElementById("copy");
+  try{ await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([el.innerHTML],{type:"text/html"}),"text/plain":new Blob([el.innerText],{type:"text/plain"})})]); b.textContent="Copied"; }
+  catch(_){ const r=document.createRange(); r.selectNodeContents(el); const s=getSelection(); s.removeAllRanges(); s.addRange(r); document.execCommand("copy"); b.textContent="Copied"; }
+  setTimeout(()=>b.textContent="Copy signature",2000);
+});
+</script>
+</body></html>
