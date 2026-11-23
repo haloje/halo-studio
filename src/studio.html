@@ -963,6 +963,32 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
   .today .tag.bad{background:#f6dcd5;color:#8a2e1c}.today .tag.mid{background:#f5e8cf;color:#7a531a}
   .today .empty{color:var(--muted);font-size:14px;padding:4px 2px}
 }
+@media (min-width:861px){
+  .sheetwrap{display:block;position:fixed;inset:0;z-index:90;pointer-events:none}
+  .sheetwrap .scrim{position:absolute;inset:0;background:rgba(0,0,0,.32);opacity:0;transition:opacity .25s}
+  .sheetwrap .sheetp{position:absolute;left:0;right:0;bottom:0;max-height:88vh;overflow:auto;background:var(--panel);border-radius:16px 16px 0 0;padding:8px 18px calc(18px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .3s cubic-bezier(.2,.85,.25,1);box-shadow:0 -10px 30px rgba(0,0,0,.18)}
+  .sheetwrap.open{pointer-events:auto}.sheetwrap.open .scrim{opacity:1}.sheetwrap.open .sheetp{transform:none}
+  .sheetp .grab{width:38px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 12px}
+  .sheetp h3{margin:0 0 12px;font:400 20px/1.2 var(--f-display)}
+  .sheetp .sub{margin:-8px 0 14px;color:var(--muted);font-size:13px}
+  .sheetp label{display:grid;gap:5px;margin-bottom:12px;font-size:12px;color:var(--muted)}
+  .sheetp .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .sheetp input,.sheetp textarea{width:100%;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--field);padding:10px 12px;color:var(--ink)}
+  .sheetp .acts{display:flex;gap:10px;margin-top:6px}
+  .sheetp .acts button{flex:1;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--field);font-size:16px;font-weight:500;cursor:pointer;color:var(--ink)}
+  .sheetp .acts button.go{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+  .sheetp .menu button{display:flex;align-items:center;gap:14px;width:100%;height:56px;border:0;border-bottom:1px solid var(--line);background:none;font-size:17px;color:var(--ink);text-align:left;cursor:pointer}
+  .sheetp .menu button:last-child{border-bottom:0}
+  .sheetp .menu svg{width:24px;height:24px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .sheetp .res{display:grid;gap:0;max-height:46vh;overflow:auto;margin-top:4px}
+  .sheetp .res button{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;min-height:54px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;color:var(--ink);font-size:15px;padding:6px 2px;cursor:pointer}
+  .sheetp .res small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+  .sheetp .res b{color:var(--accent);font-weight:500;font-size:20px}
+  .sheetwrap .sheetp{left:50%;right:auto;top:50%;bottom:auto;width:min(580px,92vw);max-height:86vh;border-radius:16px;padding:18px 22px 20px;transform:translate(-50%,-46%);opacity:0;transition:transform .2s ease,opacity .2s ease;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .sheetwrap.open .sheetp{transform:translate(-50%,-50%);opacity:1}
+  .sheetp .grab{display:none}
+  .sheetp .menu button{height:48px}
+}
 
 /* Face ID lock cover (app only) */
 .applock{display:none;position:fixed;inset:0;z-index:200;background:#121110;flex-direction:column;align-items:center;justify-content:center;gap:34px}
@@ -4493,7 +4519,7 @@ function invCardHtml(){
   const months = [...new Set(invList.map(x=>String(x.date || "").slice(0, 7)).filter(Boolean))].sort().reverse(); if(!invMonth) invMonth = months[0] || jbToday().slice(0, 7);
   return `<div class="jcard" id="invCard"><h3>Invoices <small>${money(owed, { showPence: false })} OWED${over.length ? ` · ${over.length} OVERDUE` : ""}</small></h3>
     <div class="adds"><div class="pal"><button class="sel" data-ivf="open" aria-pressed="${invFilter === "open"}">Unpaid</button><button class="sel" data-ivf="all" aria-pressed="${invFilter === "all"}">All</button></div></div>
-    ${rows.length ? `<table><tr><th>Invoice</th><th>Client</th><th>Due</th><th>Status</th><th class="r">Total</th><th class="r">Owed</th></tr>${rows.map(x=>`<tr class="click" data-ivopen="${esc(x.id)}"><td>${esc(x.number)}</td><td>${esc(x.client && x.client.name || "")}</td><td>${esc(x.due ? jbNice(x.due) : "")}</td><td><span class="spill" style="--js:${({ Paid: "#4c7a5a", Overdue: "#b0443a", Sent: "#c9853a", "Not sent": "#7a746c", Void: "#7a746c" })[invState(x)]}">${esc(invState(x))}</span></td><td class="r">${money(x.total, { showPence: true })}</td><td class="r"><b>${invOwed(x) ? money(invOwed(x), { showPence: true }) : "–"}</b></td></tr>`).join("")}</table>` : `<p class="note">${invFilter === "open" ? "Nothing owed. Every invoice is paid." : "No invoices yet."}</p>`}
+    ${rows.length ? `<table><tr><th>Invoice</th><th>Client</th><th>Due</th><th>Status</th><th class="r">Total</th><th class="r">Owed</th></tr>${rows.map(x=>`<tr class="click" style="cursor:pointer" title="Open to view, edit or send" data-ivopen="${esc(x.id)}"><td>${esc(x.number)}</td><td>${esc(x.client && x.client.name || "")}</td><td>${esc(x.due ? jbNice(x.due) : "")}</td><td><span class="spill" style="--js:${({ Paid: "#4c7a5a", Overdue: "#b0443a", Sent: "#c9853a", "Not sent": "#7a746c", Void: "#7a746c" })[invState(x)]}">${esc(invState(x))}</span></td><td class="r">${money(x.total, { showPence: true })}</td><td class="r"><b>${invOwed(x) ? money(invOwed(x), { showPence: true }) : "–"}</b></td></tr>`).join("")}</table>` : `<p class="note">${invFilter === "open" ? "Nothing owed. Every invoice is paid." : "No invoices yet."}</p>`}
     <div class="plsub">For your accountant <small>QuickBooks</small></div>
     <div class="adds"><select class="in" id="invMonth" style="width:auto">${(months.length ? months : [invMonth]).map(m=>`<option value="${m}" ${m === invMonth ? "selected" : ""}>${new Date(m + "-01T12:00:00").toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</option>`).join("")}</select><button class="btn small" data-ivqb="inv">Invoices CSV for QuickBooks</button><button class="btn small" data-ivqb="pay">Payments CSV</button><button class="btn small ghost" data-ivqb="pdfs">All PDFs for the month</button></div>
     <details class="plsub" style="margin-top:10px"><summary>Invoice details and bank account</summary>${invSet ? invSetHtml() : `<p class="note">Loading…</p>`}</details>
@@ -7214,6 +7240,7 @@ function sheetOpen(html, onReady){
   w.querySelector(".sheetp").innerHTML = '<div class="grab"></div>' + html; void w.offsetWidth; w.classList.add("open"); hap("sel"); onReady && onReady(w.querySelector(".sheetp"));
 }
 function sheetClose(){ const w = $("#qsheet"); if(w) w.classList.remove("open"); }
+document.addEventListener("keydown", e=>{ if(e.key === "Escape"){ const w = $("#qsheet"); if(w && w.classList.contains("open")) sheetClose(); } });
 const IC2 = {
   visit: '<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M12 13v4M10 15h4"/></svg>',
   time: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2.5h6"/></svg>',
