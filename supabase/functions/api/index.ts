@@ -495,6 +495,59 @@ async function fetchXeroRaw(path: string) {
   return j;
 }
 
+/* ---------- Supplier invoices and receipts, kept in Studio for the accountant ---------- */
+const slug = (s: string) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
+async function purchaseStore(id: string, date: string, name: string, bin: Uint8Array, type: string) {
+  const path = `${String(date || "").slice(0, 7) || "undated"}/${id}${/\.(pdf|jpe?g|png|heic)$/i.test(name) ? name.slice(name.lastIndexOf(".")).toLowerCase() : ".pdf"}`;
+  const { error } = await admin.storage.from("purchases").upload(path, bin, { contentType: type || "application/pdf", upsert: true });
+  if (error) throw new ApiError("tool_error", "Couldn't store the file: " + error.message, 500);
+  return path;
+}
+/* Save one supplier invoice. Safe to call twice: the same supplier and invoice number update the same record. */
+async function purchaseSave(p: any, by: string) {
+  const supplier = String(p.supplier || "").trim(), number = String(p.number || "").trim();
+  if (!supplier || !number || !p.date) throw new ApiError("bad_request", "supplier, number and date are required.");
+  const id = slug(`${supplier} ${number}`);
+  const { data: row } = await admin.from("docs").select("data").eq("collection", "purchases").eq("id", id).maybeSingle();
+  const cur: any = row?.data || {};
+  let file = cur.file || "", fileName = cur.fileName || "";
+  if (!file || p.replace_file) {
+    let bin: Uint8Array | null = null, type = "application/pdf", name = String(p.file_name || "");
+    if (p.contentBytes) { bin = Uint8Array.from(atob(p.contentBytes), (c) => c.charCodeAt(0)); type = p.contentType || type; }
+    else if (p.message_id && p.attachment_id) {
+      const a: any = await graph("GET", `/me/messages/${encodeURIComponent(p.message_id)}/attachments/${encodeURIComponent(p.attachment_id)}`);
+      if (!a.contentBytes) throw new ApiError("tool_error", "The email attachment couldn't be read.");
+      bin = Uint8Array.from(atob(a.contentBytes), (c) => c.charCodeAt(0)); type = a.contentType || type; name = name || a.name || "";
+    }
+    if (bin) { file = await purchaseStore(id, p.date, name || `${number}.pdf`, bin, type); fileName = (name || `${number}.pdf`).replace(/[^\w.\- ]/g, "_"); }
+  }
+  const num = (v: any) => v == null || v === "" ? null : Math.round(Number(v) * 100) / 100;
+  const d: any = { ...cur, id, supplier, number, date: String(p.date).slice(0, 10), due: p.due_date || cur.due || "", total: num(p.total) ?? cur.total ?? 0,
+    gst: num(p.gst) ?? cur.gst ?? null, currency: p.currency || cur.currency || "GBP", onAccount: p.on_account ?? cur.onAccount ?? false, credit: p.credit_note ?? cur.credit ?? false,
+    desc: p.description || cur.desc || "", jobRef: p.job_ref || cur.jobRef || "", file, fileName, messageId: p.message_id || cur.messageId || "", source: cur.source || p.source || "email",
+    created: cur.created || Date.now(), updated: Date.now() };
+  await admin.from("docs").upsert({ collection: "purchases", id, data: d, updated_at: new Date().toISOString(), updated_by: by });
+  return { id, saved: true, hadFile: !!cur.file, file: !!file, created: !row };
+}
+async function studioCall(action: string, i: any, email: string) {
+  if (action === "purchase_url") {
+    const { data: row } = await admin.from("docs").select("data").eq("collection", "purchases").eq("id", String(i.id || "")).maybeSingle();
+    const f = (row?.data as any)?.file; if (!f) throw new ApiError("not_found", "No file stored for that invoice.", 404);
+    const { data, error } = await admin.storage.from("purchases").createSignedUrl(f, 3600, i.download ? { download: (row?.data as any).fileName || true } : undefined);
+    if (error) throw new ApiError("tool_error", error.message, 500);
+    return { url: data.signedUrl };
+  }
+  if (action === "purchase_save") return await purchaseSave({ ...i, source: "manual" }, email);
+  if (action === "purchase_delete") {
+    const { data: row } = await admin.from("docs").select("data").eq("collection", "purchases").eq("id", String(i.id || "")).maybeSingle();
+    if (!row) return { deleted: false };
+    const f = (row.data as any).file; if (f) await admin.storage.from("purchases").remove([f]);
+    await admin.from("docs").delete().eq("collection", "purchases").eq("id", String(i.id));
+    return { deleted: true };
+  }
+  throw new ApiError("bad_request", "Unknown Studio action.");
+}
+
 /* ---------- router ---------- */
 /* ---------- push notifications to the Studio iPhone app ---------- */
 const APNS_TEAM = "P7B325A469", APNS_TOPIC = "je.halo.studio";
@@ -609,9 +662,9 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
     if (path === "/call" && req.method === "POST") {
-      await member(req);
+      const who = await member(req);
       const { provider, action, input } = await req.json();
-      const result = provider === "ms" ? await msCall(action, input || {}) : provider === "xero" ? await xeroCall(action, input || {}) : (() => { throw new ApiError("bad_provider", "Unknown connection."); })();
+      const result = provider === "studio" ? await studioCall(action, input || {}, who) : provider === "ms" ? await msCall(action, input || {}) : provider === "xero" ? await xeroCall(action, input || {}) : (() => { throw new ApiError("bad_provider", "Unknown connection."); })();
       return json({ result });
     }
     if (path === "/svc" && req.method === "POST") {
@@ -621,6 +674,7 @@ Deno.serve(async (req) => {
       if (!k) throw new ApiError("not_allowed", "Unknown key.", 401);
       if (action === "push.scan") return json({ result: await pushScan() });
       if (action === "push.test") return json({ result: await pushAll(input?.title || "halo.je Studio", input?.body || "Notifications are working.", { kind: "test" }) });
+      if (action === "purchase.save") return json({ result: await purchaseSave(input || {}, "email-task") });
       if (action === "xero.attach_receipt") return json({ result: await xeroAttachReceipt(input || {}) });
       /* Claude raising a customer invoice from chat: always a draft, so nothing reaches the customer until Ian approves it in Xero. */
       if (action === "xero.create_invoice") return json({ result: await xeroCall("create_invoice", { ...(input || {}), status: "draft" }) });

@@ -3708,7 +3708,7 @@ async function jbStart(){
   if(jbStarted) return; jbStarted = true; jbRenderList(); jbRender();
   if(mode === "db"){
     let first = true;
-    invStart();
+    invStart(); purStart();
     db.collection("jobs").orderBy("updated","desc").onSnapshot(snap=>{
       jbList = snap.docs.map(d=>{ const b = d.data() || {}; return jbNorm(Object.assign({}, b.data || {}, { id: d.id, updated: b.updated || 0 })); }).filter(j=>!jbPendingDel.has(j.id));
       if(first){ first = false; jbLoaded = true; jbSetStatus(jbList.length ? "Saved" : "Ready"); }
@@ -4484,6 +4484,66 @@ document.addEventListener("change", async e=>{
   await invCfgSave({ [k]: v }); toast("Invoice details saved.");
 });
 
+/* ---------- Supplier invoices and receipts (costs), saved from email by the scheduled task, for the accountant ---------- */
+let purList = [], purStarted = false, purMonth = "";
+function purStart(){ if(purStarted || mode !== "db") return; purStarted = true;
+  db.collection("purchases").onSnapshot(sn=>{ purList = sn.docs.map(d=>Object.assign({ id: d.id }, d.data())).sort((a,b)=>String(b.date).localeCompare(String(a.date)) || String(a.supplier).localeCompare(String(b.supplier)));
+    const el = $("#purCard"); if(el) el.outerHTML = purCardHtml(); }); }
+const purSigned = async (x, dl) => (await studioConnections.call("studio", "purchase_url", { id: x.id, download: !!dl })).url;
+function purCardHtml(){
+  const months = [...new Set(purList.map(x=>String(x.date || "").slice(0, 7)).filter(Boolean))].sort().reverse(); if(!purMonth) purMonth = months[0] || jbToday().slice(0, 7);
+  const rows = purList.filter(x=>String(x.date || "").slice(0, 7) === purMonth), sum = rows.reduce((a,x)=>a + (x.credit ? -1 : 1) * num(x.total), 0);
+  const ml = m => new Date(m + "-01T12:00:00").toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  return `<div class="jcard" id="purCard"><h3>Supplier invoices <small>${rows.length} IN ${esc(ml(purMonth).toUpperCase())} · ${money(sum, { showPence: false })}</small></h3>
+    <p class="note">Saved automatically from your emails twice a day. Tap one to open the PDF.</p>
+    <div class="adds"><select class="in" id="purMonth" style="width:auto">${(months.length ? months : [purMonth]).map(m=>`<option value="${m}" ${m === purMonth ? "selected" : ""}>${ml(m)}</option>`).join("")}</select>
+      <button class="btn small" data-pur="csv">Bills CSV for QuickBooks</button><button class="btn small" data-pur="zip">Download all PDFs (zip)</button><button class="btn small ghost" data-pur="add">Add a receipt</button></div>
+    ${rows.length ? `<table><tr><th>Date</th><th>Supplier</th><th>Invoice</th><th>Notes</th><th class="r">Total</th></tr>${rows.map(x=>`<tr class="click" data-puropen="${esc(x.id)}"><td>${esc(jbNice(x.date))}</td><td>${esc(x.supplier)}</td><td>${esc(x.number)}</td><td>${[x.credit ? "Credit note" : "", x.onAccount ? "On account" : "", x.jobRef ? esc(x.jobRef) : "", x.file ? "" : "No PDF"].filter(Boolean).join(" · ")}</td><td class="r">${x.credit ? "−" : ""}${money(x.total, { showPence: true })}</td></tr>`).join("")}</table>` : `<p class="note">No supplier invoices saved for this month yet.</p>`}
+  </div>`;
+}
+async function purZip(rows, m){
+  if(!window.JSZip){ await new Promise((ok, no)=>{ const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"; s.onload = ok; s.onerror = no; document.head.appendChild(s); }).catch(()=>{}); }
+  if(!window.JSZip){ toast("The zip maker didn't load. Check your connection."); return; }
+  const z = new JSZip(), used = new Set(); let n = 0, miss = 0;
+  for(const x of rows.filter(r=>r.file)){
+    try{ const b = await (await fetch(await purSigned(x))).blob(); let nm = `${x.date} ${x.supplier} ${x.number}`.replace(/[^\w.\- ]+/g, "_") + (String(x.file).match(/\.\w+$/) || [".pdf"])[0]; while(used.has(nm)) nm = nm.replace(/(\.\w+)$/, "_$1"); used.add(nm); z.file(nm, b); n++; }catch(_){ miss++; }
+  }
+  if(!n){ toast("Couldn't fetch any PDFs."); return; }
+  await offerSave(`halo.je supplier invoices ${m}.zip`, await z.generateAsync({ type: "blob" }));
+  if(miss) toast(`${miss} PDF${miss > 1 ? "s" : ""} couldn't be fetched.`);
+}
+async function purAdd(){
+  const inp = document.createElement("input"); inp.type = "file"; inp.accept = "application/pdf,image/*";
+  inp.onchange = async ()=>{ const f = inp.files && inp.files[0]; if(!f) return;
+    const supplier = (prompt("Supplier name") || "").trim(); if(!supplier) return;
+    const number = (prompt("Invoice or receipt number", "") || "").trim() || ("R" + Date.now().toString(36).toUpperCase());
+    const date = (prompt("Date (YYYY-MM-DD)", jbToday()) || "").trim(); if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){ toast("Use a date like 2026-11-23."); return; }
+    const total = num(prompt("Total paid, £", "")); if(!(total > 0)){ toast("Enter the total."); return; }
+    if(f.size > 20e6){ toast("That file is over 20 MB."); return; }
+    const b64 = await new Promise(ok=>{ const r = new FileReader(); r.onload = ()=>ok(String(r.result).split(",")[1]); r.readAsDataURL(f); });
+    try{ await studioConnections.call("studio", "purchase_save", { supplier, number, date, total, file_name: f.name, contentType: f.type || "application/pdf", contentBytes: b64 }); toast("Receipt saved."); }
+    catch(e){ toast((e && e.message) || "Couldn't save the receipt."); } };
+  inp.click();
+}
+async function purCsv(rows, m){
+  const H = ["BillNo","Supplier","BillDate","DueDate","Memo","Account","LineDescription","LineAmount"];
+  const out = rows.map(x=>[x.number, x.supplier, qbDate(x.date), qbDate(x.due || x.date), [x.onAccount ? "On account" : "Paid at order", x.jobRef].filter(Boolean).join(", "), "Cost of sales", (x.credit ? "Credit note " : "") + (x.desc || `${x.supplier} ${x.number}`), ((x.credit ? -1 : 1) * num(x.total)).toFixed(2)]);
+  await offerSave(`halo.je supplier invoices ${m} QuickBooks.csv`, [H.join(",")].concat(out.map(r=>r.map(csvQ).join(","))).join("\r\n") + "\r\n");
+}
+document.addEventListener("click", async e=>{
+  const o = e.target.closest("[data-puropen]");
+  if(o){ const x = purList.find(p=>p.id === o.dataset.puropen); if(!x) return; if(!x.file){ toast("No PDF stored for this one."); return; }
+    if(!window.studioConnections){ toast("Opening PDFs needs Studio signed in."); return; }
+    const w = window.open("", "_blank"); try{ const u = await purSigned(x); if(w) w.location = u; else location.href = u; }catch(err){ if(w) w.close(); toast((err && err.message) || "Couldn't open the PDF."); } return; }
+  const b = e.target.closest("[data-pur]"); if(!b) return;
+  if(!window.studioConnections){ toast("This needs Studio signed in."); return; }
+  const rows = purList.filter(x=>String(x.date || "").slice(0, 7) === purMonth);
+  if(b.dataset.pur === "add"){ purAdd(); return; }
+  if(!rows.length){ toast("No supplier invoices in that month."); return; }
+  b.disabled = true; try{ if(b.dataset.pur === "csv") await purCsv(rows, purMonth); else await purZip(rows, purMonth); } finally { b.disabled = false; }
+});
+document.addEventListener("change", e=>{ if(e.target.id === "purMonth"){ purMonth = e.target.value; const el = $("#purCard"); if(el) el.outerHTML = purCardHtml(); } });
+
 async function invFromJob(btn){
   if(jxBusy || !jbCur) return; const j = jbCur, ls = jxLines(j);
   if(!ls.length){ toast("Nothing left to invoice on this job."); return; }
@@ -4557,6 +4617,7 @@ function rpHtml(){
   return `<div class="rp">
     <div class="adds"><div class="pal">${[["month","This month"],["last","Last month"],["year","This year"],["all","All time"]].map(([k,l])=>`<button class="sel" data-rp="${k}" aria-pressed="${rpPeriod===k}">${l}</button>`).join("")}</div><button class="btn small" data-rpbackup="1" style="margin-left:auto">Back up everything</button>${window.STUDIO_NATIVE ? `<label class="btn small filebtn">Import from old Studio<input type="file" accept=".json,application/json" data-rpimport="1"></label><button class="btn small ghost" data-rpsignout="1">Sign out</button>` : `<button class="btn small" data-rpmigrate="1">Export for the new app</button>`}</div>
     ${invCardHtml()}
+    ${purCardHtml()}
     ${window.STUDIO_NATIVE ? rpConnHtml() : ""}
     ${window.studioSiteWatch && studioSiteWatch.available ? swCardHtml() : ""}
     <div class="jcard"><h3>Labour rate</h3><div class="row"><label class="f"><span>Standard rate £ per hour (Wi-Fi, cameras, call-outs)</span><input type="number" id="rpRate" value="${esc(defRate)}" step="1" min="0"></label><label class="f"><span>Specialist rate £ per hour (programming, proposals)</span><input type="number" id="rpSpec" value="${esc(specRate)}" step="1" min="0"></label></div>
