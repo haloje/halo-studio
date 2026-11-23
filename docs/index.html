@@ -4385,8 +4385,12 @@ async function invNext(){
   invList.forEach(x=>{ const m = /INV-(\d+)/.exec(x.number || ""); if(m && +m[1] >= n) n = +m[1] + 1; });
   await invCfgSave({ next: n + 1 }); return invNo(n);
 }
+/* the customer record that matches an invoice's client, by name or company */
+function invClient(cl){ const n = String(cl && cl.name || "").trim().toLowerCase(); if(!n) return null;
+  return clients.find(c=>!c.deleted && [c.name, c.company].some(v=>String(v || "").trim().toLowerCase() === n)) || null; }
 async function invCreate(o){
   if(mode !== "db"){ toast("Invoices need Studio signed in."); return null; }
+  if(o.client && !String(o.client.email || "").trim()){ const c = invClient(o.client); if(c && c.email) o.client.email = c.email; }
   const s = await invCfg(), number = await invNext(), date = jbToday(), due = o.due || jbIso(new Date(Date.now() + (num(s.terms) || 7) * 864e5));
   const lines = o.lines.map(l=>({ desc: l.desc, qty: l.kind === "desc" ? 0 : num(l.qty), unit: l.kind === "desc" ? 0 : Math.round(num(l.unit) * 100) / 100, kind: l.kind || "" }));
   const total = Math.round(lines.reduce((a,l)=>a + l.qty * l.unit, 0) * 100) / 100;
@@ -4456,23 +4460,38 @@ function invOpen(id){
     ${num(inv.paid) > 0 && inv.status !== "paid" ? `<p class="note">Paid so far ${money(inv.paid, { showPence: true })}, balance ${money(invOwed(inv), { showPence: true })}.</p>` : ""}
     <label class="f"><span>Bill to</span><input type="text" id="invName" value="${esc(inv.client.name || "")}" placeholder="Client or company name"></label>
     <label class="f"><span>Address</span><textarea id="invAddr" rows="3" placeholder="Billing address">${esc(inv.client.address || "")}</textarea></label>
-    <label class="f"><span>Client email</span><input type="email" id="invTo" value="${esc(inv.client.email || "")}" placeholder="name@example.com"></label>
+    <label class="f"><span>Client email</span><input type="email" id="invTo" value="${esc(inv.client.email || "")}" placeholder="name@example.com"><small class="note" id="invToNote"></small></label>
     <div class="menu">
       <button data-iv="pdf">${IC2.doc}View or download PDF</button>
       ${inv.status !== "paid" && inv.status !== "void" ? `<button data-iv="draft">${IC2.open}Save as Outlook draft to check and send</button><button data-iv="send">${IC2.open}Email it to the client now</button><button data-iv="paid">${IC2.time}Mark as paid</button><button data-iv="part">${IC2.time}Record a part payment</button>` : ""}
       ${inv.status === "paid" ? `<button data-iv="unpaid">${IC2.time}Mark as unpaid</button>` : ""}
       ${inv.status !== "void" && inv.status !== "paid" ? `<button data-iv="void">${IC2.open}Void this invoice</button>` : ""}
     </div>`,
-    p=>p.querySelector(".menu").addEventListener("click", async e=>{ const b = e.target.closest("[data-iv]"); if(!b) return; const a = b.dataset.iv;
+    p=>{ invFindEmail(inv, p); p.querySelector(".menu").addEventListener("click", async e=>{ const b = e.target.closest("[data-iv]"); if(!b) return; const a = b.dataset.iv;
       { let ch = false; const set = (sel, k)=>{ const v = (p.querySelector(sel) || {}).value; if(v != null && v.trim() !== (inv.client[k] || "")){ inv.client[k] = v.trim(); ch = true; } };
-        set("#invTo", "email"); set("#invName", "name"); set("#invAddr", "address"); if(ch) await invSave(inv); }
+        set("#invTo", "email"); set("#invName", "name"); set("#invAddr", "address"); if(ch) await invSave(inv);
+        const cr = invClient(inv.client); if(cr && inv.client.email && !cr.email) writeClient(Object.assign({}, cr, { email: inv.client.email, updated: Date.now() })); }
       if(a === "pdf"){ invPdfView(inv); return; }
       if(a === "draft" || a === "send"){ if(a === "send" && !confirm(`Email ${inv.number} to ${inv.client.email || "the client"} now?`)) return; b.disabled = true; const ok = await invEmail(inv, a === "send"); b.disabled = false; if(ok) sheetClose(); invRefresh(); return; }
       if(a === "paid"){ inv.status = "paid"; inv.paid = inv.total; inv.paidAt = jbToday(); await invSave(inv); invJobPaid(inv); toast(`${inv.number} marked as paid.`); sheetClose(); invRefresh(); return; }
       if(a === "part"){ const v = prompt(`Amount received for ${inv.number} (balance ${money(invOwed(inv), { showPence: true })})`); const n = num(v); if(!(n > 0)) return; inv.paid = Math.round((num(inv.paid) + n) * 100) / 100; inv.payments = (inv.payments || []).concat([{ at: jbToday(), amount: n }]); if(inv.paid >= inv.total - 0.005){ inv.status = "paid"; inv.paidAt = jbToday(); invJobPaid(inv); } await invSave(inv); toast(`Recorded ${money(n, { showPence: true })} against ${inv.number}.`); sheetClose(); invRefresh(); return; }
       if(a === "unpaid"){ inv.status = "sent"; inv.paid = 0; delete inv.paidAt; inv.payments = []; await invSave(inv); sheetClose(); invRefresh(); return; }
       if(a === "void"){ if(!confirm(`Void ${inv.number}? It stays on record but no longer counts as owed.`)) return; inv.status = "void"; await invSave(inv); sheetClose(); invRefresh(); return; }
-    }));
+    }); });
+}
+/* no email on the invoice: take it from the customer record, or look the client up in Outlook */
+async function invFindEmail(inv, p){
+  const inp = p.querySelector("#invTo"), note = p.querySelector("#invToNote"); if(!inp || inp.value.trim()) return;
+  const c = invClient(inv.client);
+  if(c && c.email){ inp.value = c.email; if(note) note.textContent = "From the customer record."; inv.client.email = c.email; invSave(inv); return; }
+  if(!window.studioConnections || !inv.client.name) return;
+  try{
+    const ppl = ((await studioConnections.call("ms", "people_search", { q: inv.client.name })) || {}).people || [];
+    const n = inv.client.name.toLowerCase(), hit = ppl.filter(x=>String(x.name || "").toLowerCase() === n);
+    const pick = hit.length === 1 ? hit[0] : (ppl.length === 1 ? ppl[0] : null);
+    if(pick && !inp.value.trim()){ inp.value = pick.email; if(note) note.textContent = `Found in Outlook (${pick.name || pick.email}). Check it before sending.`; }
+    else if(ppl.length && note) note.textContent = "Outlook has a few matches: " + ppl.slice(0, 3).map(x=>x.email).join(", ");
+  }catch(_){}
 }
 function invJobPaid(inv){ const j = inv.jobId && jbList.find(x=>x.id === inv.jobId); if(!j) return; const open = invList.filter(x=>x.jobId === j.id && invOwed(x) > 0); if(!open.length && j.status === "Invoiced, Awaiting Payment"){ j.status = "Completed"; if(jbCur && jbCur.id === j.id){ jbCur.status = "Completed"; jbSchedule(); } else { j.updated = Date.now(); db.collection("jobs").doc(j.id).set({ number: j.number, customer: j.customer, status: j.status, updated: j.updated, data: j }); } } }
 function invRefresh(){ const el = $("#invCard"); if(el) el.outerHTML = invCardHtml(); if(jbCur && $("#app").dataset.tab === "jobs") jbRender(); if(current && typeof buildEditor === "function" && $("#app").dataset.tab !== "jobs") buildEditor(); }
