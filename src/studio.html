@@ -1390,13 +1390,12 @@ function depSectionHtml(p, openAttr){
     ${(p.invMode||"hardware") !== "hardware" ? "" : `<p class="note">Tick the hardware to invoice up front, at your chosen percentage.</p>`}
     ${(p.invMode||"hardware") !== "hardware" ? "" : anyItem ? `<div class="adds"><button class="btn small" data-act="depAll">Tick everything</button><button class="btn small ghost" data-act="depNone">Clear</button></div>
     <div class="deplist">${p.systems.map((s,i)=>{ const rows = s.items.map((it,j)=> (it.item || num(it.price)) ? `<label><input type="checkbox" data-k="systems.${i}.items.${j}.dep" ${it.dep?"checked":""}><span>${esc(it.qty)} × ${esc(it.item || it.model)}</span><b>${money(num(it.qty)*sellUnit(p, it), {showPence:true})}</b></label>` : "").join(""); return rows ? `<div class="dsys">${esc(s.name || "System")}</div>${rows}` : ""; }).join("")}</div>` : `<p class="note">Add some lines to the systems first.</p>`}
-    <div class="row3">${(p.invMode||"hardware") === "final" ? "<div></div>" : field("depPct", (p.invMode||"hardware") === "stage" ? "Stage %" : "Deposit %","number",'step="5" min="1" max="100"')}${field("depInvNo","Invoice number","text",'placeholder="Xero\'s next number"')}${field("depDue","Due date","date")}</div>
-    <div class="row">${field("depAccount","Xero account code")}${field("depTax","Xero tax rate name","text",'placeholder="Leave blank unless Xero asks"')}</div>
+    <div class="row3">${(p.invMode||"hardware") === "final" ? "<div></div>" : field("depPct", (p.invMode||"hardware") === "stage" ? "Stage %" : "Deposit %","number",'step="5" min="1" max="100"')}<div></div>${field("depDue","Due date","date")}</div>
+    
     <div class="sys-total"><span>Invoice total</span><b id="depTotal">${money(depTotal(p), {showPence:true})}</b></div>
-    <div class="adds"><button class="btn small primary" data-act="depXero" id="depXeroBtn" ${anyItem || (p.invMode||"hardware") !== "hardware" ?"":"disabled"}>Create draft invoice in Xero</button><button class="btn small" data-act="depCsv" ${anyItem || (p.invMode||"hardware") !== "hardware" ?"":"disabled"}>Download Xero import file</button></div>
-    <p class="note">Create draft sends it straight to Xero as a draft, so nothing goes to the customer until you approve and send it. Leave Invoice number empty and Xero gives it your next INV number.</p>
-    <p class="note">Import file instead: in Xero go to Business › Invoices › Import, choose the file, and pick <b>No tax</b> for how amounts are entered. It arrives as a draft for you to check and approve. Leave the invoice number as it is, or type your next INV number.</p>
-    ${log.length ? `<div class="deplog">${log.map(l=>l.xeroId ? `Draft created in Xero ${esc(l.at)} · ${esc(l.inv)} · ${money(l.total, {showPence:true})} · <a href="https://go.xero.com/AccountsReceivable/Edit.aspx?InvoiceID=${encodeURIComponent(l.xeroId)}" target="_blank" rel="noopener">Open in Xero</a>` : l.xero ? `Sent to Xero ${esc(l.at)} · ${esc(l.inv)} · ${money(l.total, {showPence:true})} · check Xero drafts` : `File made ${esc(l.at)} · ${esc(l.inv)} · ${money(l.total, {showPence:true})}`).join("<br>")}</div>` : ""}
+    <div class="adds"><button class="btn small primary" data-act="depInv" id="depXeroBtn" ${anyItem || (p.invMode||"hardware") !== "hardware" ?"":"disabled"}>Create invoice</button></div>
+    <p class="note">Creates the next INV number in Studio for the ticked hardware (or the stage or balance), ready to view as a PDF, save as an Outlook draft or email. Labour is invoiced later, from the job or with Final balance here.</p>
+    ${log.length ? `<div class="deplog">${log.map(l=>l.invId ? `${esc(l.at)} · <a href="#" data-ivopen="${esc(l.invId)}">${esc(l.inv)}</a> · ${money(l.total, {showPence:true})}` : l.xeroId ? `Draft created in Xero ${esc(l.at)} · ${esc(l.inv)} · ${money(l.total, {showPence:true})} · <a href="https://go.xero.com/AccountsReceivable/Edit.aspx?InvoiceID=${encodeURIComponent(l.xeroId)}" target="_blank" rel="noopener">Open in Xero</a>` : l.xero ? `Sent to Xero ${esc(l.at)} · ${esc(l.inv)} · ${money(l.total, {showPence:true})} · check Xero drafts` : `File made ${esc(l.at)} · ${esc(l.inv)} · ${money(l.total, {showPence:true})}`).join("<br>")}</div>` : ""}
   </div></details>`;
 }
 let depBusy = false;
@@ -1420,6 +1419,20 @@ function xeErrText(e){
   if(c === "not_granted" || c === "capability_disabled" || c === "capability_removed") return "This only works when Studio is open in claude.ai. Use the import file instead.";
   if(c === "tool_error") return "Xero refused it: " + String((e && e.message) || "").replace(/\s+/g, " ").slice(0, 200);
   return "Xero didn't confirm. Check your Xero drafts before trying again.";
+}
+async function depInvoice(btn){
+  if(depBusy) return; const p = current, ls = depLines(p);
+  if(!ls.length){ toast((p.invMode||"hardware") === "hardware" ? "Tick at least one line of hardware." : "Nothing to invoice."); return; }
+  const c = p.clientId && clientById(p.clientId), name = (c && c.name) || p.signedFor || p.preparedFor || "";
+  if(!name){ toast("Add who the quote is prepared for first."); return; }
+  depBusy = true; if(btn){ btn.disabled = true; btn.textContent = "Creating…"; }
+  try{
+    const inv = await invCreate({ client: { name, email: (c && c.email) || "", address: sitesOf(c)[0] || p.site || "" }, lines: ls, ref: invRef(p), proposalId: p.id, jobId: (jbList.find(j=>j.proposalId === p.id) || {}).id || "", due: p.depDue || "" });
+    if(!inv) throw 0;
+    current.depLog = (current.depLog || []).concat([{ at: jbToday(), inv: inv.number, total: inv.total, invId: inv.id }]).slice(-20);
+    scheduleSave(); buildEditor(); toast(`${inv.number} created for ${money(inv.total, {showPence:true})}.`); invOpen(inv.id);
+  }catch(e){ if(e) toast("Couldn't create the invoice. Try again."); if(btn){ btn.disabled = false; btn.textContent = "Create invoice"; } }
+  depBusy = false;
 }
 async function depXero(btn){
   if(depBusy) return;
@@ -2028,7 +2041,7 @@ $("#editor").addEventListener("click", e=>{
     case "depAll": S.forEach(s=>s.items.forEach(it=>{ if(it.item || num(it.price)) it.dep = true; })); break;
     case "depNone": S.forEach(s=>s.items.forEach(it=>{ it.dep = false; })); break;
     case "depCsv": depCsv(); return;
-    case "depXero": depXero(b); return;
+    case "depXero": case "depInv": depInvoice(b); return;
     case "mkJob": qMakeJob(); return;
     case "openJob": { const jid = current.jobId; setTab("jobs"); setTimeout(()=>jbOpen(jid), 300); return; }
     case "poOpen": poOpen = b.dataset.sup; buildEditor(); { const t = $("#poTo"); t && t.focus(); } return;
@@ -3695,6 +3708,7 @@ async function jbStart(){
   if(jbStarted) return; jbStarted = true; jbRenderList(); jbRender();
   if(mode === "db"){
     let first = true;
+    invStart();
     db.collection("jobs").orderBy("updated","desc").onSnapshot(snap=>{
       jbList = snap.docs.map(d=>{ const b = d.data() || {}; return jbNorm(Object.assign({}, b.data || {}, { id: d.id, updated: b.updated || 0 })); }).filter(j=>!jbPendingDel.has(j.id));
       if(first){ first = false; jbLoaded = true; jbSetStatus(jbList.length ? "Saved" : "Ready"); }
@@ -4165,10 +4179,10 @@ function jxCardsHtml(j){
       ${u.m.length ? `<div class="adds" style="margin:0 0 4px 26px;gap:6px"><button class="btn small ghost" data-jx="preAll">Customer paid these up front</button></div>` : ""}${j.materials.some(x=>x.pre && !x.inv) ? `<small class="note" style="margin:0 0 4px 26px;display:block">${j.materials.filter(x=>x.pre && !x.inv).length} line${j.materials.filter(x=>x.pre && !x.inv).length===1?"":"s"} paid up front, left off the invoice.</small>` : ""}
       <div style="border-top:1px solid var(--line);padding-top:6px"><span>Invoice total</span><b>${money(invTotal, {showPence:true})}</b></div>
     </div>
-    <div class="row3"><label class="f"><span>Invoice number</span><input type="text" data-jxk="invNo" value="${esc(j.invNo || "")}" placeholder="Xero's next number"></label><label class="f"><span>Due date</span><input type="date" data-jxk="invDue" value="${esc(j.invDue || "")}"></label><label class="f"><span>Account</span><input type="text" data-jxk="invAcct" value="${esc(j.invAcct || "200")}"></label></div>
-    <div class="adds"><button class="btn small primary" data-jx="invXero" ${invTotal > 0 ? "" : "disabled"}>Create draft invoice in Xero</button><button class="btn small" data-jx="invCsv" ${invTotal > 0 ? "" : "disabled"}>Download import file</button></div>
-    <p class="note">Time is grouped by day. Once invoiced, those hours and materials are marked so they're never billed twice, and the job moves to Invoiced, Awaiting Payment.</p>
-    ${j.invoices.length ? `<div class="invlog">${j.invoices.slice().reverse().map(x=>`${esc(x.at)} · ${esc(x.inv || "Draft")} · ${money(x.total, {showPence:true})}${x.xeroId ? ` · <a href="https://go.xero.com/AccountsReceivable/Edit.aspx?InvoiceID=${encodeURIComponent(x.xeroId)}" target="_blank" rel="noopener">Open in Xero</a>` : x.file ? " · import file" : " · check Xero drafts"}`).join("<br>")}</div>` : ""}
+    <div class="row3"><label class="f"><span>Invoice number</span><input type="text" data-jxk="invNo" value="${esc(j.invNo || "")}" placeholder="Studio's next number"></label><label class="f"><span>Due date</span><input type="date" data-jxk="invDue" value="${esc(j.invDue || "")}"></label><label class="f"><span>Account</span><input type="text" data-jxk="invAcct" value="${esc(j.invAcct || "200")}"></label></div>
+    <div class="adds"><button class="btn small primary" data-jx="invMake" ${invTotal > 0 ? "" : "disabled"}>Create invoice</button></div>
+    <p class="note">Creates the next INV number in Studio, then you can view the PDF, save it as an Outlook draft or email it. Once invoiced, those hours and materials are marked so they're never billed twice, and the job moves to Invoiced, Awaiting Payment.</p>
+    ${j.invoices.length ? `<div class="invlog">${j.invoices.slice().reverse().map(x=>x.invId ? `${esc(x.at)} · <a href="#" data-ivopen="${esc(x.invId)}">${esc(x.inv)}</a> · ${money(x.total, {showPence:true})} · ${esc(((invList.find(i=>i.id===x.invId))&&invState(invList.find(i=>i.id===x.invId)))||"")}` : `${esc(x.at)} · ${esc(x.inv || "Draft")} · ${money(x.total, {showPence:true})}${x.xeroId ? ` · <a href="https://go.xero.com/AccountsReceivable/Edit.aspx?InvoiceID=${encodeURIComponent(x.xeroId)}" target="_blank" rel="noopener">Open in Xero</a>` : x.file ? " · import file" : " · check Xero drafts"}`).join("<br>")}</div>` : ""}
   </div>
   <div class="jcard"><h3>Photos &amp; files <small>${j.files.length}</small></h3>
     ${j.files.length ? `<div class="jxfiles">${j.files.map(f=>/^image\//.test(f.type) ? `<a class="f" href="${esc(f.url)}" target="_blank" rel="noopener" style="background-image:url('${esc(f.url)}')"><span>${esc(f.name)}</span><button class="rm" title="Remove" data-jx="rmFile" data-id="${esc(f.id)}">×</button></a>` : `<a class="f doc" href="${esc(f.url)}" target="_blank" rel="noopener"><b>${esc((f.name.split(".").pop() || "file").toUpperCase())}</b>${esc(f.name)}<button class="rm" title="Remove" data-jx="rmFile" data-id="${esc(f.id)}">×</button></a>`).join("")}</div>` : `<p class="note">Site photos, plans, delivery notes. On your phone this opens the camera.</p>`}
@@ -4318,10 +4332,176 @@ async function jxInvoice(btn, viaFile){
   }catch(e){ toast(xeErrText(e)); btn.disabled = false; btn.textContent = "Create draft invoice in Xero"; }
   jxBusy = false;
 }
+/* ---------- Studio invoices (replaces Xero) ---------- */
+const INV_DEF = { company: "halo.je Limited", address: "Notre Maison, Le Clos du Hambye, La Route de la Hougue Bie, St Saviour, Jersey, JE2 7BS", email: "info@halo.je", phone: "07797 789894", web: "halo.je", companyNo: "",
+  payee: "HALO.JE LIMITED", bank: "Revolut Ltd", sort: "23-01-20", acct: "18911021", iban: "", bic: "", terms: 7, next: 266,
+  note: "Thank you for your business. Please pay by bank transfer, using the invoice number as the reference." };
+let invSet = null, invList = [], invStarted = false;
+async function invCfg(force){ if(invSet && !force) return invSet; let s = {}; try{ if(mode === "db"){ const d = await db.doc("settings/invoicing").get(); if(d.exists) s = d.data() || {}; } }catch(_){} invSet = Object.assign({}, INV_DEF, s); return invSet; }
+async function invCfgSave(patch){ const s = Object.assign({}, await invCfg(), patch); invSet = s; if(mode === "db") await db.collection("settings").doc("invoicing").set(s); return s; }
+function invStart(){ if(invStarted || mode !== "db") return; invStarted = true; invCfg();
+  db.collection("invoices").onSnapshot(sn=>{ invList = sn.docs.map(d=>Object.assign({ id: d.id }, d.data())).sort((a,b)=>String(b.number).localeCompare(String(a.number), undefined, { numeric: true }));
+    if($("#app").dataset.tab === "jobs" && jbView === "reports"){ const el = $("#invCard"); if(el) el.outerHTML = invCardHtml(); } }); }
+const invNo = n => "INV-" + String(n).padStart(4, "0");
+const invState = x => x.status === "void" ? "Void" : x.status === "paid" ? "Paid" : x.status === "draft" ? "Not sent" : (x.due && x.due < jbToday() ? "Overdue" : "Sent");
+const invOwed = x => x.status === "paid" || x.status === "void" ? 0 : Math.max(0, num(x.total) - num(x.paid));
+async function invNext(){
+  const s = await invCfg(true); let n = num(s.next) || 266;
+  invList.forEach(x=>{ const m = /INV-(\d+)/.exec(x.number || ""); if(m && +m[1] >= n) n = +m[1] + 1; });
+  await invCfgSave({ next: n + 1 }); return invNo(n);
+}
+async function invCreate(o){
+  if(mode !== "db"){ toast("Invoices need Studio signed in."); return null; }
+  const s = await invCfg(), number = await invNext(), date = jbToday(), due = o.due || jbIso(new Date(Date.now() + (num(s.terms) || 7) * 864e5));
+  const lines = o.lines.map(l=>({ desc: l.desc, qty: l.kind === "desc" ? 0 : num(l.qty), unit: l.kind === "desc" ? 0 : Math.round(num(l.unit) * 100) / 100, kind: l.kind || "" }));
+  const total = Math.round(lines.reduce((a,l)=>a + l.qty * l.unit, 0) * 100) / 100;
+  const inv = { id: "inv-" + number.toLowerCase(), number, date, due, client: o.client, lines, total, ref: o.ref || "", jobId: o.jobId || "", proposalId: o.proposalId || "", status: "draft", paid: 0, source: "studio", created: Date.now(), updated: Date.now() };
+  await db.collection("invoices").doc(inv.id).set(inv); invList = [inv].concat(invList.filter(x=>x.id !== inv.id)); return inv;
+}
+async function invSave(inv){ inv.updated = Date.now(); await db.collection("invoices").doc(inv.id).set(inv); const i = invList.findIndex(x=>x.id === inv.id); if(i >= 0) invList[i] = inv; else invList.unshift(inv); }
+async function invPdf(inv, ext){
+  const s = await invCfg(); const { jsPDF } = window.jspdf; const pdf = ext || new jsPDF({ unit: "mm", format: "a4" }); if(ext) pdf.addPage();
+  const W = 210, M = 18, R = W - M; let y;
+  pdf.setFillColor(18, 17, 16); pdf.rect(0, 0, W, 36, "F");
+  try{ pdf.addImage(LOGO, "PNG", M, 9, 44, 17); }catch(_){}
+  pdf.setTextColor(232, 184, 120); pdf.setFontSize(9); pdf.text("INVOICE", R, 15, { align: "right" });
+  pdf.setTextColor(243, 239, 233); pdf.setFontSize(16); pdf.text(inv.number, R, 24, { align: "right" });
+  y = 48; pdf.setTextColor(122, 116, 108); pdf.setFontSize(8); pdf.text("BILL TO", M, y); pdf.text("DETAILS", 120, y);
+  y += 6; pdf.setTextColor(20, 18, 16); pdf.setFontSize(11); pdf.text(String(inv.client.name || ""), M, y);
+  pdf.setFontSize(9.5); pdf.setTextColor(60, 56, 52); let ly = y + 5;
+  const addr = pdf.splitTextToSize(String(inv.client.address || "").replace(/\s*\n\s*/g, ", "), 90); if(addr.length && addr[0]){ pdf.text(addr, M, ly); ly += addr.length * 4.6; }
+  if(inv.client.email){ pdf.text(inv.client.email, M, ly); ly += 4.6; }
+  const fd = d=>new Date(d + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }); const kv = [["Invoice date", fd(inv.date)], ["Due date", fd(inv.due)]].concat(inv.ref ? [["Reference", inv.ref]] : []);
+  let ky = y; kv.forEach(([k, v])=>{ pdf.setTextColor(122, 116, 108); pdf.setFontSize(8.5); pdf.text(k, 120, ky); pdf.setTextColor(20, 18, 16); pdf.setFontSize(9.5); const vl = pdf.splitTextToSize(String(v), R - 150); pdf.text(vl, 150, ky); ky += 5 * vl.length; });
+  y = Math.max(ly, ky) + 8;
+  pdf.setFillColor(243, 239, 233); pdf.rect(M, y - 5, R - M, 8, "F"); pdf.setTextColor(90, 84, 76); pdf.setFontSize(8);
+  pdf.text("DESCRIPTION", M + 2, y); pdf.text("QTY", 140, y, { align: "right" }); pdf.text("RATE", 165, y, { align: "right" }); pdf.text("AMOUNT", R - 2, y, { align: "right" });
+  y += 8; pdf.setFontSize(9.5);
+  const page = h=>{ if(y + h > 262){ pdf.addPage(); y = 20; } };
+  inv.lines.forEach(l=>{
+    const dl = pdf.splitTextToSize(String(l.desc || ""), l.kind === "desc" ? R - M - 4 : 110); page(dl.length * 4.8 + 3);
+    if(l.kind === "desc"){ pdf.setTextColor(90, 84, 76); pdf.text(dl, M + 2, y); y += dl.length * 4.8 + 2; return; }
+    pdf.setTextColor(20, 18, 16); pdf.text(dl, M + 2, y);
+    pdf.text(String(+num(l.qty).toFixed(2)), 140, y, { align: "right" }); pdf.text(money(l.unit, { showPence: true }), 165, y, { align: "right" }); pdf.text(money(l.qty * l.unit, { showPence: true }), R - 2, y, { align: "right" });
+    y += dl.length * 4.8 + 1.5; pdf.setDrawColor(230, 224, 214); pdf.line(M, y - 2.5, R, y - 2.5); y += 1.5; });
+  page(40); y += 2; pdf.setTextColor(20, 18, 16); pdf.setFontSize(11); pdf.text("Total due", 140, y, { align: "right" }); pdf.setFontSize(13); pdf.text(money(inv.total, { showPence: true }), R - 2, y, { align: "right" });
+  if(num(inv.paid) > 0 && inv.status !== "paid"){ y += 6; pdf.setFontSize(9.5); pdf.setTextColor(90, 84, 76); pdf.text(`Paid ${money(inv.paid, { showPence: true })} · Balance ${money(invOwed(inv), { showPence: true })}`, R - 2, y, { align: "right" }); }
+  y += 14; page(40); pdf.setTextColor(154, 95, 31); pdf.setFontSize(8); pdf.text("HOW TO PAY", M, y); y += 2; pdf.setDrawColor(230, 224, 214); pdf.line(M, y, R, y); y += 6;
+  pdf.setTextColor(20, 18, 16); pdf.setFontSize(9.5);
+  const pay = [["Account name", s.payee], ["Sort code", s.sort], ["Account number", s.acct]].concat(s.iban ? [["IBAN", s.iban]] : []).concat(s.bic ? [["BIC", s.bic]] : []).concat([["Bank", s.bank], ["Reference", inv.number]]);
+  pay.forEach(([k, v])=>{ pdf.setTextColor(122, 116, 108); pdf.text(k, M, y); pdf.setTextColor(20, 18, 16); pdf.text(String(v || ""), M + 40, y); y += 5; });
+  if(s.note){ y += 3; pdf.setTextColor(90, 84, 76); const nl = pdf.splitTextToSize(s.note, R - M); pdf.text(nl, M, y); }
+  pdf.setFontSize(7.5); pdf.setTextColor(122, 116, 108);
+  pdf.text([s.company, s.address].filter(Boolean).join(" · "), W/2, 284, { align: "center" });
+  pdf.text([s.companyNo ? "Company no. " + s.companyNo : "", s.email, s.phone, s.web].filter(Boolean).join(" · "), W/2, 288, { align: "center" });
+  return pdf;
+}
+async function invPdfView(inv){ if(!window.jspdf){ toast("The PDF maker didn't load. Reload the page and try again."); return; } const pdf = await invPdf(inv); offer(`${inv.number} ${inv.client.name || ""}.pdf`.replace(/\s+\.pdf$/, ".pdf"), pdf.output("blob")); }
+async function invEmail(inv, sendNow){
+  const to = String(inv.client.email || "").trim(); if(!to){ toast("Add the client's email address first."); return false; }
+  if(!window.studioConnections){ toast("Emailing invoices needs the Studio app with Microsoft 365 connected. Download the PDF instead."); return false; }
+  const s = await invCfg(), pdf = await invPdf(inv), b64 = pdf.output("datauristring").split(",")[1];
+  const first = String(inv.client.name || "").split(/\s|&/)[0] || "there";
+  const body = `<p>Hi ${esc(first)},</p><p>Please find attached invoice ${esc(inv.number)}${inv.ref ? ` (${esc(inv.ref)})` : ""} for ${esc(money(invOwed(inv) || inv.total, { showPence: true }))}, due by ${esc(jbNice(inv.due))}.</p><p>Payment by bank transfer to ${esc(s.payee)}, sort code ${esc(s.sort)}, account number ${esc(s.acct)}, using ${esc(inv.number)} as the reference.</p><p>Thank you,<br>Ian</p>`;
+  const msg = { to: [to], subject: `Invoice ${inv.number} from halo.je`, body, bodyType: "html", attachments: [{ name: `${inv.number}.pdf`, contentType: "application/pdf", contentBytes: b64 }] };
+  try{
+    const r = await studioConnections.call("ms", sendNow ? "send_mail" : "draft_mail", msg);
+    if(sendNow){ inv.status = inv.status === "paid" ? "paid" : "sent"; inv.sentAt = jbToday(); } else { inv.draftAt = jbToday(); if(inv.status === "draft") inv.status = "sent"; inv.sentAt = inv.sentAt || jbToday(); }
+    await invSave(inv); toast(sendNow ? `${inv.number} emailed to ${to}.` : `${inv.number} saved as a draft in Outlook. Check it and send it from there.`);
+    if(!sendNow && r && r.webLink) inv.olLink = r.webLink;
+    return true;
+  }catch(e){ toast(nativeErr(e, "Microsoft 365") || "Couldn't create the email. Download the PDF instead."); return false; }
+}
+function invOpen(id){
+  const inv = invList.find(x=>x.id === id); if(!inv){ toast("Invoice not found."); return; }
+  const st = invState(inv);
+  sheetOpen(`<h3>${esc(inv.number)} <small style="color:var(--muted);font-size:13px;margin-left:6px">${esc(st)}</small></h3><p class="sub">${esc(inv.client.name || "")} · ${money(inv.total, { showPence: true })} · due ${esc(jbNice(inv.due))}${inv.ref ? " · " + esc(inv.ref) : ""}</p>
+    ${num(inv.paid) > 0 && inv.status !== "paid" ? `<p class="note">Paid so far ${money(inv.paid, { showPence: true })}, balance ${money(invOwed(inv), { showPence: true })}.</p>` : ""}
+    <label class="f"><span>Client email</span><input type="email" id="invTo" value="${esc(inv.client.email || "")}" placeholder="name@example.com"></label>
+    <div class="menu">
+      <button data-iv="pdf">${IC2.doc}View or download PDF</button>
+      ${inv.status !== "paid" && inv.status !== "void" ? `<button data-iv="draft">${IC2.open}Save as Outlook draft to check and send</button><button data-iv="send">${IC2.open}Email it to the client now</button><button data-iv="paid">${IC2.time}Mark as paid</button><button data-iv="part">${IC2.time}Record a part payment</button>` : ""}
+      ${inv.status === "paid" ? `<button data-iv="unpaid">${IC2.time}Mark as unpaid</button>` : ""}
+      ${inv.status !== "void" && inv.status !== "paid" ? `<button data-iv="void">${IC2.open}Void this invoice</button>` : ""}
+    </div>`,
+    p=>p.querySelector(".menu").addEventListener("click", async e=>{ const b = e.target.closest("[data-iv]"); if(!b) return; const a = b.dataset.iv;
+      const em = (p.querySelector("#invTo") || {}).value; if(em != null && em.trim() !== (inv.client.email || "")){ inv.client.email = em.trim(); await invSave(inv); }
+      if(a === "pdf"){ invPdfView(inv); return; }
+      if(a === "draft" || a === "send"){ if(a === "send" && !confirm(`Email ${inv.number} to ${inv.client.email || "the client"} now?`)) return; b.disabled = true; const ok = await invEmail(inv, a === "send"); b.disabled = false; if(ok) sheetClose(); invRefresh(); return; }
+      if(a === "paid"){ inv.status = "paid"; inv.paid = inv.total; inv.paidAt = jbToday(); await invSave(inv); invJobPaid(inv); toast(`${inv.number} marked as paid.`); sheetClose(); invRefresh(); return; }
+      if(a === "part"){ const v = prompt(`Amount received for ${inv.number} (balance ${money(invOwed(inv), { showPence: true })})`); const n = num(v); if(!(n > 0)) return; inv.paid = Math.round((num(inv.paid) + n) * 100) / 100; inv.payments = (inv.payments || []).concat([{ at: jbToday(), amount: n }]); if(inv.paid >= inv.total - 0.005){ inv.status = "paid"; inv.paidAt = jbToday(); invJobPaid(inv); } await invSave(inv); toast(`Recorded ${money(n, { showPence: true })} against ${inv.number}.`); sheetClose(); invRefresh(); return; }
+      if(a === "unpaid"){ inv.status = "sent"; inv.paid = 0; delete inv.paidAt; inv.payments = []; await invSave(inv); sheetClose(); invRefresh(); return; }
+      if(a === "void"){ if(!confirm(`Void ${inv.number}? It stays on record but no longer counts as owed.`)) return; inv.status = "void"; await invSave(inv); sheetClose(); invRefresh(); return; }
+    }));
+}
+function invJobPaid(inv){ const j = inv.jobId && jbList.find(x=>x.id === inv.jobId); if(!j) return; const open = invList.filter(x=>x.jobId === j.id && invOwed(x) > 0); if(!open.length && j.status === "Invoiced, Awaiting Payment"){ j.status = "Completed"; if(jbCur && jbCur.id === j.id){ jbCur.status = "Completed"; jbSchedule(); } else { j.updated = Date.now(); db.collection("jobs").doc(j.id).set({ number: j.number, customer: j.customer, status: j.status, updated: j.updated, data: j }); } } }
+function invRefresh(){ const el = $("#invCard"); if(el) el.outerHTML = invCardHtml(); if(jbCur && $("#app").dataset.tab === "jobs") jbRender(); if(current && typeof buildEditor === "function" && $("#app").dataset.tab !== "jobs") buildEditor(); }
+let invFilter = "open", invMonth = "";
+function invCardHtml(){
+  const open = invList.filter(x=>invOwed(x) > 0), owed = open.reduce((a,x)=>a + invOwed(x), 0), over = open.filter(x=>x.due && x.due < jbToday());
+  const rows = invFilter === "open" ? open : invList.filter(x=>x.status !== "void").slice(0, 40);
+  const months = [...new Set(invList.map(x=>String(x.date || "").slice(0, 7)).filter(Boolean))].sort().reverse(); if(!invMonth) invMonth = months[0] || jbToday().slice(0, 7);
+  return `<div class="jcard" id="invCard"><h3>Invoices <small>${money(owed, { showPence: false })} OWED${over.length ? ` · ${over.length} OVERDUE` : ""}</small></h3>
+    <div class="adds"><div class="pal"><button class="sel" data-ivf="open" aria-pressed="${invFilter === "open"}">Unpaid</button><button class="sel" data-ivf="all" aria-pressed="${invFilter === "all"}">All</button></div></div>
+    ${rows.length ? `<table><tr><th>Invoice</th><th>Client</th><th>Due</th><th>Status</th><th class="r">Total</th><th class="r">Owed</th></tr>${rows.map(x=>`<tr class="click" data-ivopen="${esc(x.id)}"><td>${esc(x.number)}</td><td>${esc(x.client && x.client.name || "")}</td><td>${esc(x.due ? jbNice(x.due) : "")}</td><td><span class="spill" style="--js:${({ Paid: "#4c7a5a", Overdue: "#b0443a", Sent: "#c9853a", "Not sent": "#7a746c", Void: "#7a746c" })[invState(x)]}">${esc(invState(x))}</span></td><td class="r">${money(x.total, { showPence: true })}</td><td class="r"><b>${invOwed(x) ? money(invOwed(x), { showPence: true }) : "–"}</b></td></tr>`).join("")}</table>` : `<p class="note">${invFilter === "open" ? "Nothing owed. Every invoice is paid." : "No invoices yet."}</p>`}
+    <div class="plsub">For your accountant <small>QuickBooks</small></div>
+    <div class="adds"><select class="in" id="invMonth" style="width:auto">${(months.length ? months : [invMonth]).map(m=>`<option value="${m}" ${m === invMonth ? "selected" : ""}>${new Date(m + "-01T12:00:00").toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</option>`).join("")}</select><button class="btn small" data-ivqb="inv">Invoices CSV for QuickBooks</button><button class="btn small" data-ivqb="pay">Payments CSV</button><button class="btn small ghost" data-ivqb="pdfs">All PDFs for the month</button></div>
+    <details class="plsub" style="margin-top:10px"><summary>Invoice details and bank account</summary>${invSet ? invSetHtml() : `<p class="note">Loading…</p>`}</details>
+  </div>`;
+}
+function invSetHtml(){ const s = invSet, f = (k, l, ph = "")=>`<label class="f"><span>${l}</span><input type="text" data-ivset="${k}" value="${esc(String(s[k] ?? ""))}" placeholder="${esc(ph)}"></label>`;
+  return `<div class="row">${f("company","Company name")}${f("companyNo","Company number","e.g. 123456")}</div>${f("address","Address on invoices")}<div class="row">${f("email","Email")}${f("phone","Phone")}</div>
+  <div class="row">${f("payee","Account name")}${f("bank","Bank")}</div><div class="row">${f("sort","Sort code")}${f("acct","Account number")}</div><div class="row">${f("iban","IBAN (optional)")}${f("bic","BIC (optional)")}</div>
+  <div class="row">${f("terms","Payment terms, days")}${f("next","Next invoice number")}</div>${f("note","Note at the bottom of each invoice")}`; }
+const qbDate = d => { const x = new Date(d + "T12:00:00"); return `${dwPad(x.getDate())}/${dwPad(x.getMonth()+1)}/${x.getFullYear()}`; };
+const csvQ = v => { const t = String(v ?? ""); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g,'""')}"` : t; };
+async function invQb(kind){
+  const m = invMonth, inM = d => String(d || "").slice(0, 7) === m, s = await invCfg();
+  if(kind === "inv"){
+    const H = ["InvoiceNo","Customer","InvoiceDate","DueDate","Terms","Memo","Item(Product/Service)","ItemDescription","ItemQuantity","ItemRate","ItemAmount"];
+    const rows = invList.filter(x=>x.status !== "void" && inM(x.date)).flatMap(x=>x.lines.filter(l=>l.kind !== "desc").map(l=>[x.number, x.client.name, qbDate(x.date), qbDate(x.due), `Net ${num(s.terms) || 7}`, x.ref, l.kind === "time" ? "Labour" : l.kind === "mat" ? "Materials" : "Services", l.desc, +num(l.qty).toFixed(2), num(l.unit).toFixed(2), (l.qty * l.unit).toFixed(2)]));
+    if(!rows.length){ toast("No invoices in that month."); return; }
+    await offerSave(`halo.je invoices ${m} QuickBooks.csv`, [H.join(",")].concat(rows.map(r=>r.map(csvQ).join(","))).join("\r\n") + "\r\n"); return; }
+  if(kind === "pay"){
+    const H = ["Date","InvoiceNo","Customer","Amount","Method","Reference"];
+    const rows = invList.flatMap(x=>((x.payments && x.payments.length) ? x.payments : (x.status === "paid" && x.paidAt ? [{ at: x.paidAt, amount: x.total }] : [])).filter(p=>inM(p.at)).map(p=>[qbDate(p.at), x.number, x.client.name, num(p.amount).toFixed(2), "Bank transfer", x.number]));
+    if(!rows.length){ toast("No payments recorded in that month."); return; }
+    await offerSave(`halo.je payments ${m}.csv`, [H.join(",")].concat(rows.map(r=>r.map(csvQ).join(","))).join("\r\n") + "\r\n"); return; }
+  if(kind === "pdfs"){ const xs = invList.filter(x=>x.status !== "void" && inM(x.date)); if(!xs.length){ toast("No invoices in that month."); return; }
+    if(!window.jspdf){ toast("The PDF maker didn't load."); return; }
+    let out = null; for(const x of xs) out = await invPdf(x, out);
+    await offerSave(`halo.je invoices ${m}.pdf`, out.output("blob"));
+  }
+}
+document.addEventListener("click", e=>{
+  const o = e.target.closest("[data-ivopen]"); if(o){ invOpen(o.dataset.ivopen); return; }
+  const f = e.target.closest("[data-ivf]"); if(f){ invFilter = f.dataset.ivf; invRefresh(); return; }
+  const q = e.target.closest("[data-ivqb]"); if(q){ invQb(q.dataset.ivqb); return; }
+});
+document.addEventListener("change", async e=>{
+  if(e.target.id === "invMonth"){ invMonth = e.target.value; return; }
+  const k = e.target.dataset && e.target.dataset.ivset; if(!k) return; let v = e.target.value.trim(); if(k === "terms" || k === "next") v = num(v);
+  await invCfgSave({ [k]: v }); toast("Invoice details saved.");
+});
+
+async function invFromJob(btn){
+  if(jxBusy || !jbCur) return; const j = jbCur, ls = jxLines(j);
+  if(!ls.length){ toast("Nothing left to invoice on this job."); return; }
+  const ct = jxContact(j); if(!ct.name){ toast("Add the customer first."); return; }
+  jxBusy = true; btn.disabled = true; btn.textContent = "Creating…";
+  try{
+    const inv = await invCreate({ client: { name: ct.name, email: ct.email || j.email || "", address: ct.address || "" }, lines: ls, ref: [j.number, j.reference].filter(Boolean).join(" "), jobId: j.id, proposalId: j.proposalId || "", due: j.invDue || "" });
+    if(!inv) throw 0;
+    jxMarkInvoiced(j, inv.number); j.invoices.push({ at: jbToday(), inv: inv.number, total: inv.total, invId: inv.id }); j.invNo = ""; if(j.status !== "Completed") j.status = "Invoiced, Awaiting Payment";
+    jbSchedule(); jbRender(); jbRenderList(); toast(`${inv.number} created for ${money(inv.total, {showPence:true})}.`); invOpen(inv.id);
+  }catch(e){ if(e) toast("Couldn't create the invoice. Try again."); btn.disabled = false; btn.textContent = "Create invoice"; }
+  jxBusy = false;
+}
 /* job extras clicks */
 $("#jbScroll").addEventListener("click", async e=>{
   const b = e.target.closest("[data-jx]"); if(!b || !jbCur) return; e.preventDefault();
   const a = b.dataset.jx, id = b.dataset.id, j = jbCur;
+  if(a === "invMake"){ await invFromJob(b); return; }
   if(a === "preMat" || a === "unpreMat"){ const x = j.materials.find(m=>m.id === id); if(!x) return; if(a === "preMat") x.pre = true; else delete x.pre; jbSchedule(); jbRender(); return; }
   if(a === "preAll"){ j.materials.forEach(x=>{ if(!x.inv) x.pre = true; }); jbSchedule(); jbRender(); toast("Materials marked as paid up front. They won't go on the invoice."); return; }
   if(a === "fitMat" || a === "unfitMat" || a === "directMat"){ const x = j.materials.find(m=>m.id === id); if(!x) return;
@@ -4376,6 +4556,7 @@ function rpHtml(){
   const statusCounts = JB_STATUS.map(([s,c])=>[s, c, jbList.filter(j=>j.status === s).length]).filter(x=>x[2]);
   return `<div class="rp">
     <div class="adds"><div class="pal">${[["month","This month"],["last","Last month"],["year","This year"],["all","All time"]].map(([k,l])=>`<button class="sel" data-rp="${k}" aria-pressed="${rpPeriod===k}">${l}</button>`).join("")}</div><button class="btn small" data-rpbackup="1" style="margin-left:auto">Back up everything</button>${window.STUDIO_NATIVE ? `<label class="btn small filebtn">Import from old Studio<input type="file" accept=".json,application/json" data-rpimport="1"></label><button class="btn small ghost" data-rpsignout="1">Sign out</button>` : `<button class="btn small" data-rpmigrate="1">Export for the new app</button>`}</div>
+    ${invCardHtml()}
     ${window.STUDIO_NATIVE ? rpConnHtml() : ""}
     ${window.studioSiteWatch && studioSiteWatch.available ? swCardHtml() : ""}
     <div class="jcard"><h3>Labour rate</h3><div class="row"><label class="f"><span>Standard rate £ per hour (Wi-Fi, cameras, call-outs)</span><input type="number" id="rpRate" value="${esc(defRate)}" step="1" min="0"></label><label class="f"><span>Specialist rate £ per hour (programming, proposals)</span><input type="number" id="rpSpec" value="${esc(specRate)}" step="1" min="0"></label></div>
@@ -4434,7 +4615,7 @@ if(window.studioSiteWatch && studioSiteWatch.available){
 }
 /* ---------- connections (native app) ---------- */
 let rpConn = null, rpConnBusy = false, rpConnAt = 0;
-const RP_CONN = [["ms","Microsoft 365","Outlook calendar and sending email from info@halo.je"],["xero","Xero","Draft invoices and price list updates"]];
+const RP_CONN = [["ms","Microsoft 365","Outlook calendar and emailing invoices from info@halo.je"]];
 function rpConnHtml(){
   if(!rpConn || Date.now() - rpConnAt > 60000) rpConnLoad();
   return `<div class="jcard" id="rpConn"><h3>Connections <small>${rpConn ? "" : "CHECKING…"}</small></h3><table>${RP_CONN.map(([k,name,what])=>{

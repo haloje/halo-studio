@@ -19,7 +19,7 @@ const MS_SECRET = Deno.env.get("MS_CLIENT_SECRET") || "";
 const XERO_ID = Deno.env.get("XERO_CLIENT_ID") || "";
 const XERO_SECRET = Deno.env.get("XERO_CLIENT_SECRET") || "";
 const FN_BASE = `${SB_URL}/functions/v1/api`;
-const MS_SCOPES = "offline_access openid email User.Read Calendars.ReadWrite Mail.Send Mail.Read People.Read Contacts.Read";
+const MS_SCOPES = "offline_access openid email User.Read Calendars.ReadWrite Mail.Send Mail.ReadWrite People.Read Contacts.Read";
 const MS_SCOPES_V1 = "offline_access openid email User.Read Calendars.ReadWrite Mail.Send"; // what connections made before Mail.Read were granted
 const XERO_SCOPES = "openid profile email offline_access accounting.invoices accounting.contacts accounting.settings accounting.attachments accounting.banktransactions.read";
 
@@ -95,6 +95,16 @@ async function msCall(action: string, i: any) {
   if (action === "create_event") { const e: any = await graph("POST", "/me/events", evIn(i)); return { id: e.id, webLink: e.webLink }; }
   if (action === "update_event") { if (!i.eventId) throw new ApiError("bad_request", "eventId missing"); const e: any = await graph("PATCH", `/me/events/${encodeURIComponent(i.eventId)}`, evIn(i)); return { id: e.id || i.eventId, webLink: e.webLink }; }
   if (action === "delete_event") { if (!i.eventId) throw new ApiError("bad_request", "eventId missing"); try { await graph("DELETE", `/me/events/${encodeURIComponent(i.eventId)}`); } catch (e) { if (!/not found/i.test((e as Error).message)) throw e; } return { deleted: true }; }
+  if (action === "draft_mail") {
+    const to = (i.to || []).filter(Boolean); if (!to.length) throw new ApiError("bad_request", "No recipient.");
+    const message: any = { subject: i.subject || "", body: { contentType: i.bodyType === "html" ? "HTML" : "Text", content: i.body || "" }, toRecipients: to.map((a: string) => ({ emailAddress: { address: a } })) };
+    if (i.cc?.length) message.ccRecipients = i.cc.map((a: string) => ({ emailAddress: { address: a } }));
+    if (i.attachments?.length) message.attachments = i.attachments.map((a: any) => ({ "@odata.type": "#microsoft.graph.fileAttachment", name: a.name, contentType: a.contentType || "application/octet-stream", contentBytes: a.contentBytes }));
+    let m: any;
+    try { m = await graph("POST", "/me/messages", message); }
+    catch (e) { if (/denied|forbidden|403|scope/i.test((e as Error).message)) throw new ApiError("needs_reauth", "To save invoice drafts in Outlook, press Reconnect for Microsoft 365 in Reports › Connections.", 409); throw e; }
+    return { id: m.id, webLink: m.webLink };
+  }
   if (action === "send_mail") {
     const to = (i.to || []).filter(Boolean); if (!to.length) throw new ApiError("bad_request", "No recipient.");
     const message: any = { subject: i.subject || "", body: { contentType: i.bodyType === "html" ? "HTML" : "Text", content: i.body || "" }, toRecipients: to.map((a: string) => ({ emailAddress: { address: a } })) };
