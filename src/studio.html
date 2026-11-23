@@ -4416,14 +4416,21 @@ async function invPdf(inv, ext){
   return pdf;
 }
 async function invPdfView(inv){ if(!window.jspdf){ toast("The PDF maker didn't load. Reload the page and try again."); return; } const pdf = await invPdf(inv); offer(`${inv.number} ${inv.client.name || ""}.pdf`.replace(/\s+\.pdf$/, ".pdf"), pdf.output("blob")); }
-async function invEmail(inv, sendNow){
-  const to = String(inv.client.email || "").trim(); if(!to){ toast("Add the client's email address first."); return false; }
-  if(!window.studioConnections){ toast("Emailing invoices needs the Studio app with Microsoft 365 connected. Download the PDF instead."); return false; }
-  const s = await invCfg(), pdf = await invPdf(inv), b64 = pdf.output("datauristring").split(",")[1];
+/* the cover note that goes in the email with the invoice PDF: shown and editable on each invoice */
+function invNoteDefault(inv){
+  const s = invSet || INV_DEF;
   const fao = String(inv.client.address || "").match(/^\s*(?:FAO|Attn:?|Attention:?)\s+([A-Za-z'’-]+)/i);
   const nm = String(inv.client.name || "").trim();
   const first = fao ? fao[1] : (/^the\b|\b(ltd|limited|llp|plc|hotel|group|trust|club|nurseries|services|leisure|company|co\.?)\b|&/i.test(nm) || !nm ? "" : nm.split(/\s+/)[0]);
-  const body = `<p>${first ? `Hi ${esc(first)},` : "Hello,"}</p><p>Please find attached invoice ${esc(inv.number)}${inv.ref ? ` (${esc(inv.ref)})` : ""} for ${esc(money(invOwed(inv) || inv.total, { showPence: true }))}, due by ${esc(jbNice(inv.due))}.</p><p>Payment by bank transfer to ${esc(s.payee)}, sort code ${esc(s.sort)}, account number ${esc(s.acct)}, using ${esc(inv.number)} as the reference.</p><p>Thank you,<br>Ian</p>`;
+  return `${first ? `Hi ${first},` : "Hello,"}\n\nPlease find attached invoice ${inv.number}${inv.ref ? ` (${inv.ref})` : ""} for ${money(invOwed(inv) || inv.total, { showPence: true })}, due by ${jbNice(inv.due)}.\n\nPayment is by bank transfer to ${s.payee}, sort code ${s.sort}, account number ${s.acct}, using ${inv.number} as the reference.\n\nIf you have any questions, just let me know.\n\nThank you,\nIan`;
+}
+const INV_SIG = `<table cellpadding="0" cellspacing="0" border="0" bgcolor="#1c1c1c" style="border-collapse:collapse;background:#1c1c1c;font-family:Helvetica,Arial,sans-serif"> <tr><td style="padding:16px 16px 12px 16px" valign="top"> <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr> <td valign="top" style="padding:0 20px 0 0"><a href="https://halo.je" style="text-decoration:none"><img src="https://haloje.github.io/halo-studio/icons/email-tile.png" width="104" height="104" alt="halo.je" style="display:block;border:1px solid #333333;border-radius:8px;width:104px;height:104px"></a></td> <td valign="top"> <div style="font-size:22px;line-height:26px;color:#ffffff;font-weight:normal">Ian Lamont</div> <div style="padding-top:8px;font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;font-size:10px;line-height:14px;letter-spacing:2.5px;color:#a86d2e">DIRECTOR &middot; JERSEY &amp; THE CHANNEL ISLANDS</div> <div style="margin:10px 0 12px 0;width:36px;height:2px;line-height:2px;font-size:2px;background:#7a4f22">&nbsp;</div> <div style="font-size:14px;line-height:20px;color:#d9d6cf"><a href="tel:+447797789894" style="color:#d9d6cf;text-decoration:none">07797 789894</a><span style="color:#5a5a5a">&nbsp;&middot;&nbsp;</span><a href="mailto:info@halo.je" style="color:#d9d6cf;text-decoration:none">info@halo.je</a><span style="color:#5a5a5a">&nbsp;&middot;&nbsp;</span><a href="https://halo.je" style="color:#ffffff;text-decoration:none;font-weight:bold">halo.je</a></div> <div style="font-size:14px;line-height:20px;color:#8a8780">Smart homes, <span style="color:#a86d2e">beautifully simple.</span></div> </td></tr></table> </td></tr> <tr><td style="padding:0 16px"><div style="height:1px;line-height:1px;font-size:1px;background:#e9e4d8">&nbsp;</div></td></tr> <tr><td style="padding:10px 16px 14px 16px"> <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse"><tr> <td style="font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;font-size:9px;line-height:12px;letter-spacing:2.5px;color:#8a8780">CRESTRON &middot; SAVANT &middot; LUTRON &middot; UBIQUITI</td> <td align="right" style="font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;font-size:9px;line-height:12px;letter-spacing:2.5px;color:#a86d2e;padding-left:24px"><a href="https://www.instagram.com/halo.je25/" style="color:#a86d2e;text-decoration:none">INSTAGRAM</a> &middot; <a href="https://www.linkedin.com/company/107467257/" style="color:#a86d2e;text-decoration:none">LINKEDIN</a></td> </tr></table> </td></tr> </table>`;
+const noteHtml = t => String(t || "").trim().split(/\n\s*\n/).map(p=>`<p style="margin:0 0 12px 0">${esc(p).replace(/\n/g, "<br>")}</p>`).join("");
+async function invEmail(inv, sendNow){
+  const to = String(inv.client.email || "").trim(); if(!to){ toast("Add the client's email address first."); return false; }
+  if(!window.studioConnections){ toast("Emailing invoices needs the Studio app with Microsoft 365 connected. Download the PDF instead."); return false; }
+  await invCfg(); const pdf = await invPdf(inv), b64 = pdf.output("datauristring").split(",")[1];
+  const body = `<div style="font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;color:#141414">${noteHtml(inv.note || invNoteDefault(inv))}</div><br>${INV_SIG}`;
   const msg = { to: [to], subject: `Invoice ${inv.number} from halo.je`, body, bodyType: "html", attachments: [{ name: `${inv.number}.pdf`, contentType: "application/pdf", contentBytes: b64 }] };
   try{
     const r = await studioConnections.call("ms", sendNow ? "send_mail" : "draft_mail", msg);
@@ -4441,15 +4448,19 @@ function invOpen(id){
     <label class="f"><span>Bill to</span><input type="text" id="invName" value="${esc(inv.client.name || "")}" placeholder="Client or company name"></label>
     <label class="f"><span>Address</span><textarea id="invAddr" rows="3" placeholder="Billing address">${esc(inv.client.address || "")}</textarea></label>
     <label class="f"><span>Client email</span><input type="email" id="invTo" value="${esc(inv.client.email || "")}" placeholder="name@example.com"><small class="note" id="invToNote"></small></label>
+    ${inv.status !== "paid" && inv.status !== "void" ? `<label class="f"><span>Message with the invoice</span><textarea id="invNote" rows="9">${esc(inv.note || invNoteDefault(inv))}</textarea><small class="note">This goes in the email above your signature, with the PDF attached. <a href="#" id="invNoteReset">Reset to the standard message</a></small></label>` : ""}
     <div class="menu">
       <button data-iv="pdf">${IC2.doc}View or download PDF</button>
       ${inv.status !== "paid" && inv.status !== "void" ? `<button data-iv="draft">${IC2.open}Save as Outlook draft to check and send</button><button data-iv="send">${IC2.open}Email it to the client now</button><button data-iv="paid">${IC2.time}Mark as paid</button><button data-iv="part">${IC2.time}Record a part payment</button>` : ""}
       ${inv.status === "paid" ? `<button data-iv="unpaid">${IC2.time}Mark as unpaid</button>` : ""}
       ${inv.status !== "void" && inv.status !== "paid" ? `<button data-iv="void">${IC2.open}Void this invoice</button>` : ""}
     </div>`,
-    p=>{ invFindEmail(inv, p); p.querySelector(".menu").addEventListener("click", async e=>{ const b = e.target.closest("[data-iv]"); if(!b) return; const a = b.dataset.iv;
+    p=>{ invFindEmail(inv, p); { const r = p.querySelector("#invNoteReset"); if(r) r.addEventListener("click", ev=>{ ev.preventDefault(); const nt = p.querySelector("#invNote"); inv.note = ""; nt.value = invNoteDefault(inv); }); }
+      p.querySelector(".menu").addEventListener("click", async e=>{ const b = e.target.closest("[data-iv]"); if(!b) return; const a = b.dataset.iv;
       { let ch = false; const set = (sel, k)=>{ const v = (p.querySelector(sel) || {}).value; if(v != null && v.trim() !== (inv.client[k] || "")){ inv.client[k] = v.trim(); ch = true; } };
-        set("#invTo", "email"); set("#invName", "name"); set("#invAddr", "address"); if(ch) await invSave(inv);
+        set("#invTo", "email"); set("#invName", "name"); set("#invAddr", "address");
+        { const nt = p.querySelector("#invNote"); if(nt){ const v = nt.value.trim(), d = invNoteDefault(inv).trim(); const nv = v && v !== d ? v : ""; if(nv !== (inv.note || "")){ inv.note = nv; ch = true; } } }
+        if(ch) await invSave(inv);
         const cr = invClient(inv.client); if(cr && inv.client.email && !cr.email) writeClient(Object.assign({}, cr, { email: inv.client.email, updated: Date.now() })); }
       if(a === "pdf"){ invPdfView(inv); return; }
       if(a === "draft" || a === "send"){ if(a === "send" && !confirm(`Email ${inv.number} to ${inv.client.email || "the client"} now?`)) return; b.disabled = true; const ok = await invEmail(inv, a === "send"); b.disabled = false; if(ok) sheetClose(); invRefresh(); return; }
