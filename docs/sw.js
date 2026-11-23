@@ -1,5 +1,5 @@
 /* halo.je Studio service worker: keeps the app working offline. Data is cached by backend.js. */
-const CACHE = "studio-a1d3c2b439";
+const CACHE = "studio-8aa630b051";
 const SHELL = ["./", "index.html", "backend.js", "manifest.webmanifest",
   "vendor/supabase-2.45.4.js", "vendor/html2canvas.min.js", "vendor/jspdf.umd.min.js", "vendor/pdf.min.js", "vendor/pdf.worker.min.js",
   "icons/logo-full.png", "icons/emblem-96.png", "icons/icon-192.png", "icons/apple-touch-icon.png",

@@ -1429,6 +1429,9 @@ async function depInvoice(btn){
   const name = real(c && c.name) || real(p.signedFor) || real(p.preparedFor) || real(job && job.customer);
   if(!name){ toast("Add who the quote is prepared for, or link it to a job, first."); return; }
   const address = real(sitesOf(c)[0]) || real(job && job.address) || real(p.site);
+  const tot = Math.round(ls.reduce((a,l)=>a + num(l.qty) * num(l.unit), 0) * 100) / 100;
+  const dup = (p.depLog || []).find(d=>Math.abs(num(d.total) - tot) < 0.01 && (!d.invId || invList.some(x=>x.id === d.invId && x.status !== "void")));
+  if(dup && !confirm(`${dup.inv} was already created for ${money(tot, { showPence: true })} on ${jbNice(dup.at)}. Create another invoice anyway?`)) return;
   depBusy = true; if(btn){ btn.disabled = true; btn.textContent = "Creating…"; }
   try{
     const inv = await invCreate({ client: { name, email: (c && c.email) || (job && job.email) || "", address }, lines: ls, ref: invRef(p), proposalId: p.id, jobId: job ? job.id : "", due: p.depDue || "" });
@@ -4405,8 +4408,10 @@ async function invEmail(inv, sendNow){
   const to = String(inv.client.email || "").trim(); if(!to){ toast("Add the client's email address first."); return false; }
   if(!window.studioConnections){ toast("Emailing invoices needs the Studio app with Microsoft 365 connected. Download the PDF instead."); return false; }
   const s = await invCfg(), pdf = await invPdf(inv), b64 = pdf.output("datauristring").split(",")[1];
-  const first = String(inv.client.name || "").split(/\s|&/)[0] || "there";
-  const body = `<p>Hi ${esc(first)},</p><p>Please find attached invoice ${esc(inv.number)}${inv.ref ? ` (${esc(inv.ref)})` : ""} for ${esc(money(invOwed(inv) || inv.total, { showPence: true }))}, due by ${esc(jbNice(inv.due))}.</p><p>Payment by bank transfer to ${esc(s.payee)}, sort code ${esc(s.sort)}, account number ${esc(s.acct)}, using ${esc(inv.number)} as the reference.</p><p>Thank you,<br>Ian</p>`;
+  const fao = String(inv.client.address || "").match(/^\s*(?:FAO|Attn:?|Attention:?)\s+([A-Za-z'’-]+)/i);
+  const nm = String(inv.client.name || "").trim();
+  const first = fao ? fao[1] : (/^the\b|\b(ltd|limited|llp|plc|hotel|group|trust|club|nurseries|services|leisure|company|co\.?)\b|&/i.test(nm) || !nm ? "" : nm.split(/\s+/)[0]);
+  const body = `<p>${first ? `Hi ${esc(first)},` : "Hello,"}</p><p>Please find attached invoice ${esc(inv.number)}${inv.ref ? ` (${esc(inv.ref)})` : ""} for ${esc(money(invOwed(inv) || inv.total, { showPence: true }))}, due by ${esc(jbNice(inv.due))}.</p><p>Payment by bank transfer to ${esc(s.payee)}, sort code ${esc(s.sort)}, account number ${esc(s.acct)}, using ${esc(inv.number)} as the reference.</p><p>Thank you,<br>Ian</p>`;
   const msg = { to: [to], subject: `Invoice ${inv.number} from halo.je`, body, bodyType: "html", attachments: [{ name: `${inv.number}.pdf`, contentType: "application/pdf", contentBytes: b64 }] };
   try{
     const r = await studioConnections.call("ms", sendNow ? "send_mail" : "draft_mail", msg);
