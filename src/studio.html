@@ -1423,11 +1423,15 @@ function xeErrText(e){
 async function depInvoice(btn){
   if(depBusy) return; const p = current, ls = depLines(p);
   if(!ls.length){ toast((p.invMode||"hardware") === "hardware" ? "Tick at least one line of hardware." : "Nothing to invoice."); return; }
-  const c = p.clientId && clientById(p.clientId), name = (c && c.name) || p.signedFor || p.preparedFor || "";
-  if(!name){ toast("Add who the quote is prepared for first."); return; }
+  const real = v => { const t = String(v || "").trim(); return /^(client( or contractor)?|address, jersey|project name)$/i.test(t) ? "" : t; };
+  const job = jbList.find(j=>j.proposalId === p.id) || null;
+  const c = (p.clientId && clientById(p.clientId)) || (job && job.clientId && clientById(job.clientId)) || null;
+  const name = real(c && c.name) || real(p.signedFor) || real(p.preparedFor) || real(job && job.customer);
+  if(!name){ toast("Add who the quote is prepared for, or link it to a job, first."); return; }
+  const address = real(sitesOf(c)[0]) || real(job && job.address) || real(p.site);
   depBusy = true; if(btn){ btn.disabled = true; btn.textContent = "Creating…"; }
   try{
-    const inv = await invCreate({ client: { name, email: (c && c.email) || "", address: sitesOf(c)[0] || p.site || "" }, lines: ls, ref: invRef(p), proposalId: p.id, jobId: (jbList.find(j=>j.proposalId === p.id) || {}).id || "", due: p.depDue || "" });
+    const inv = await invCreate({ client: { name, email: (c && c.email) || (job && job.email) || "", address }, lines: ls, ref: invRef(p), proposalId: p.id, jobId: job ? job.id : "", due: p.depDue || "" });
     if(!inv) throw 0;
     current.depLog = (current.depLog || []).concat([{ at: jbToday(), inv: inv.number, total: inv.total, invId: inv.id }]).slice(-20);
     scheduleSave(); buildEditor(); toast(`${inv.number} created for ${money(inv.total, {showPence:true})}.`); invOpen(inv.id);
@@ -4417,6 +4421,8 @@ function invOpen(id){
   const st = invState(inv);
   sheetOpen(`<h3>${esc(inv.number)} <small style="color:var(--muted);font-size:13px;margin-left:6px">${esc(st)}</small></h3><p class="sub">${esc(inv.client.name || "")} · ${money(inv.total, { showPence: true })} · due ${esc(jbNice(inv.due))}${inv.ref ? " · " + esc(inv.ref) : ""}</p>
     ${num(inv.paid) > 0 && inv.status !== "paid" ? `<p class="note">Paid so far ${money(inv.paid, { showPence: true })}, balance ${money(invOwed(inv), { showPence: true })}.</p>` : ""}
+    <label class="f"><span>Bill to</span><input type="text" id="invName" value="${esc(inv.client.name || "")}" placeholder="Client or company name"></label>
+    <label class="f"><span>Address</span><textarea id="invAddr" rows="3" placeholder="Billing address">${esc(inv.client.address || "")}</textarea></label>
     <label class="f"><span>Client email</span><input type="email" id="invTo" value="${esc(inv.client.email || "")}" placeholder="name@example.com"></label>
     <div class="menu">
       <button data-iv="pdf">${IC2.doc}View or download PDF</button>
@@ -4425,7 +4431,8 @@ function invOpen(id){
       ${inv.status !== "void" && inv.status !== "paid" ? `<button data-iv="void">${IC2.open}Void this invoice</button>` : ""}
     </div>`,
     p=>p.querySelector(".menu").addEventListener("click", async e=>{ const b = e.target.closest("[data-iv]"); if(!b) return; const a = b.dataset.iv;
-      const em = (p.querySelector("#invTo") || {}).value; if(em != null && em.trim() !== (inv.client.email || "")){ inv.client.email = em.trim(); await invSave(inv); }
+      { let ch = false; const set = (sel, k)=>{ const v = (p.querySelector(sel) || {}).value; if(v != null && v.trim() !== (inv.client[k] || "")){ inv.client[k] = v.trim(); ch = true; } };
+        set("#invTo", "email"); set("#invName", "name"); set("#invAddr", "address"); if(ch) await invSave(inv); }
       if(a === "pdf"){ invPdfView(inv); return; }
       if(a === "draft" || a === "send"){ if(a === "send" && !confirm(`Email ${inv.number} to ${inv.client.email || "the client"} now?`)) return; b.disabled = true; const ok = await invEmail(inv, a === "send"); b.disabled = false; if(ok) sheetClose(); invRefresh(); return; }
       if(a === "paid"){ inv.status = "paid"; inv.paid = inv.total; inv.paidAt = jbToday(); await invSave(inv); invJobPaid(inv); toast(`${inv.number} marked as paid.`); sheetClose(); invRefresh(); return; }
