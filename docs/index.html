@@ -504,6 +504,7 @@ body.pdfvon .tabbar{display:none}
 .trow .hrs{font-variant-numeric:tabular-nums;font-size:13px;padding-bottom:9px;text-align:right}
 .note-log{display:grid;gap:10px}
 .note-log .ni{border-left:2px solid var(--gold);padding:2px 0 2px 12px}
+.note-log .nact{float:right;display:inline-flex;gap:6px}.note-log .nact button{border:1px solid var(--line);background:none;color:var(--muted);font:inherit;font-size:10px;letter-spacing:.06em;padding:2px 8px;border-radius:6px;cursor:pointer}.note-log .nact button:hover{color:var(--ink);border-color:var(--ink)}
 .note-log .ni small{display:block;font-family:var(--f-mono);font-size:10px;letter-spacing:.08em;color:var(--muted);margin-bottom:3px}
 .note-log .ni div{white-space:pre-wrap;font-size:13.5px;line-height:1.5}
 .clock{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -3901,7 +3902,7 @@ function jbDetailHtml(j){
     <div class="jcard"><h3>Notes <small>${j.notes.length}</small></h3>
       <textarea id="jbNote" rows="2" placeholder="Add a note, e.g. stock arrived, client asked for…"></textarea>
       <div class="adds"><button class="btn small" data-ja="addNote">Add note</button></div>
-      <div class="note-log">${j.notes.slice().sort((a,b)=>String(b.at).localeCompare(String(a.at))).map((n,k)=>`<div class="ni"><small>${esc(n.at)} · ${esc(n.by)}</small><div>${esc(n.text)}</div></div>`).join("")}</div>
+      <div class="note-log">${j.notes.map((n,i)=>[n,i]).sort((a,b)=>String(b[0].at).localeCompare(String(a[0].at))).map(([n,i])=>`<div class="ni"><small>${esc(n.at)} · ${esc(n.by)}${n.edited ? ` · edited ${esc(n.edited)}` : ""}<span class="nact"><button type="button" data-ja="editNote" data-id="${i}">Edit</button><button type="button" data-ja="rmNote" data-id="${i}">Delete</button></span></small><div>${esc(n.text)}</div></div>`).join("")}</div>
     </div>
     <div class="adds"><button class="btn small ghost danger" data-ja="delJob">Delete job</button></div>
   </div>`;
@@ -3941,6 +3942,16 @@ $("#jbScroll").addEventListener("click", async e=>{
   else if(act === "clockOn"){ jbCur.clock = nowIso; if(jbCur.status === "Scheduled") jbCur.status = "In Progress"; }
   else if(act === "clockOff"){ const s = jbCur.clock, sm = jbMins(s.slice(11)), em = now.getHours()*60 + now.getMinutes(), sameDay = s.slice(0,10) === jbIso(now); const mins = sameDay ? Math.max(0, em - sm) : 0; jbCur.time.push({ id: uid(), date: s.slice(0,10), start: s.slice(11,16), end: sameDay ? jbHM(em) : "", hours: Math.round(mins/60*100)/100, staff: jbCur.staff, note: (jbCur.clockNote || "").trim() }); jbCur.clock = null; jbCur.clockNote = ""; toast(sameDay ? `Logged ${(mins/60).toFixed(2)} hours.` : "Clocked off. Check the end time, the clock ran past midnight."); }
   else if(act === "addNote"){ const t = ($("#jbNote")||{}).value || ""; if(!t.trim()) return; jbCur.notes.push({ at: nowIso, by: jbCur.staff || "Ian Lamont", text: t.trim() }); }
+  else if(act === "editNote"){ const i = +id, n = jbCur.notes[i]; if(!n) return; const jid = jbCur.id;
+    sheetOpen(`<h3>Edit note</h3><p class="sub">${esc(n.at)} · ${esc(n.by)}</p><label>Note<textarea id="jbNoteEd" rows="8">${esc(n.text)}</textarea></label><div class="acts"><button type="button" data-ne="cancel">Cancel</button><button type="button" class="go" data-ne="save">Save</button></div>`,
+      p=>{ const ta = p.querySelector("#jbNoteEd"); setTimeout(()=>ta.focus(), 50);
+        p.querySelector(".acts").addEventListener("click", e=>{ const b = e.target.closest("[data-ne]"); if(!b) return;
+          if(b.dataset.ne === "save"){ const t = ta.value.trim(); if(!t){ toast("A note can't be empty. Use Delete instead."); return; }
+            if(jbCur && jbCur.id === jid && jbCur.notes[i]){ const d = new Date(); jbCur.notes[i].text = t; jbCur.notes[i].edited = `${jbIso(d)} ${dwPad(d.getHours())}:${dwPad(d.getMinutes())}`; jbSchedule(); jbRender(); toast("Note updated."); } }
+          sheetClose(); }); });
+    return; }
+  else if(act === "rmNote"){ const i = +id, n = jbCur.notes[i]; if(!n) return; const jid = jbCur.id; jbCur.notes.splice(i, 1); jbSchedule(); jbRender();
+    undoToast("Note deleted.", ()=>{ const j = olFind(jid); if(!j) return; j.notes.splice(Math.min(i, j.notes.length), 0, n); if(jbCur && jbCur.id === jid){ jbSchedule(); jbRender(); } }); return; }
   else if(act === "complete"){ jbCur.status = "Completed"; jxMaybeRecur(jbCur); }
   else if(act === "openCust"){ if(jbDirty) await jbSave(); cuFromJob(jbCur); return; }
   else if(act === "openProp"){ if(jbDirty) await jbSave(); setTab("proposals"); open(jbCur.proposalId); return; }
