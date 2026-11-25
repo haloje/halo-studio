@@ -702,6 +702,11 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .app[data-tab=invoices] .pmode{display:none!important}
 .app:not([data-tab=invoices]) .imode{display:none!important}
 .invpage{max-width:980px;margin:0 auto;padding:18px 16px 110px;display:grid;gap:16px}
+.cplist{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin:8px 0}
+.cprow{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px}
+.cprow:last-child{border-bottom:0}
+.cprow input{margin-top:3px}
+.cprow small{display:block;color:var(--muted);font-size:12px}
 .invpage>h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:26px}
 .calwork{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--bg)}
 .calscroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
@@ -4411,9 +4416,9 @@ async function invCfg(force){ if(invSet && !force) return invSet; let s = {}; tr
 async function invCfgSave(patch){ const s = Object.assign({}, await invCfg(), patch); invSet = s; if(mode === "db") await db.collection("settings").doc("invoicing").set(s); return s; }
 function invStart(){ if(invStarted || mode !== "db") return; invStarted = true; invCfg();
   db.collection("invoices").onSnapshot(sn=>{ invList = sn.docs.map(d=>Object.assign({ id: d.id }, d.data())).sort((a,b)=>String(b.number).localeCompare(String(a.number), undefined, { numeric: true }));
-    const el = $("#invCard"); if(el) el.outerHTML = invCardHtml(); }); }
+    const el = $("#invCard"); if(el) el.outerHTML = invCardHtml(); if(typeof cpRefresh === "function") cpRefresh(); }); }
 function invPage(){ const sc = $("#invScroll"); if(!sc) return; if(mode !== "db"){ sc.innerHTML = `<div class="invpage"><h2>Invoices</h2><p class="note">Sign in to Studio to see invoices.</p></div>`; return; }
-  sc.innerHTML = `<div class="invpage">${invCardHtml()}${purCardHtml()}</div>`; }
+  sc.innerHTML = `<div class="invpage">${cpCardHtml()}${invCardHtml()}${purCardHtml()}</div>`; cpCfg().then(cpRefresh); }
 const invNo = n => "INV-" + String(n).padStart(4, "0");
 const invState = x => x.status === "void" ? "Void" : x.status === "paid" ? "Paid" : x.status === "draft" ? "Not sent" : (x.due && x.due < jbToday() ? "Overdue" : "Sent");
 const invOwed = x => x.status === "paid" || x.status === "void" ? 0 : Math.max(0, num(x.total) - num(x.paid));
@@ -4651,6 +4656,237 @@ document.addEventListener("click", async e=>{
 });
 document.addEventListener("click", e=>{ if(e.target.closest("[data-goinv]")) setTab("invoices"); });
 document.addEventListener("change", e=>{ if(e.target.id === "purMonth"){ purMonth = e.target.value; const el = $("#purCard"); if(el) el.outerHTML = purCardHtml(); } });
+
+/* ---------- Care plans: the plans, who is on one, offer emails and the monthly plan invoices ---------- */
+const CP_DEF = {
+  annualDisc: 10,
+  plans: [
+    { id: "connect", name: "Connect", tag: "UniFi networks", price: 19.99, blurb: "For your Ubiquiti Wi-Fi and network, kept healthy in the background.",
+      points: ["Network monitoring and alerts", "Firmware and security updates", "Configuration backups", "Remote help weekdays, 9am to 5pm", "Reply by the next working day"] },
+    { id: "essential", name: "Essential", tag: "Smaller systems", price: 49, blurb: "For apartments and smaller systems that mostly look after themselves.",
+      points: ["Same day remote help, weekdays 9am to 5pm", "Engineer visit within 3 working days", "One health visit a year", "Monitoring, backups and updates", "10% off any extra work"] },
+    { id: "care", name: "Care", tag: "Family homes", price: 99, blurb: "For family homes that rely on their system every day.",
+      points: ["Remote help weekdays 8am to 6pm, within 4 hours", "Engineer on site the next working day", "Two health visits and 2 hours on site a year", "Warranty handling and loan equipment", "10% off any extra work"] },
+    { id: "priority", name: "Priority", tag: "Larger homes", price: 149, blurb: "For larger homes where downtime simply is not an option.", best: true,
+      points: ["Remote help 7 days 8am to 8pm, within 2 hours", "Next working day on site, same day if urgent", "Three health visits and 4 hours on site a year", "Warranty handling and loan equipment", "15% off any extra work"] },
+    { id: "concierge", name: "Concierge", tag: "Estates", price: 199, blurb: "For estates and homes that need someone on call around the clock.",
+      points: ["24/7 emergency line, 1 hour response", "Same day on site, 4 hours for emergencies", "Four health visits and 8 hours on site a year", "Warranty handling and loan equipment", "20% off any extra work"] }
+  ],
+  offer: { plan: "connect", price: 15.99, until: "2027-01-31",
+    subject: "Keeping your Wi-Fi at its best",
+    message: "Hi {first},\n\nI hope the Wi-Fi has been treating you well since I installed your Ubiquiti system.\n\nI have just launched Connect, a simple care plan that keeps your network healthy in the background. I monitor it remotely and get an alert if anything drops, keep the firmware and security updates current, back up your settings and help remotely on weekdays if you have a question or a problem.\n\nConnect is normally £19.99 a month. As an existing client you can join for £15.99 a month, locked for 12 months, if you sign up by {until}.\n\nThere is a short guide attached. If you would like to join, just reply to this email and I will set it up.\n\nThank you,\nIan" },
+  all: { subject: "Care plans for your smart home",
+    message: "Hi {first},\n\nI have put together a set of care plans so your system keeps working the way it should, with monitoring in the background, help whenever you need it and a familiar face at your door when something needs fixing.\n\nThe plans start from £19.99 a month and the guide attached explains what each one includes.\n\nIf you would like to join, or you are not sure which plan suits your home, just reply to this email and I will talk you through it.\n\nThank you,\nIan" }
+};
+let cpSet = null;
+async function cpCfg(force){ if(cpSet && !force) return cpSet; let s = {}; try{ if(mode === "db"){ const d = await db.doc("settings/careplans").get(); if(d.exists) s = d.data() || {}; } }catch(_){}
+  cpSet = Object.assign(clone(CP_DEF), s); cpSet.offer = Object.assign(clone(CP_DEF.offer), s.offer || {}); cpSet.all = Object.assign(clone(CP_DEF.all), s.all || {}); return cpSet; }
+async function cpCfgSave(){ if(mode === "db") await db.collection("settings").doc("careplans").set(cpSet); }
+const cpS = () => cpSet || CP_DEF;
+const cpPlan = id => cpS().plans.find(p=>p.id === id) || null;
+const cpLong = d => d ? new Date(d + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "";
+const cpMon = m => new Date(m + "-01T12:00:00").toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+const cpOfferLive = () => { const o = cpS().offer; return !!(o && o.price && (!o.until || jbToday() <= o.until)); };
+const cpMembers = () => clients.filter(c=>c.planId && cpPlan(c.planId));
+const cpMonthly = c => { const p = cpPlan(c.planId); return num(c.planPrice) || (p ? num(p.price) : 0); };
+function cpFirst(c){ const t = String(c.contact || "").trim() || String(c.name || "").trim(); if(!t || /^the\b|\b(ltd|limited|llp|plc|hotel|group|trust|club|nurseries|services|catering|company|co\.?)\b/i.test(t)) return ""; return t.split(/\s+/)[0].replace(/[^A-Za-z'’-]/g, ""); }
+function cpFill(text, c){ const f = cpFirst(c); let t = String(text || "").replace(/\{until\}/g, cpLong(cpS().offer.until));
+  t = f ? t.replace(/\{first\}/g, f) : t.replace(/Hi \{first\},/g, "Hello,").replace(/\{first\}/g, ""); return t; }
+/* the month's plan invoice for one client, or null when nothing is due */
+function cpDue(c, m){
+  const p = cpPlan(c.planId); if(!p || !c.planStart || c.planStart.slice(0, 7) > m || (c.planEnd && c.planEnd.slice(0, 7) < m)) return null;
+  const last = c.planLast || "";
+  if((c.planBilling || "monthly") === "annual"){
+    if(last){ const [y, mo] = last.split("-").map(Number), [y2, mo2] = m.split("-").map(Number); if((y2 - y) * 12 + (mo2 - mo) < 12) return null; }
+    const amt = Math.round(cpMonthly(c) * 12 * (1 - num(cpS().annualDisc) / 100) * 100) / 100;
+    return { desc: `Care plan: ${p.name}, 12 months from ${cpMon(m)} (${num(cpS().annualDisc)}% annual discount)`, amount: amt };
+  }
+  if(last >= m) return null;
+  return { desc: `Care plan: ${p.name}, ${cpMon(m)}`, amount: cpMonthly(c) };
+}
+function cpCardHtml(){
+  const ms = cpMembers(), m = jbToday().slice(0, 7), due = ms.filter(c=>cpDue(c, m)), mrr = ms.reduce((a,c)=>a + ((c.planBilling === "annual") ? cpMonthly(c) * (1 - num(cpS().annualDisc)/100) : cpMonthly(c)), 0);
+  const unsent = invList.filter(x=>x.ref === "Care plan" && (x.status === "draft"));
+  const uni = clients.filter(c=>c.unifi), sent = uni.filter(c=>c.offerSent);
+  const s = cpS();
+  return `<div class="jcard" id="cpCard"><h3>Care plans <small>${ms.length} ON A PLAN · ${money(mrr, { showPence: true })} A MONTH</small></h3>
+    ${ms.length ? `<table><tr><th>Client</th><th>Plan</th><th>Billing</th><th>Since</th><th>Last invoiced</th><th class="r">A month</th></tr>${ms.map(c=>`<tr class="click" style="cursor:pointer" data-cpopen="${esc(c.id)}" title="Open the customer"><td>${esc(c.name)}</td><td>${esc(cpPlan(c.planId).name)}</td><td>${c.planBilling === "annual" ? "Annually" : "Monthly"}</td><td>${esc(c.planStart ? jbNice(c.planStart) : "")}</td><td>${esc(c.planLast ? cpMon(c.planLast) : "Not yet")}</td><td class="r">${money(cpMonthly(c), { showPence: true })}</td></tr>`).join("")}</table>`
+      : `<p class="note">No one is on a plan yet. When a client says yes, open them in Customers and choose their plan. Their invoices are then raised here each month.</p>`}
+    <div class="adds">
+      <button class="btn small" data-cpa="offer">Send a plan offer</button>
+      <button class="btn small" data-cpa="raise" ${due.length ? "" : "disabled"}>${due.length ? `Raise ${due.length} plan invoice${due.length > 1 ? "s" : ""} for ${esc(cpMon(m))}` : `Plan invoices for ${esc(cpMon(m))} are done`}</button>
+      <button class="btn small ghost" data-cpa="pdf">Plan guide PDF</button><button class="btn small ghost" data-cpa="pdfc">Connect PDF</button></div>
+    ${unsent.length ? `<div class="adds"><span class="note">${unsent.length} plan invoice${unsent.length > 1 ? "s" : ""} not sent yet.</span><button class="btn small" data-cpa="invdraft">Save them as Outlook drafts</button><button class="btn small ghost" data-cpa="invsend">Email them now</button></div>` : ""}
+    <p class="note">${uni.length} customers marked as having UniFi${sent.length ? `, ${sent.length} sent an offer` : ""}. Tick "Has a UniFi network" on a customer to add them.</p>
+    <details class="plsub" style="margin-top:6px"><summary>Plans and prices</summary>
+      <div class="row">${s.plans.map(p=>`<label class="f"><span>${esc(p.name)}, £ a month</span><input type="number" step="0.01" data-cpp="${esc(p.id)}" value="${esc(String(p.price))}"></label>`).join("")}</div>
+      <div class="row"><label class="f"><span>Existing client Connect price, £</span><input type="number" step="0.01" data-cpo="price" value="${esc(String(s.offer.price || ""))}"></label><label class="f"><span>Offer ends</span><input type="date" data-cpo="until" value="${esc(s.offer.until || "")}"></label><label class="f"><span>Annual discount, %</span><input type="number" data-cpo="annualDisc" value="${esc(String(s.annualDisc))}"></label></div>
+      <p class="note">What each plan includes is in the plan guide PDF. Changing a price here changes the PDF and new plans, not clients already on a plan.</p>
+    </details>
+  </div>`;
+}
+function cpRefresh(){ const el = $("#cpCard"); if(el) el.outerHTML = cpCardHtml(); }
+
+/* the plan guide PDF: every plan, or Connect on its own with the existing client offer */
+async function cpPdf(only){
+  await cpCfg(); const s = cpS(); const { jsPDF } = window.jspdf; const pdf = new jsPDF({ unit: "mm", format: "a4" });
+  const W = 210, M = 18, R = W - M;
+  pdf.setFillColor(18, 17, 16); pdf.rect(0, 0, W, 30, "F");
+  try{ pdf.addImage(LOGO, "PNG", M, 6.5, 44, 17); }catch(_){}
+  pdf.setTextColor(232, 184, 120); pdf.setFontSize(9); pdf.text(only ? "CONNECT CARE PLAN" : "CARE PLANS", R, 14, { align: "right" });
+  pdf.setTextColor(181, 174, 165); pdf.setFontSize(9); pdf.text("Smart homes, beautifully simple.", R, 21, { align: "right" });
+  let y = 44; pdf.setTextColor(20, 18, 16); pdf.setFontSize(20);
+  pdf.text(only ? "Connect, for your UniFi network" : "Care plans for your smart home", M, y); y += 7;
+  pdf.setFontSize(10); pdf.setTextColor(60, 56, 52);
+  const intro = only ? "Your Ubiquiti network is the backbone of your home. Connect keeps it healthy in the background, so problems are spotted and fixed before you notice them."
+    : "Every plan includes remote monitoring, backups of your settings and regular firmware and security updates. The difference between plans is how quickly I respond, how often I visit and how much hands on time is included.";
+  const il = pdf.splitTextToSize(intro, R - M); pdf.text(il, M, y); y += il.length * 4.8 + 4;
+  const card = (p, x, cy, w, h, dark, cols) => {
+    if(dark){ pdf.setFillColor(18, 17, 16); pdf.roundedRect(x, cy, w, h, 3, 3, "F"); }
+    else { pdf.setFillColor(p.best ? 251 : 255, p.best ? 248 : 255, p.best ? 243 : 255); pdf.setDrawColor(p.best ? 232 : 230, p.best ? 184 : 224, p.best ? 120 : 214); pdf.roundedRect(x, cy, w, h, 3, 3, "FD"); }
+    let iy = cy + 8; pdf.setFontSize(7.5); pdf.setTextColor(dark ? 232 : 154, dark ? 184 : 95, dark ? 120 : 31);
+    pdf.text(`${p.name.toUpperCase()}  ·  ${String(p.tag || "").toUpperCase()}`, x + 6, iy);
+    if(p.best){ pdf.text("RECOMMENDED", x + w - 6, iy, { align: "right" }); }
+    iy += 9; pdf.setFontSize(20); pdf.setTextColor(dark ? 243 : 20, dark ? 239 : 18, dark ? 233 : 16);
+    const pr = money(p.price, { showPence: num(p.price) % 1 !== 0 }); pdf.text(pr, x + 6, iy);
+    pdf.setFontSize(9); pdf.setTextColor(dark ? 181 : 120, dark ? 174 : 113, dark ? 165 : 106); pdf.text("per month", x + 8 + pdf.getStringUnitWidth(pr) * 20 / pdf.internal.scaleFactor, iy);
+    iy += 6; pdf.setFontSize(9); const bl = pdf.splitTextToSize(p.blurb || "", w - 12); pdf.text(bl, x + 6, iy); iy += bl.length * 4.2 + 2;
+    pdf.setDrawColor(dark ? 54 : 239, dark ? 51 : 233, dark ? 47 : 223); pdf.line(x + 6, iy, x + w - 6, iy); iy += 5;
+    pdf.setFontSize(8.5); pdf.setTextColor(dark ? 236 : 44, dark ? 231 : 41, dark ? 223 : 38);
+    const n = cols || 1, cw = (w - 12) / n, per = Math.ceil(p.points.length / n);
+    for(let k = 0; k < n; k++){ let py = iy; p.points.slice(k * per, (k + 1) * per).forEach(t=>{ const tl = pdf.splitTextToSize(t, cw - 6); pdf.setFillColor(dark ? 232 : 20, dark ? 184 : 18, dark ? 120 : 16); pdf.circle(x + 7.2 + k * cw, py - 1.1, 0.55, "F"); pdf.text(tl, x + 10 + k * cw, py); py += tl.length * 3.9 + 0.8; }); }
+  };
+  if(only){
+    const p = cpPlan("connect"); card(p, M, y, R - M, 58, false, 1); y += 64;
+    if(cpOfferLive()){ pdf.setFillColor(244, 239, 230); pdf.roundedRect(M, y, R - M, 30, 3, 3, "F");
+      pdf.setFontSize(7.5); pdf.setTextColor(111, 106, 99); pdf.text("EXISTING CLIENT OFFER", M + 8, y + 9);
+      pdf.setFontSize(20); pdf.setTextColor(154, 95, 31); pdf.text(`${money(s.offer.price, { showPence: true })} a month`, M + 8, y + 20);
+      pdf.setFontSize(9.5); pdf.setTextColor(60, 56, 52); pdf.text(pdf.splitTextToSize(`Locked for 12 months when you join by ${cpLong(s.offer.until)}.`, 80), R - 8, y + 14, { align: "right" }); y += 38; }
+    pdf.setFontSize(13); pdf.setTextColor(20, 18, 16); pdf.text("How it works", M, y); y += 6; pdf.setFontSize(10); pdf.setTextColor(60, 56, 52);
+    ["I connect your network to my monitoring so I get an alert if anything goes offline.", "Updates are tested before they reach your home and installed at a quiet time.", "If something needs a visit, I book it in at my standard rate.", `Plans run for 12 months. Pay annually and save ${num(s.annualDisc)}%.`, "To join, just reply to my email or call me on 07797 789894."].forEach(t=>{ const tl = pdf.splitTextToSize(t, R - M - 6); pdf.setFillColor(20, 18, 16); pdf.circle(M + 1.2, y - 1.1, 0.55, "F"); pdf.text(tl, M + 5, y); y += tl.length * 4.8 + 1.2; });
+  } else {
+    const cn = cpPlan("connect"), rest = s.plans.filter(p=>p.id !== "connect"), gw = (R - M - 6) / 2;
+    if(cn){ card(cn, M, y, R - M, 48, false, 2); y += 52; }
+    rest.forEach((p, i)=>{ const x = M + (i % 2) * (gw + 6); card(p, x, y, gw, 72, p.id === "concierge", 1); if(i % 2 === 1) y += 76; });
+    if(rest.length % 2) y += 76;
+    pdf.setFontSize(8.5); pdf.setTextColor(90, 84, 76);
+    const tl = pdf.splitTextToSize(`Plans run for 12 months with the price locked. Pay annually and save ${num(s.annualDisc)}%. Extra work is charged at my standard rates, less your plan discount. To join, reply to my email or call 07797 789894.`, R - M);
+    pdf.text(tl, M, Math.min(y + 1, 280));
+  }
+  pdf.setFontSize(7.5); pdf.setTextColor(122, 116, 108); pdf.text("halo.je Limited · St Saviour, Jersey · info@halo.je · 07797 789894 · halo.je", W/2, 290, { align: "center" });
+  return pdf;
+}
+async function cpPdfView(only){ if(!window.jspdf){ toast("The PDF maker didn't load. Reload and try again."); return; } const pdf = await cpPdf(only); offer(only ? "halo.je Connect care plan.pdf" : "halo.je care plans.pdf", pdf.output("blob")); }
+
+/* one personal email per client, with the guide attached */
+let cpWho = "unifi", cpWhat = "connect", cpPicked = new Set();
+function cpPool(){ return clients.filter(c=>String(c.email || "").includes("@") && (cpWho === "all" || c.unifi)); }
+function cpListHtml(){ const pool = cpPool();
+  return pool.length ? pool.map(c=>`<label class="cprow"><input type="checkbox" data-cppick="${esc(c.id)}" ${cpPicked.has(c.id) ? "checked" : ""}><span>${esc(c.name)}<small>${esc(c.email)}${c.offerSent ? ` · offer sent ${esc(jbNice(c.offerSent))}` : ""}${c.planId ? ` · on ${esc((cpPlan(c.planId) || {}).name || "a plan")}` : ""}</small></span></label>`).join("")
+    : `<p class="note">No customers with an email here yet.</p>`; }
+async function cpOffer(){
+  if(!window.studioConnections){ toast("Sending offers needs the Studio app with Microsoft 365 connected."); return; }
+  await cpCfg(); const s = cpS(); const t = () => cpWhat === "connect" ? s.offer : s.all;
+  const reset = () => { cpPicked = new Set(cpPool().filter(c=>!c.planId && !c.offerSent).map(c=>c.id)); };
+  reset();
+  sheetOpen(`<h3>Send a plan offer</h3><p class="sub">One personal email to each client from your Outlook, with your signature and the plan guide attached.</p>
+    <label class="f"><span>What to send</span><select class="in" id="cpWhat"><option value="connect" ${cpWhat === "connect" ? "selected" : ""}>Connect for UniFi networks, with the existing client price</option><option value="all" ${cpWhat === "all" ? "selected" : ""}>All care plans</option></select></label>
+    <div class="adds"><div class="pal"><button class="sel" data-cpw="unifi" aria-pressed="${cpWho === "unifi"}">UniFi customers</button><button class="sel" data-cpw="all" aria-pressed="${cpWho === "all"}">Everyone with an email</button></div>
+      <button class="more" style="grid-column:auto" data-cpx="allon">Tick all</button><button class="more" style="grid-column:auto" data-cpx="alloff">Untick all</button></div>
+    <div class="cplist" id="cpList">${cpListHtml()}</div>
+    <p class="note" id="cpCount"></p>
+    <label class="f"><span>Subject</span><input type="text" id="cpSubj" value="${esc(t().subject)}"></label>
+    <label class="f"><span>Message</span><textarea id="cpMsg" rows="13">${esc(t().message)}</textarea><small class="note">{first} becomes each client's first name and {until} the offer end date. Clients already on a plan or already sent an offer start unticked.</small></label>
+    <div class="adds"><button class="btn small ghost" data-cpx="pdf">Preview the PDF</button></div>
+    <div class="menu"><button data-cpx="draft">${IC2.open}Save as Outlook drafts to check and send</button><button data-cpx="send">${IC2.open}Send them all now</button></div>
+    <p class="note" id="cpProg"></p>`,
+  p=>{
+    const count = () => { const n = cpPool().filter(c=>cpPicked.has(c.id)).length; p.querySelector("#cpCount").textContent = `${n} selected.`; };
+    const relist = () => { p.querySelector("#cpList").innerHTML = cpListHtml(); count(); };
+    const keep = () => { const o = t(); o.subject = p.querySelector("#cpSubj").value; o.message = p.querySelector("#cpMsg").value; };
+    count();
+    p.querySelector("#cpWhat").addEventListener("change", e=>{ keep(); cpWhat = e.target.value; if(cpWhat === "connect") cpWho = "unifi"; p.querySelectorAll("[data-cpw]").forEach(b=>b.setAttribute("aria-pressed", b.dataset.cpw === cpWho)); p.querySelector("#cpSubj").value = t().subject; p.querySelector("#cpMsg").value = t().message; reset(); relist(); });
+    p.addEventListener("change", e=>{ const k = e.target.dataset.cppick; if(!k) return; if(e.target.checked) cpPicked.add(k); else cpPicked.delete(k); count(); });
+    p.addEventListener("click", async e=>{
+      const w = e.target.closest("[data-cpw]"); if(w){ cpWho = w.dataset.cpw; p.querySelectorAll("[data-cpw]").forEach(b=>b.setAttribute("aria-pressed", b === w)); reset(); relist(); return; }
+      const b = e.target.closest("[data-cpx]"); if(!b) return; const a = b.dataset.cpx;
+      if(a === "allon"){ cpPool().forEach(c=>cpPicked.add(c.id)); relist(); return; }
+      if(a === "alloff"){ cpPicked.clear(); relist(); return; }
+      if(a === "pdf"){ cpPdfView(cpWhat === "connect"); return; }
+      const to = cpPool().filter(c=>cpPicked.has(c.id)); if(!to.length){ toast("Tick at least one client."); return; }
+      if(a === "send" && b.dataset.sure !== "1"){ b.dataset.sure = "1"; b.lastChild.textContent = `Press again to email ${to.length} client${to.length > 1 ? "s" : ""} now`; return; }
+      keep(); await cpCfgSave();
+      if(!window.jspdf){ toast("The PDF maker didn't load."); return; }
+      p.querySelectorAll(".menu button").forEach(x=>x.disabled = true);
+      const pdf = await cpPdf(cpWhat === "connect"), b64 = pdf.output("datauristring").split(",")[1], fname = cpWhat === "connect" ? "halo.je Connect care plan.pdf" : "halo.je care plans.pdf";
+      const prog = p.querySelector("#cpProg"); let ok = 0, bad = [];
+      for(const c of to){
+        prog.textContent = `${a === "send" ? "Sending" : "Drafting"} ${ok + bad.length + 1} of ${to.length}: ${c.name}…`;
+        const body = `<div style="font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:20px;color:#141414">${noteHtml(cpFill(t().message, c))}</div><br>${INV_SIG}`;
+        try{ await studioConnections.call("ms", a === "send" ? "send_mail" : "draft_mail", { to: [String(c.email).split(/[;,\s]+/)[0]], subject: cpFill(t().subject, c), body, bodyType: "html", attachments: [{ name: fname, contentType: "application/pdf", contentBytes: b64 }] });
+          ok++; const own = Object.assign({}, c, { offerSent: jbToday(), offerWhat: cpWhat, updated: Date.now() }); await writeClient(own);
+        }catch(err){ bad.push(c.name); }
+      }
+      prog.textContent = `${ok} ${a === "send" ? "sent" : "saved as Outlook drafts"}.${bad.length ? ` Couldn't do: ${bad.join(", ")}.` : ""}`;
+      toast(a === "send" ? `Offer emailed to ${ok} client${ok === 1 ? "" : "s"}.` : `${ok} offer${ok === 1 ? "" : "s"} saved as Outlook drafts.`);
+      p.querySelectorAll(".menu button").forEach(x=>{ x.disabled = false; delete x.dataset.sure; }); cpRefresh();
+    });
+  });
+}
+async function cpRaise(btn){
+  const m = jbToday().slice(0, 7), due = cpMembers().filter(c=>cpDue(c, m)); if(!due.length){ toast("No plan invoices due this month."); return; }
+  btn.disabled = true; let n = 0;
+  for(const c of due){ const d = cpDue(c, m);
+    const inv = await invCreate({ client: { name: c.xeroName ? String(c.xeroName).replace(/^[A-Z]{3}\d+\s*-\s*/, "") : c.name, email: c.email || "", address: sitesOf(c)[0] || "" }, lines: [{ desc: d.desc, qty: 1, unit: d.amount, kind: "plan" }], ref: "Care plan" });
+    if(inv){ n++; await writeClient(Object.assign({}, c, { planLast: m, updated: Date.now() })); } }
+  toast(`${n} plan invoice${n === 1 ? "" : "s"} raised for ${cpMon(m)}. Check them, then save as drafts or email them.`); cpRefresh();
+}
+async function cpEmailInvoices(btn, now){
+  const xs = invList.filter(x=>x.ref === "Care plan" && x.status === "draft"); if(!xs.length) return;
+  if(now && btn.dataset.sure !== "1"){ btn.dataset.sure = "1"; btn.textContent = `Press again to email ${xs.length} now`; return; }
+  btn.disabled = true; let ok = 0; for(const x of xs){ if(await invEmail(x, !!now)) ok++; }
+  toast(`${ok} plan invoice${ok === 1 ? "" : "s"} ${now ? "emailed" : "saved as Outlook drafts"}.`); cpRefresh();
+}
+document.addEventListener("click", async e=>{
+  const o = e.target.closest("[data-cpopen]"); if(o){ setTab("customers"); cuFilter = "plan"; cuOpen(o.dataset.cpopen); return; }
+  const b = e.target.closest("[data-cpa]"); if(!b) return; const a = b.dataset.cpa;
+  if(a === "offer") cpOffer();
+  else if(a === "raise") cpRaise(b);
+  else if(a === "pdf") cpPdfView(false);
+  else if(a === "pdfc") cpPdfView(true);
+  else if(a === "invdraft") cpEmailInvoices(b, false);
+  else if(a === "invsend") cpEmailInvoices(b, true);
+});
+document.addEventListener("change", async e=>{
+  const pid = e.target.dataset && e.target.dataset.cpp, ok = e.target.dataset && e.target.dataset.cpo; if(!pid && !ok) return;
+  await cpCfg();
+  if(pid){ const p = cpPlan(pid); if(p) p.price = num(e.target.value); }
+  else if(ok === "annualDisc") cpSet.annualDisc = num(e.target.value);
+  else cpSet.offer[ok] = ok === "price" ? num(e.target.value) : e.target.value;
+  await cpCfgSave(); toast("Care plan prices saved.");
+});
+
+/* the plan on a customer's record */
+function cuPlanCard(c){
+  const s = cpS(), p = cpPlan(c.planId);
+  return `<div class="jcard" id="cuPlan"><h3>Care plan <small>${p ? esc(p.name.toUpperCase()) + " · " + money(cpMonthly(c), { showPence: true }) + " A MONTH" : "NONE"}</small></h3>
+    <div class="row"><label class="f"><span>Plan</span><select class="in" data-cpk="planId"><option value="">No plan</option>${s.plans.map(x=>`<option value="${esc(x.id)}" ${c.planId === x.id ? "selected" : ""}>${esc(x.name)}, ${money(x.price, { showPence: num(x.price) % 1 !== 0 })} a month</option>`).join("")}</select></label>
+      ${p ? `<label class="f"><span>Their price a month, £</span><input type="number" step="0.01" data-cpk="planPrice" value="${esc(String(c.planPrice ?? p.price))}"></label>` : ""}</div>
+    ${p ? `<div class="row"><label class="f"><span>Billing</span><select class="in" data-cpk="planBilling"><option value="monthly" ${c.planBilling !== "annual" ? "selected" : ""}>Monthly</option><option value="annual" ${c.planBilling === "annual" ? "selected" : ""}>Annually, ${num(s.annualDisc)}% off</option></select></label><label class="f"><span>Plan started</span><input type="date" data-cpk="planStart" value="${esc(c.planStart || "")}"></label></div>
+      <p class="note">${c.planLast ? `Last plan invoice: ${esc(cpMon(c.planLast))}.` : "No plan invoice yet. Raise it from the Invoices tab."}${p.id === "connect" && cpOfferLive() && num(c.planPrice ?? p.price) !== num(s.offer.price) ? ` <a href="#" data-cpk-offer="1">Use the existing client price, ${money(s.offer.price, { showPence: true })}</a>` : ""}</p>` : ""}
+    <label style="display:flex;gap:8px;align-items:center;font-size:14px;margin-top:6px"><input type="checkbox" data-cpk="unifi" ${c.unifi ? "checked" : ""}> Has a UniFi network, so gets Connect offers</label>
+    ${c.offerSent ? `<p class="note">Plan offer sent ${esc(jbNice(c.offerSent))}.</p>` : ""}
+  </div>`;
+}
+$("#cuScroll").addEventListener("change", e=>{
+  const k = e.target.dataset && e.target.dataset.cpk; if(!k || !cuCur) return; const c = cuCur;
+  if(k === "unifi") c.unifi = e.target.checked;
+  else if(k === "planPrice") c.planPrice = num(e.target.value);
+  else if(k === "planId"){ const v = e.target.value; c.planId = v; if(v){ const p = cpPlan(v); c.planPrice = (v === "connect" && cpOfferLive() && c.offerSent) ? num(cpS().offer.price) : num(p.price); c.planBilling = c.planBilling || "monthly"; c.planStart = c.planStart || jbToday(); } else { delete c.planPrice; c.planEnd = jbToday(); } if(v) delete c.planEnd; }
+  else c[k] = e.target.value;
+  cuSchedule(); const el = $("#cuPlan"); if(el) el.outerHTML = cuPlanCard(c);
+});
+$("#cuScroll").addEventListener("click", e=>{ const a = e.target.closest("[data-cpk-offer]"); if(!a || !cuCur) return; e.preventDefault(); cuCur.planPrice = num(cpS().offer.price); cuSchedule(); const el = $("#cuPlan"); if(el) el.outerHTML = cuPlanCard(cuCur); });
 
 async function invFromJob(btn){
   if(jxBusy || !jbCur) return; const j = jbCur, ls = jxLines(j);
@@ -5167,18 +5403,19 @@ function cuStart(){ if(!cuStarted){ cuStarted = true; cuSetStatus(mode === "db" 
 function cuOnClients(){
   if(cuCur && !cuDirty){ const fresh = clientById(cuCur.id); if(fresh){ const ae = document.activeElement, inside = ae && $("#cuScroll").contains(ae) && /INPUT|TEXTAREA|SELECT/.test(ae.tagName); cuCur = clone(fresh); if(!inside && $("#app").dataset.tab === "customers") cuRender(); } }
   if($("#app").dataset.tab === "customers") cuRenderList();
+  if(typeof cpRefresh === "function") cpRefresh();
 }
 function cuHay(c){ return [c.name, c.company, c.contact, c.email, c.phone, c.xeroName, ...sitesOf(c)].join(" ").toLowerCase(); }
 function cuRenderList(){
   const box = $("#cuRows"), chips = $("#cuChips"); if(!box) return;
   const orph = cuOrphans(), withOpen = clients.filter(c=>cuOpenJobs(c).length);
-  chips.innerHTML = [["all", `All ${clients.length}`], ["open", `Open jobs ${withOpen.length}`], ["jobs", `From jobs, not saved ${orph.length}`]].map(([k,l])=>`<button data-cf="${k}" aria-pressed="${cuFilter===k}">${esc(l)}</button>`).join("");
+  chips.innerHTML = [["all", `All ${clients.length}`], ["open", `Open jobs ${withOpen.length}`], ["plan", `On a plan ${clients.filter(c=>c.planId).length}`], ["unifi", `UniFi ${clients.filter(c=>c.unifi).length}`], ["jobs", `From jobs, not saved ${orph.length}`]].map(([k,l])=>`<button data-cf="${k}" aria-pressed="${cuFilter===k}">${esc(l)}</button>`).join("");
   const toks = cuQ.toLowerCase().split(/\s+/).filter(Boolean);
   let rows;
   if(cuFilter === "jobs"){
     rows = orph.filter(j=>toks.every(t=>[j.customer, j.address, j.email, j.phone].join(" ").toLowerCase().includes(t))).map(j=>`<button class="jrow" data-cujob="${esc(j.id)}" style="--js:var(--line)"><span class="jbar"></span><span class="jm"><span class="src">FROM JOB ${esc(j.number)}</span><span class="c">${esc(j.customer)}</span><small>${esc(j.address.split(/\n|,/)[0] || j.email || "")}</small></span><span class="when">Save as<br>customer</span></button>`);
   } else {
-    let list = cuFilter === "open" ? withOpen : clients;
+    let list = cuFilter === "open" ? withOpen : cuFilter === "plan" ? clients.filter(c=>c.planId) : cuFilter === "unifi" ? clients.filter(c=>c.unifi) : clients;
     if(toks.length) list = list.filter(c=>{ const h = cuHay(c); return toks.every(t=>h.includes(t)); });
     rows = list.slice(0, 300).map(c=>{ const js = cuJobsFor(c), open = js.filter(j=>j.status !== "Completed"), props = proposalsFor(c);
       return `<button class="jrow ${cuSel===c.id?"on":""}" data-cu="${esc(c.id)}" style="--js:${open.length ? "var(--accent)" : "var(--line)"}"><span class="jbar"></span><span class="jm"><span class="c">${esc(c.name)}</span><small>${esc([c.email || c.phone, sitesOf(c)[0]].filter(Boolean).join(" · ") || "No details yet")}</small></span><span class="when">${js.length ? `${js.length} job${js.length>1?"s":""}` : ""}${open.length ? `<br><span class="spill" style="--js:var(--accent)">${open.length} open</span>` : props.length ? `<br>${props.length} proposal${props.length>1?"s":""}` : ""}</span></button>`; });
@@ -5222,6 +5459,7 @@ function cuRender(){
     <div class="jcard cukey"><h3>Key info <small>ALWAYS ON SHOW</small></h3>
       <textarea id="cf_keyInfo" data-ck="keyInfo" rows="3" placeholder="Gate code, alarm, parking, Wi-Fi name, who to call on site…">${esc(c.keyInfo||"")}</textarea>
     </div>
+    ${typeof cuPlanCard === "function" ? cuPlanCard(c) : ""}
     ${typeof tdCardHtml === "function" ? tdCardHtml({ clientId: c.id }) : ""}
     ${typeof kbClientCard === "function" ? kbClientCard(c) : ""}
     <div class="jcard"><h3>Notes <small>${notes.length}</small></h3>
