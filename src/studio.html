@@ -4695,13 +4695,13 @@ function cpCardHtml(){
     <div class="adds">
       <button class="btn small" data-cpa="offer">Send a plan offer</button>
       <button class="btn small" data-cpa="raise" ${due.length ? "" : "disabled"}>${due.length ? `Raise ${due.length} plan invoice${due.length > 1 ? "s" : ""} for ${esc(cpMon(m))}` : `Plan invoices for ${esc(cpMon(m))} are done`}</button>
-      <button class="btn small ghost" data-cpa="pdf">Plan guide PDF</button><button class="btn small ghost" data-cpa="pdfc">Connect PDF</button></div>
+      <button class="btn small ghost" data-cpa="pdf">Plan guide PDF</button><button class="btn small ghost" data-cpa="pdfc">Connect one page PDF</button></div>
     ${unsent.length ? `<div class="adds"><span class="note">${unsent.length} plan invoice${unsent.length > 1 ? "s" : ""} not sent yet.</span><button class="btn small" data-cpa="invdraft">Save them as Outlook drafts</button><button class="btn small ghost" data-cpa="invsend">Email them now</button></div>` : ""}
     <p class="note">${uni.length} customers marked as having UniFi${sent.length ? `, ${sent.length} sent an offer` : ""}. Tick "Has a UniFi network" on a customer to add them.</p>
     <details class="plsub" style="margin-top:6px"><summary>Plans and prices</summary>
       <div class="row">${s.plans.map(p=>`<label class="f"><span>${esc(p.name)}, £ a month</span><input type="number" step="0.01" data-cpp="${esc(p.id)}" value="${esc(String(p.price))}"></label>`).join("")}</div>
       <div class="row"><label class="f"><span>Existing client Connect price, £</span><input type="number" step="0.01" data-cpo="price" value="${esc(String(s.offer.price || ""))}"></label><label class="f"><span>Offer ends</span><input type="date" data-cpo="until" value="${esc(s.offer.until || "")}"></label><label class="f"><span>Annual discount, %</span><input type="number" data-cpo="annualDisc" value="${esc(String(s.annualDisc))}"></label></div>
-      <p class="note">What each plan includes is in the plan guide PDF. Changing a price here changes the PDF and new plans, not clients already on a plan.</p>
+      <p class="note">Changing a price here changes new plans and the Connect one page PDF, not clients already on a plan. The three page plan guide that goes with the emails is a fixed design, so ask Claude to update it if the prices change.</p>
     </details>
   </div>`;
 }
@@ -4756,7 +4756,10 @@ async function cpPdf(only){
   pdf.setFontSize(7.5); pdf.setTextColor(122, 116, 108); pdf.text("halo.je Limited · St Saviour, Jersey · info@halo.je · 07797 789894 · halo.je", W/2, 290, { align: "center" });
   return pdf;
 }
-async function cpPdfView(only){ if(!window.jspdf){ toast("The PDF maker didn't load. Reload and try again."); return; } const pdf = await cpPdf(only); offer(only ? "halo.je Connect care plan.pdf" : "halo.je care plans.pdf", pdf.output("blob")); }
+const CP_GUIDE = "https://haloje.github.io/halo-studio/careplans/halo.je-care-plans.pdf";
+async function cpGuide(){ const r = await fetch(CP_GUIDE + "?v=" + Date.now()); if(!r.ok) throw new Error("guide"); return await r.blob(); }
+const cpB64 = b => new Promise(ok=>{ const fr = new FileReader(); fr.onload = ()=>ok(String(fr.result).split(",")[1]); fr.readAsDataURL(b); });
+async function cpPdfView(only){ if(!only){ try{ offer("halo.je care plans.pdf", await cpGuide()); }catch(_){ toast("Couldn't load the plan guide. Check your connection."); } return; } if(!window.jspdf){ toast("The PDF maker didn't load. Reload and try again."); return; } const pdf = await cpPdf(only); offer(only ? "halo.je Connect care plan.pdf" : "halo.je care plans.pdf", pdf.output("blob")); }
 
 /* one personal email per client, with the guide attached */
 let cpWho = "unifi", cpWhat = "connect", cpPicked = new Set();
@@ -4769,7 +4772,7 @@ async function cpOffer(){
   await cpCfg(); const s = cpS(); const t = () => cpWhat === "connect" ? s.offer : s.all;
   const reset = () => { cpPicked = new Set(cpPool().filter(c=>!c.planId && !c.offerSent).map(c=>c.id)); };
   reset();
-  sheetOpen(`<h3>Send a plan offer</h3><p class="sub">One personal email to each client from your Outlook, with your signature and the plan guide attached.</p>
+  sheetOpen(`<h3>Send a plan offer</h3><p class="sub">One personal email to each client from your Outlook, with your signature and the three page plan guide attached.</p>
     <label class="f"><span>What to send</span><select class="in" id="cpWhat"><option value="connect" ${cpWhat === "connect" ? "selected" : ""}>Connect for UniFi networks, with the existing client price</option><option value="all" ${cpWhat === "all" ? "selected" : ""}>All care plans</option></select></label>
     <div class="adds"><div class="pal"><button class="sel" data-cpw="unifi" aria-pressed="${cpWho === "unifi"}">UniFi customers</button><button class="sel" data-cpw="all" aria-pressed="${cpWho === "all"}">Everyone with an email</button></div>
       <button class="more" style="grid-column:auto" data-cpx="allon">Tick all</button><button class="more" style="grid-column:auto" data-cpx="alloff">Untick all</button></div>
@@ -4792,13 +4795,13 @@ async function cpOffer(){
       const b = e.target.closest("[data-cpx]"); if(!b) return; const a = b.dataset.cpx;
       if(a === "allon"){ cpPool().forEach(c=>cpPicked.add(c.id)); relist(); return; }
       if(a === "alloff"){ cpPicked.clear(); relist(); return; }
-      if(a === "pdf"){ cpPdfView(cpWhat === "connect"); return; }
+      if(a === "pdf"){ cpPdfView(false); return; }
       const to = cpPool().filter(c=>cpPicked.has(c.id)); if(!to.length){ toast("Tick at least one client."); return; }
       if(a === "send" && b.dataset.sure !== "1"){ b.dataset.sure = "1"; b.lastChild.textContent = `Press again to email ${to.length} client${to.length > 1 ? "s" : ""} now`; return; }
       keep(); await cpCfgSave();
-      if(!window.jspdf){ toast("The PDF maker didn't load."); return; }
+      let b64; try{ b64 = await cpB64(await cpGuide()); }catch(_){ toast("Couldn't load the plan guide. Check your connection."); return; }
       p.querySelectorAll(".menu button").forEach(x=>x.disabled = true);
-      const pdf = await cpPdf(cpWhat === "connect"), b64 = pdf.output("datauristring").split(",")[1], fname = cpWhat === "connect" ? "halo.je Connect care plan.pdf" : "halo.je care plans.pdf";
+      const fname = "halo.je care plans.pdf";
       const prog = p.querySelector("#cpProg"); let ok = 0, bad = [];
       for(const c of to){
         prog.textContent = `${a === "send" ? "Sending" : "Drafting"} ${ok + bad.length + 1} of ${to.length}: ${c.name}…`;
