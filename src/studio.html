@@ -197,6 +197,7 @@ body.pdfvon .tabbar{display:none}
 .sheet .r{text-align:right}
 .sheet td.q{width:44px;color:var(--d-ink)}
 .sheet td.it{color:var(--d-ink)}
+.sheet td.it small.wh{display:block;margin-top:2px;color:var(--d-muted);font-size:10.6px;line-height:1.35}
 .sheet td.mm{color:#5f5952;font-size:11.4px;width:36%}
 .sheet td.pr{width:90px;color:var(--d-ink)}
 .sheet tr.sub td{font-weight:600;color:var(--d-ink);border-bottom:1.5px solid var(--d-ink)}
@@ -1703,7 +1704,7 @@ function renderDocFull(p){
   p.systems.forEach((s,i)=>{
     const items = s.items.filter(it => it.item || it.model || num(it.price));
     const sp = p.showParts !== false;
-    const body = items.map(it=>`<tr${it.pb?' class="pb"':''}><td class="q">${esc(it.qty)}</td><td class="it"${sp?"":' colspan="2"'}>${esc(it.item)}${it.tag?`<span class="tag">${esc(it.tag)}</span>`:""}</td>${sp?`<td class="mm">${esc(it.model)}</td>`:""}${su ? `<td class="r ue">${num(it.price) ? money(sellUnit(p, it),p) : ""}</td>` : ""}<td class="r pr">${money(num(it.qty)*sellUnit(p, it),p)}</td></tr>`).join("")
+    const body = items.map(it=>`<tr${it.pb?' class="pb"':''}><td class="q">${esc(it.qty)}</td><td class="it"${sp?"":' colspan="2"'}>${esc(it.item)}${it.tag?`<span class="tag">${esc(it.tag)}</span>`:""}${it.where?`<small class="wh">${esc(it.where)}</small>`:""}</td>${sp?`<td class="mm">${esc(it.model)}</td>`:""}${su ? `<td class="r ue">${num(it.price) ? money(sellUnit(p, it),p) : ""}</td>` : ""}<td class="r pr">${money(num(it.qty)*sellUnit(p, it),p)}</td></tr>`).join("")
       + (num(s.progHours)
         ? (num(s.hours) ? `<tr><td class="q"></td><td class="it">Installation and termination</td><td class="mm">${esc(s.hours)} hours</td>${su ? `<td class="r ue">${money(num(p.rate),p)} per hour</td>` : ""}<td class="r pr">${money(num(s.hours)*num(p.rate),p)}</td></tr>` : "")
           + `<tr><td class="q"></td><td class="it">Programming and commissioning</td><td class="mm">${esc(s.progHours)} hours</td>${su ? `<td class="r ue">${money(progRate(p),p)} per hour</td>` : ""}<td class="r pr">${money(num(s.progHours)*progRate(p),p)}</td></tr>`
@@ -2035,6 +2036,7 @@ function sysBlock(s,i){
       <button class="more" data-act="more" data-i="${i}" data-j="${j}">${openDetails.has(i+"-"+j)?"Hide":(it.desc||it.img?"Edit":"Add")} photo, description &amp; page break${it.desc||it.img?" ✓":""}${it.pb?" · new page":""}${lineDisc(it)!==null?` · ${lineDisc(it)}% off`:it.noDisc?" · no discount":""}</button>
       ${openDetails.has(i+"-"+j)?`<div class="details">
         <textarea id="s${i}i${j}d" data-k="systems.${i}.items.${j}.desc" placeholder="What it is and why it's worth having, in a sentence or two" aria-label="Product description">${esc(it.desc)}</textarea>
+        <label class="f"><span>Where it goes (shown under the item)</span><input type="text" data-k="systems.${i}.items.${j}.where" value="${esc(it.where||"")}" placeholder="e.g. Bookshop, Library, Members Room × 2"></label>
         <label class="check"><input type="checkbox" id="s${i}i${j}pb" data-k="systems.${i}.items.${j}.pb" ${it.pb?"checked":""}> Start a new page from this line</label>
         <label class="check"><input type="checkbox" id="s${i}i${j}nd" data-k="systems.${i}.items.${j}.noDisc" ${it.noDisc?"checked":""}> No equipment discount on this line</label>
         <label class="check" style="gap:8px">Discount on this line <input type="number" min="0" max="100" step="0.5" id="s${i}i${j}dc" data-k="systems.${i}.items.${j}.disc" value="${esc(it.disc ?? "")}" placeholder="–" style="width:70px;padding:2px 6px" aria-label="Discount on this line, percent"> % <small class="note" style="margin:0">Leave blank to use the equipment discount. A figure here replaces it for this line.</small></label>
@@ -6597,6 +6599,7 @@ function plDerived(p, tag){
   return 0;
 }
 function plCount(p, tag){ const t = plType(tag); if(!t || !p.sys[t.sys]) return 0; if(p.qty[tag] !== undefined && p.qty[tag] !== "") return Math.max(0, num(p.qty[tag])); return t.head ? plDerived(p, tag) : p.rooms.reduce((a,r)=>a + plRoomN(p, r, tag), 0); }
+function plWhere(p, tag){ return p.rooms.map(r=>{ const n = plRoomN(p, r, tag), nm = String(r.name || "").trim() || ("Room " + (r.no || "")); return n > 0 ? (n > 1 ? `${nm} × ${n}` : nm) : ""; }).filter(Boolean).join(", "); }
 function plProdFor(p, tag){ const id = p.prod[tag] || plDefaults[tag]; return id ? products.find(x=>x.id === id) || null : null; }
 function plLines(p){ return PL_TYPES.map(t=>({ t, q: plCount(p, t.tag), pr: plProdFor(p, t.tag) })).filter(l=>l.q > 0); }
 function plSysHours(p, k){ const inst = plLines(p).filter(l=>l.t.sys === k).reduce((a,l)=>a + l.q * l.t.hrs, 0); const prog = p.prog[k] !== undefined && p.prog[k] !== "" ? num(p.prog[k]) : plProgDefault(p, k); return { inst, prog, total: Math.round((inst + prog) * 2) / 2 }; }
@@ -6617,12 +6620,14 @@ async function plBuild(quiet){
   const sysOut = PL_SYS.filter(s=>p.sys[s.k]).map(s=>{
     const lines = plLines(p).filter(l=>l.t.sys === s.k); if(!lines.length) return null;
     const items = lines.map(l=>{ const pr = l.pr, prev = old.get(l.t.tag), same = prev && (prev.libId || "") === (pr ? pr.id : "");
-      const it = Object.assign(newItem(), { plTag: l.t.tag, qty: l.q, item: pr ? pr.item : l.t.name, model: pr ? (pr.model || "") : "", price: pr ? num(pr.price) : 0, libId: pr ? pr.id : "", desc: pr ? "" : "Product to be confirmed" });
+      const where = l.t.head ? "" : plWhere(p, l.t.tag);
+      const it = Object.assign(newItem(), { plTag: l.t.tag, qty: l.q, where, item: pr ? pr.item : l.t.name, model: pr ? (pr.model || "") : "", price: pr ? num(pr.price) : 0, libId: pr ? pr.id : "", desc: pr ? "" : "Product to be confirmed" });
       if(same){ it.price = prev.price; it.desc = prev.desc; it.img = prev.img; it.tag = prev.tag; if(prev.item) it.item = prev.item; }
       return it; });
-    const rooms = p.rooms.filter(r=>PL_TYPES.some(t=>t.sys === s.k && !t.head && plRoomN(p, r, t.tag) > 0)).length;
+    const roomList = p.rooms.filter(r=>PL_TYPES.some(t=>t.sys === s.k && !t.head && plRoomN(p, r, t.tag) > 0)), rooms = roomList.length;
+    const names = roomList.map(r=>String(r.name || "").trim()).filter(Boolean), nameTxt = names.length > 1 ? names.slice(0, -1).join(", ") + " and " + names[names.length - 1] : names.join("");
     const h = plSysHours(p, s.k), prevSys = q.systems.find(x=>x.fromPlan === s.k);
-    return { name: s.name, desc: prevSys && prevSys.desc && prevSys.descMan ? prevSys.desc : `${p.brand[s.k] ? p.brand[s.k] + ", " : ""}${rooms ? `across ${rooms} room${rooms === 1 ? "" : "s"}` : "head end"}.`, descMan: prevSys ? prevSys.descMan : false, hours: h.total, work: prevSys ? prevSys.work : "", items, fromPlan: s.k };
+    return { name: s.name, desc: prevSys && prevSys.desc && prevSys.descMan ? prevSys.desc : `${p.brand[s.k] ? p.brand[s.k] + ", " : ""}${rooms ? `across ${rooms} room${rooms === 1 ? "" : "s"}${nameTxt ? ": " + nameTxt : ""}` : "head end"}.`, descMan: prevSys ? prevSys.descMan : false, hours: h.total, work: prevSys ? prevSys.work : "", items, fromPlan: s.k };
   }).filter(Boolean);
   q.systems = sysOut.concat(q.systems.filter(s=>!s.fromPlan));
   const text = {
