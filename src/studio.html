@@ -6535,6 +6535,18 @@ const PL_RESP = [
   ["blind", "Blind and curtain fabrics, tracks and fitting by the blind supplier.", false],
   ["tv",    "TVs and brackets supplied by the client.", false]
 ];
+/* only the lines that fit this job, worded for its systems */
+function plRespRel(p, k){ const s = p.sys || {}, rooms = p.rooms || [];
+  if(k === "ac") return !!s.hvac && rooms.some(r=>r.hv === "ac");
+  if(k === "heat") return !!s.hvac && rooms.some(r=>r.hv && r.hv !== "none");
+  if(k === "blind") return !!s.shade;
+  if(k === "tv") return !!s.video;
+  if(k === "supply") return !!plRespText(p, k, "");
+  return true; }
+function plRespText(p, k, t){ if(k !== "supply") return t; const s = p.sys || {}, w = [];
+  if(s.net || s.sec || s.audio || s.video || s.control) w.push("the rack"); if(s.light) w.push("the lighting panels"); if(s.shade) w.push("the blind motors"); if(s.hvac) w.push("the heating controls cabinet");
+  if(!w.length) return ""; return `230 V supplies to ${w.length > 1 ? w.slice(0, -1).join(", ") + " and " + w[w.length - 1] : w[0]} by the electrical contractor, on dedicated circuits.`; }
+const plRespOn = (p, k) => plRespRel(p, k) && !!p.resp[k];
 
 let plList = [], plCur = null, plDirty = false, plStarted = false, plSaveT = null, plBuildT = null, plDefaults = {}, plPick = null, plPickQ = "", plOpen = new Set(["brief","rooms"]);
 function plNorm(p){
@@ -6632,7 +6644,7 @@ async function plBuild(quiet){
   q.systems = sysOut.concat(q.systems.filter(s=>!s.fromPlan));
   const text = {
     next: p.qs.filter(x=>x.q).map(x=>`${x.q}${x.who ? ` (${x.who})` : ""}${x.assume ? ` Until I hear otherwise: ${x.assume}` : ""}`).join("\n"),
-    excluded: PL_RESP.filter(([k])=>p.resp[k]).map(([,t])=>t).join("\n")
+    excluded: PL_RESP.filter(([k])=>plRespOn(p, k)).map(([k,t])=>plRespText(p, k, t)).filter(Boolean).join("\n")
   };
   Object.entries(text).forEach(([k,v])=>{ if(!v) return; if(isNew || !q[k] || q[k] === (p.last[k] || "")) q[k] = v; p.last[k] = v; });
   if(isNew){ q.lede = `Smart home systems for ${p.name}: ${PL_SYS.filter(s=>p.sys[s.k]).map(s=>s.name.toLowerCase()).join(", ")}, designed room by room and set up so everything works from one app.`; }
@@ -6726,7 +6738,8 @@ function plRender(){
     ${p.qs.map((x,i)=>`<div class="plq"><textarea rows="2" data-pqs="${i}.q" placeholder="Question">${esc(x.q)}</textarea><input type="text" data-pqs="${i}.who" value="${esc(x.who)}" placeholder="Who answers"><input type="text" data-pqs="${i}.assume" value="${esc(x.assume)}" placeholder="What I'll assume until then"><button class="icon" data-pla="rmq" data-i="${i}" aria-label="Remove question">×</button></div>`).join("")}
     <div class="adds"><button class="btn small" data-pla="addq">Add question</button><button class="btn small ghost" data-pla="stdq">Add the usual questions</button></div>
     <div class="plsub">Who does what <small>goes into the proposal's exclusions</small></div>
-    ${PL_RESP.map(([k,t])=>`<label class="check plresp"><input type="checkbox" data-presp="${k}" ${p.resp[k] ? "checked" : ""}> ${esc(t)}</label>`).join("")}`;
+    ${PL_RESP.filter(([k])=>plRespRel(p, k)).map(([k,t])=>`<label class="check plresp"><input type="checkbox" data-presp="${k}" ${p.resp[k] ? "checked" : ""}> ${esc(plRespText(p, k, t))}</label>`).join("")}
+    <p class="note">Only the lines that fit this job's systems show here. Fine tune the wording for this job in the proposal's Not included section, and your edits are kept when the proposal is rebuilt.</p>`;
   const d = plDrawing(p);
   const draw = `<p class="note">${p.drawingId ? (d ? `${d.floors.reduce((a,f)=>a + f.devices.length, 0)} of ${PL_TYPES.filter(t=>!t.head).reduce((a,t)=>a + plCount(p, t.tag), 0)} devices placed so far.` : "Linked to a drawing set.") : "Starting the drawing set copies your floors, rooms and device types into Drawings, ready to upload the plans and place devices. The cable schedule builds from there."}</p>
     <div class="adds"><button class="btn small" data-pla="draw">${p.drawingId ? "Open drawings" : "Start drawing set"}</button></div>`;
