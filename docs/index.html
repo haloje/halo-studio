@@ -707,6 +707,9 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .cprow:last-child{border-bottom:0}
 .cprow input{margin-top:3px}
 .cprow small{display:block;color:var(--muted);font-size:12px}
+.hvvids{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;margin-top:6px}
+.hvvids a{display:block;padding:9px 12px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);font-size:14px}
+.hvvids a:hover{border-color:var(--accent)}
 .invpage>h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:26px}
 .calwork{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--bg)}
 .calscroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
@@ -6863,7 +6866,7 @@ const HV_RAIL = [["none","No rail"],["wet","Wet rail"],["elec","Electric rail"]]
 const HV_INTEG = ["Crestron Home","Control4","Lutron HomeWorks","Savant","KNX","Polar Bear app only"];
 const HV_BOOK = {
   gw:     { item: "{integ} link", model: "Polar Bear Ethernet to RS485 gateway (PB-ZEN-MB4-GWC4-WS) + Janus Technology Zentium driver for {integ}", cost: 652.5, price: 705 },
-  th_zen: { item: "Wall thermostats, engraved", model: "Polar Bear Zen2 Turn ACM (PB-ZEN2-ACM-TN-NONE) + FP1 plate kit and digital crown + 1G back box (finish {finish})", cost: 721.35, price: 961.8 },
+  th_zen: { item: "Wall thermostats, engraved", model: "Polar Bear Zen2 Turn ACM (PB-ZEN2-ACM-TN-NONE) + FP1 plate kit and digital crown + Zentium custom back box PB-ZEN-BB-1G (finish {finish})", cost: 721.35, price: 961.8 },
   th_urs: { item: "Wall thermostats, engraved", model: "Polar Bear Ursium Pro thermostat + face plate kit + deep UK metal back box (finish {finish})", cost: 0, price: 0 },
   probe:  { item: "Air probes (virtual zones)", model: "Polar Bear WL4 flat disc air sensor 10K3 + WL4 tip (finish {finish})", cost: 46.07, price: 61.43 },
   umc_eth:{ item: "Wiring centres with probe inputs", model: "Polar Bear UMC2-ETH", cost: 626.06, price: 834.75 },
@@ -6871,7 +6874,8 @@ const HV_BOOK = {
   acif:   { item: "{brand} AC interfaces", model: "Polar Bear Zentium direct AC interface, Mitsubishi Electric (PB-ZEN-ACM-INT-MITI0)", cost: 326.81, price: 435.75 },
   act:    { item: "Zone actuators", model: "Polar Bear 24 V UMC actuator head (PB-AH-DFS-24-2)", cost: 40.95, price: 54.6 },
   hub:    { item: "Bus hubs", model: "Polar Bear RJ45x8 wire hub / landing board (PB-RTU-RJ45x8-HUB)", cost: 224.44, price: 299.25 },
-  cab:    { item: "Controls cabinet", model: "Polar Bear DC01 cabinet + PB-PSU24-60 24 V DIN PSU, terminals, labels", cost: 285.08, price: 380.1 }
+  cab:    { item: "Controls cabinet", model: "Polar Bear DC01 cabinet + 2 × PB-PSU24-60 24 V DIN PSU (one for the pBus, one for the wiring centre outputs), terminals, labels", cost: 404.78, price: 539.7 },
+  vlic:   { item: "Virtual thermostat licences", model: "Polar Bear virtual thermostat licence, one per virtual zone, bought in pbConfig", cost: 0, price: 0 }
 };
 const HV_RESP = {
   us: "Supplies thermostats, air probes, Polar Bear actuators, wiring centres, AC interfaces and the gateway\nIssues the first fix cable schedule and marks up device positions before first fix\nBuilds, installs and commissions the controls cabinet\nTerminates every device, sets addresses and commissions the system\nPrograms the zones, schedules and the {integ} integration",
@@ -6879,7 +6883,7 @@ const HV_RESP = {
   ac: "Indoor units, refrigerant pipework, condensate and unit supplies\nMounts each halo.je interface at its unit and makes the connection to the unit\nLocates the manufacturer's room controllers in the plant space",
   heat: "Reissues the underfloor layout to the current plan, with manifolds, ports and actuator count\nConfirms the valve bodies take the Polar Bear actuators halo.je supplies\nManifolds, zone valve bodies, pump and heat source"
 };
-const HV_CABLES = [["Cabinet to each wall device, one cable per device","Cat5 / Cat6"],["Wiring centre to each air probe","Screened pair"],["Device to its AC interface at the indoor unit","Screened pair"],["Cabinet to each wiring centre at the manifolds","Cat5 / Cat6"],["Wiring centre to zone valves and pump","Sized to load"],["Supply and network to the controls cabinet","By others"]];
+const HV_CABLES = [["pBus, daisy chained from the cabinet to each thermostat and wiring centre in turn. No T's, stars or loops","Cat5 / Cat6"],["Wiring centre to each air probe","Screened pair"],["Device to its AC interface at the indoor unit","Screened pair"],["Cabinet to each wiring centre at the manifolds","Cat5 / Cat6"],["Wiring centre to zone valves and pump","Sized to load"],["Supply and network to the controls cabinet","By others"]];
 
 function hvBlank(){ return { id: uid(), updated: Date.now(), step: 0, name: "", client: "", site: "", number: "HJ-XXX-M", rev: "A", date: isoDay(new Date()), drawn: "IL", checked: "", status: "Preliminary", revNote: "First issue for coordination",
   notes: "Polar Bear room control design. The mechanical design is by others.\nRoom names and numbers per the architect's room schedule.\nCapacity, sizing and plant selection sit with the mechanical engineer.",
@@ -6913,7 +6917,8 @@ function hvCalc(p){
   const act = actKnown ? ports : Math.ceil(wetZones.length * 1.25);
   const umc = (outputs || probes) ? Math.max(Math.ceil(outputs / 8), Math.ceil(probes / 8), p.mans.length || 1) : 0;
   const eth = probes ? Math.min(umc, Math.max(1, Math.ceil(probes / 8))) : 0;
-  const q = { th: th, probe: vz, acif, umc_eth: eth, umc_rs1: umc - eth, act, hub: (th + umc) ? Math.ceil((th + umc) / 7) : 0, gw: (th + umc + acif) ? Math.max(1, Math.ceil((th + umc + acif) / 32)) : 0, cab: (th + umc) ? 1 : 0 };
+  const z2n = R.filter(r=>r.c === "z2").length, busDev = th + umc, zones = th + z2n + vz;
+  const q = { th: th, probe: vz, vlic: vz, acif, umc_eth: eth, umc_rs1: umc - eth, act, hub: (th + umc) ? Math.ceil((th + umc) / 7) : 0, gw: busDev ? Math.max(1, Math.ceil(busDev / 32), Math.ceil(zones / 64)) : 0, cab: (th + umc) ? 1 : 0 };
   Object.keys(p.qtyOver || {}).forEach(k=>{ if(p.qtyOver[k] !== "" && p.qtyOver[k] != null && !isNaN(num(p.qtyOver[k]))) q[k] = num(p.qtyOver[k]); });
   const hoursAuto = q.th || q.probe ? Math.round(8 + 1.5 * q.th + .75 * q.probe + 1 * q.acif + .25 * q.act) : 0;
   const warn = [];
@@ -6921,12 +6926,13 @@ function hvCalc(p){
     if((r.c === "z2" || r.c === "follow") && !byId.get(r.host)) warn.push(`${r.name || "A room"} needs a host room picked.`);
     if(r.c === "z2"){ const h = byId.get(r.host); if(h && h.c !== "th") warn.push(`${r.name || "A room"} is a second zone on ${h.name}, which has no wall thermostat.`); } });
   const z2count = new Map(); R.filter(r=>r.c === "z2").forEach(r=>z2count.set(r.host, (z2count.get(r.host) || 0) + 1)); z2count.forEach((n,h)=>{ if(n > 1){ const hr = byId.get(h); warn.push(`${hr ? hr.name : "A thermostat"} is carrying ${n} second zones. A Polar Bear thermostat runs two zones: its own room and one more.`); } });
-  if(q.gw > 1) warn.push(`${th + umc + acif} devices: more than 32 means a second gateway.`);
-  return { R, th, vz, acif, acRooms: acRooms.length, outputs, probes, umc, eth, act, actKnown, rails, wetZones: wetZones.length, heated: heated.length, q, hoursAuto, hours: p.hoursOver !== "" && p.hoursOver != null ? num(p.hoursOver) : hoursAuto, warn, none: R.filter(r=>r.c === "none").length };
+  if(busDev > 32) warn.push(`${busDev} thermostats and wiring centres on the pBus: the limit is 32 per bus, so this needs a second bus and gateway. AC interfaces sit on the aBus and don't count.`);
+  if(zones > 64) warn.push(`${zones} zones: the pBus limit is 64, counting second zones and virtual thermostats. Split it across a second bus.`);
+  return { R, th, vz, acif, busDev, zones, acRooms: acRooms.length, outputs, probes, umc, eth, act, actKnown, rails, wetZones: wetZones.length, heated: heated.length, q, hoursAuto, hours: p.hoursOver !== "" && p.hoursOver != null ? num(p.hoursOver) : hoursAuto, warn, none: R.filter(r=>r.c === "none").length };
 }
 function hvFill(p, s){ return String(s || "").replace(/\{integ\}/g, p.integ).replace(/\{finish\}/g, p.stat.finish || "TBC").replace(/\{brand\}/g, p.ac.brand || "AC"); }
 function hvBom(p, C){ C = C || hvCalc(p);
-  const keys = [["gw","gw"],[p.stat.model === "ursium" ? "th_urs" : "th_zen","th"],["probe","probe"],["umc_eth","umc_eth"],["umc_rs1","umc_rs1"],["acif","acif"],["act","act"],["hub","hub"],["cab","cab"]];
+  const keys = [["gw","gw"],[p.stat.model === "ursium" ? "th_urs" : "th_zen","th"],["probe","probe"],["vlic","vlic"],["umc_eth","umc_eth"],["umc_rs1","umc_rs1"],["acif","acif"],["act","act"],["hub","hub"],["cab","cab"]];
   return keys.map(([bk, qk])=>{ const b = p.book[bk], qty = C.q[qk] || 0; let tag = "", desc = "";
     if(qk === "act" && !C.actKnown) tag = "Allowance";
     if(qk === "umc_rs1" && !p.mans.length) tag = "Allowance";
@@ -6948,6 +6954,7 @@ function hvAutoQs(p, C){ const by = p.heatBy || "Heating engineer", out = [];
   const ens = C.R.filter(r=>/en.?suite|bath|shower|wet room/i.test(r.name));
   if(ens.length && !p.heat.elec) out.push({ k: "eufh", q: `Is electric underfloor heating wanted in the ${ens.length === 1 ? "en-suite" : ens.length + " en-suites and bathrooms"}?`, why: "Changes the zones and the wiring centre outputs.", who: "Client", assume: "Not in the design at present. A Polar Bear thermostat runs two zones, so no extra thermostats would be needed." });
   if(p.rails === "none" && ens.length) out.push({ k: "rails", q: "Are the towel rails to be controlled, and are they wet or electric?", why: "A rail is its own function on the bedroom thermostat, not a zone, but it still needs a wiring centre output.", who: "Client", assume: "Not controlled at present." });
+  if(p.stat.combo && p.stat.combo !== "None") out.push({ k: "keypads", q: `Who supplies the ${p.stat.combo} keypads for the combination plates?`, why: "Polar Bear supplies the plate and mid plate only. The keypad fixes to the Zentium mid plate, and the buttons come from the lighting manufacturer.", who: "Lighting designer", assume: "Supplied in the lighting package and fitted by us at second fix." });
   out.push({ k: "cab", q: "Where will the controls cabinet go?", why: "Every device cable runs back to it, so it sets the first fix.", who: p.elecBy || "Electrical contractor", assume: p.cab });
   return out.filter(x=>!p.qsOff[x.k]); }
 function hvAllQs(p, C){ return hvAutoQs(p, C).concat(p.qs.filter(q=>q.q)); }
@@ -6963,28 +6970,33 @@ const HV_LEARN = {
     "<b>Heating</b> runs through the UMC wiring centre: wet or electric underfloor, a delayed boiler or heat pump trigger, and towel rail timers. A zone calls, the UMC opens that room's valve, and the pump and heat source run while any zone is calling.",
     "<b>VRV and VRF</b> (Mitsubishi, Daikin and others) talk to the thermostat on aBUS, directly or through a Polar Bear interface at each indoor unit. The thermostat sets mode, setpoint and fan.",
     "<b>Chilled water fan coils</b> use aBUS to an FCU controller. <b>VAVs</b> currently only through a BMS.",
+    "<b>AC on both zones</b>: zone 1 and zone 2 of a thermostat can each have full AC control. A zone can also drive more than one indoor unit, but not every manufacturer allows it, so check the indoor unit model numbers with Polar Bear.",
+    "AC interfaces sit on the <b>aBus</b> (accessory bus), so they never count towards the pBus device limit. The AC driver is picked in the thermostat's advanced menu. With an Intesis interface, always pick <b>Intesis</b>, not the AC brand.",
     "Heating and cooling are <b>interlocked</b> in the zone engine, so a room never calls for both.",
     "The system holds its zones, schedules and setpoints and keeps running if the control processor is off." ] },
   rooms: { h: "Deciding each room", b: [
     "<b>Room with an AC indoor unit:</b> one wall thermostat for heating and cooling, plus an interface per indoor unit. A two unit room takes two interfaces.",
     "<b>Heated room without AC</b> (halls, en-suites, wet rooms, utility): a <b>virtual zone</b>. An air probe, no thermostat on the wall, set from the app or the control system. A bathroom keeps its own setpoint apart from the bedroom.",
-    "<b>Second zone:</b> a Polar Bear thermostat runs two zones, its own room and one more. Good for en-suites, where wet zone rules keep devices off the wall.",
+    "<b>Second zone:</b> a Polar Bear thermostat runs two zones, its own room and one more. Good for en-suites, where wet zone rules keep devices off the wall. Zone 2 can be switched on or off from the thermostat's own configuration menu.",
     "<b>Towel rails</b> are a function on the bedroom thermostat, not a zone: off, auto, a timed boost or two timer periods a day. Each still needs a UMC output: a valve for wet, a switched supply for electric.",
     "<b>Follows:</b> a room grouped to an adjacent zone at commissioning, and ungrouped later if needed.",
     "Cupboards, unheated spaces and plant get no control." ] },
   stats: { h: "Choosing the thermostat", b: [
-    "<b>Zentium</b>: the award winner. Colour touch screen, digital crown, built in temperature and humidity, 7 programmable inputs, two rooms in one unit, AC driver built in. Custom back box. Combination plates take a Lutron Palladiom, Pico / RA2 Select or seeTouch keypad in the same plate.",
+    "<b>Zentium</b>: the award winner. Colour touch screen, digital crown, built in temperature and humidity, 7 programmable inputs, two rooms in one unit, AC driver built in. Every Zentium job needs the <b>Polar Bear custom back box</b>, standalone or combination. Combination plates take a Lutron Palladiom, Pico / RA2 Select or seeTouch keypad: the keypad fixes to the Zentium <b>mid plate</b>, and the keypad and buttons come from Lutron or Crestron, not Polar Bear.",
     "<b>Ursium</b>: super low profile and designed to sit beside the lighting keypads (Lutron, Forbes &amp; Lomax, Meljac, Rako). Fits a deep 47 mm UK metal back box.",
     "<b>Alisse finishes</b>: the Signature Metal Collection, polished, brushed or painted, finished by hand, so batches can vary slightly. Order plates together.",
     "Face plate kits take <b>6 to 12 weeks</b>. Agree the finish early and order as soon as the design is fixed.",
     "Anything you switch off in setup vanishes from the screen, so the client only sees what the room has." ] },
-  plant: { h: "Wiring centres, gateway and cabinet", b: [
-    "<b>UMC2</b>: 9 relay outputs (1 pump, 8 heat), 8 programmable inputs for probes or contacts, pBUS and aBUS, Ethernet, two 0-10 V outputs. The ETH version hosts virtual thermostats, so put the probes on those.",
-    "Count <b>outputs</b>: one per heated zone plus one per towel rail. Count <b>inputs</b>: one per air probe. Wiring centres = whichever needs more, in eights, and at least one per manifold.",
+  plant: { h: "Wiring centres, bus and cabinet", b: [
+    "<b>UMC2</b>: 8 relay outputs plus 1 collective demand relay (for the manifold pump or valves), relays rated AC or DC. The <b>UMC2-ETH</b> adds Ethernet, 8 programmable inputs instead of the RS1's 4, and hosts the virtual thermostats, so put the probes on those.",
+    "Count <b>outputs</b>: one per heated zone plus one per towel rail. Count <b>inputs</b>: one per air probe. Wiring centres = whichever needs more, in eights, and at least one per manifold. One thermostat demand can drive several relays, and <b>Global Demand</b> lets a relay answer any thermostat, which suits pumps, boilers and shared valves.",
+    "In pbConfig, set the <b>heat source type</b> on each heating stage. Marking a demand as wet is what triggers the valves and the boiler or heat pump.",
     "<b>Actuators</b>: one per manifold port. Until the manifold schedule arrives, allow about one and a quarter per zone and mark it as an allowance.",
-    "<b>Gateway</b>: up to 32 devices each.",
-    "<b>Air probes</b>: 12 mm, 10k3 or PT1000, paintable, with a first fix kit. Mount clear of draughts and heat sources.",
-    "<b>Cabinet</b> near the manifolds, on its own 24 V supply that nothing else shares, fed from a dedicated RCD circuit. One cable per device back to the cabinet, nothing daisy chained, so a fault stays on one device." ] },
+    "<b>The pBus</b> is Modbus RTU over RS485. Wire it as a strict <b>daisy chain</b>, never a T, star or loop. Up to <b>32 devices</b>, and only thermostats and UMCs count. Up to <b>64 zones</b>, and second zones and virtual thermostats do count. Every device needs a unique ID.",
+    "Exactly <b>one client</b> on the bus: the gateway, the control system, or a UMC in master mode for a standalone system. When you configure with pbConfig, it becomes the client, so disconnect everything else first.",
+    "Termination resistors aren't needed on every job. On long runs (RS485 allows up to 1,200 m), fit 120 ohm resistors at both ends of the bus.",
+    "<b>Air probes</b>: 12 mm, 10k3 or PT1000, with a first fix kit. The plastic tips can be primed and painted to disappear. Mount clear of draughts and heat sources.",
+    "<b>Power</b>: the UMC outputs are not powered by the pBus. Give the bus its own 24 V supply and the UMC outputs a second, separate one. Cabinet near the manifolds, fed from a dedicated RCD circuit." ] },
   qs: { h: "Asking good questions", b: [
     "Ask plain questions, each with who owes the answer and why it matters.",
     "Every question carries the <b>assumption</b> we will work to. Anything unanswered proceeds on that assumption and is noted at the next revision, so the job never stalls.",
@@ -7000,12 +7012,38 @@ const HV_LEARN = {
     "Actuators and spare wiring centres stay marked <b>Allowance</b> until the manifold schedule is in.",
     "Issue the drawing set with the quote: strategy, questions, room schedules, schematic and responsibilities." ] }
 };
+const HV_EXTRA = [
+  { h: "Sensors", b: [
+    "Each Zentium or Ursium has <b>7 inputs</b> (P1 to P7) as well as its own temperature and humidity sensor. Any input can be a floor or wall sensor, for zone 1 or zone 2.",
+    "Use extra air sensors when the thermostat is in a poor spot, when AC or sun skews it, or when the room is an odd shape.",
+    "Sensors in the same group are <b>blended</b>: averaged, with a weight on each sensor if you want one to count for more. The AC return air temperature can't go in that group.",
+    "<b>Floor monitoring</b> can hold a maximum and a minimum floor temperature. A reading of <b>99.1 °C</b> means no floor sensor is connected." ] },
+  { h: "Thermostat logic", b: [
+    "Heating calls once the room falls below the heating deadband, and stops when it reaches the set point, so heating and cooling never fight.",
+    "Each heating or cooling stage has its own offset set point and its own deadband." ] },
+  { h: "Commissioning with pbConfig", b: [
+    "Reset the thermostats and UMCs in pbConfig before you start.",
+    "Offline mode builds a configuration before you get to site, so you can deploy it later or keep it as a template.",
+    "The thermostat's own configuration menu holds the device ID, room name, AC driver and zone 2 on or off. <b>MenuLock</b> hides that menu from the client.",
+    "Buy virtual thermostat licences straight from pbConfig.",
+    "Firmware: close pbConfig before updating, so the comm port is free for the uploader tool." ] },
+  { h: "Integration", b: [
+    "Control systems usually link through the Polar Bear Ethernet to RS485 gateway and a custom driver, such as the Janus driver. Confirm the route for each system with Polar Bear.",
+    "For BMS jobs the options are a Modbus RTU to BACnet/IP gateway, a direct RS485 link to the BMS outstation, or an Ethernet to RS485 adapter. Polar Bear also sell BACnet/IP and KNX gateways, so call them about licences.",
+    "Coils and holding registers can be written as well as read. Discrete inputs and input registers are read only." ] }
+];
+const HV_VIDEOS = [["Polar Bear Design introduction","https://youtu.be/U0JVlMurGmA"],["Zentium and Ursium","https://youtu.be/KwcpXPBL9_4"],["WL4 sensor and fix kit","https://youtu.be/Ym6562tejVI"],["UMC2","https://youtu.be/iqAiknZ9u7k"],["Project types","https://youtu.be/g7lU08WWrfQ"],["Installing the Ursium","https://youtu.be/xJzmhSM0eHY"],["Installing the Zentium","https://youtu.be/0KxlAqzhYNM"],["Demo box","https://youtu.be/R6fVp53QF2M"],["Engraving","https://youtu.be/fJaoxKQv-vk"],["Thermostat function","https://youtu.be/L6HNKJSigmc"],["Central heating","https://youtu.be/MO6MASdoi20"],["pBus","https://youtu.be/QCxRpuq61AY"],["Sensors","https://youtu.be/xpnmwuSb_uE"],["AC","https://youtu.be/T1QTSRkvcrA"],["Integration","https://youtu.be/-HYP_abwnYI"],["Thermostat on screen configuration","https://youtu.be/sfGpfDmjbz8"],["pbConfig","https://youtu.be/q1RkRuX9CLA"],["Firmware update","https://youtu.be/0hYs6hTO_aY"]];
 const HV_QUIZ = [
   { q: "A bedroom has one AC indoor unit and wet underfloor. What does it get?", o: ["Air probe only","One wall thermostat and one AC interface","Two thermostats"], a: 1, e: "One Polar Bear thermostat runs heating and cooling. The interface at the indoor unit lets it set mode, setpoint and fan." },
   { q: "A heated en-suite with no AC, next to that bedroom. The cheapest tidy answer?", o: ["Its own wall thermostat","Second zone on the bedroom thermostat, or a virtual zone with an air probe","No control"], a: 1, e: "A Polar Bear thermostat runs two zones. A virtual zone also works and keeps the wall clear." },
   { q: "How many devices can one gateway take?", o: ["16","32","64"], a: 1, e: "Up to 32 devices per gateway." },
   { q: "A towel rail on the bedroom thermostat is…", o: ["A separate zone with its own probe","A function on the thermostat, but it still needs a UMC output","Nothing to do with Polar Bear"], a: 1, e: "Off, auto, boost or two timer periods, without turning the floor up. A valve or switched supply on a UMC output." },
-  { q: "How should the devices be wired back?", o: ["Daisy chained room to room","One cable per device back to the cabinet","Wireless only"], a: 1, e: "One cable per device, so a fault stays on one device." },
+  { q: "How is the pBus wired?", o: ["A strict daisy chain","Star, one cable per device back to the cabinet","Any mix of T's and loops"], a: 0, e: "Daisy chain only. Polar Bear don't support T's, stars or loops." },
+  { q: "Which devices count towards the 32 device pBus limit?", o: ["Thermostats only","Thermostats and UMCs","Thermostats, UMCs and AC interfaces"], a: 1, e: "Only thermostats and UMCs. AC interfaces are on the aBus, and virtual thermostats count towards the 64 zone limit instead." },
+  { q: "A Daikin unit is controlled through an Intesis interface. Which AC driver do you pick?", o: ["Daikin","Intesis","None"], a: 1, e: "With an Intesis interface, always pick Intesis, not the AC brand." },
+  { q: "The thermostat shows a floor temperature of 99.1 °C. What does it mean?", o: ["The floor is overheating","No floor sensor is connected","The sensor needs calibrating"], a: 1, e: "99.1 °C is the reading with no floor sensor connected." },
+  { q: "Can the pBus and the UMC outputs share a power supply?", o: ["Yes, it saves a PSU","No, give each its own supply"], a: 1, e: "The outputs aren't powered by the bus. Keep a single, separate supply for the bus." },
+  { q: "You're configuring with pbConfig. What else can be on the bus as a client?", o: ["The Crestron processor","The gateway","Nothing, pbConfig must be the only client"], a: 2, e: "One client on the bus at a time. Disconnect the others while you configure." },
   { q: "The client wants a brushed brass finish. What matters most for the programme?", o: ["Nothing, it's in stock","Face plates take 6 to 12 weeks, so order early","Brass isn't available"], a: 1, e: "Agree the finish early and order the plate kits together." },
   { q: "The manifold schedule hasn't arrived. How do you price actuators?", o: ["Leave them out","Allow about 1.25 per zone and mark it Allowance","Guess one per room and fix the price"], a: 1, e: "Show it as an allowance and ask the question with the assumption you're working to." }
 ];
@@ -7093,7 +7131,7 @@ function hvStep(k, C){ const p = hvCur;
       <div><b>${C.umc}</b><span>wiring centres</span><small>${C.eth} UMC2-ETH · ${C.umc - C.eth} UMC2-RS1</small></div>
       <div><b>${C.act}</b><span>actuators</span><small>${C.actKnown ? "from manifold ports" : "allowance, 1.25 per wet zone"}</small></div>
       <div><b>${C.q.hub}</b><span>bus hubs</span><small>8 ports, one spare each</small></div>
-      <div><b>${C.q.gw}</b><span>gateway${C.q.gw === 1 ? "" : "s"}</span><small>${C.th + C.umc + C.acif} of 32 devices</small></div></div>
+      <div><b>${C.q.gw}</b><span>gateway${C.q.gw === 1 ? "" : "s"}</span><small>${C.busDev} of 32 devices · ${C.zones} of 64 zones</small></div></div>
       <h4 class="hvh">Manifolds <small>leave empty until the heating engineer confirms</small></h4>
       ${p.mans.map((m,i)=>`<div class="hvman"><input data-hk="mans.${i}.name" value="${esc(m.name)}" placeholder="Manifold 1"><input data-hk="mans.${i}.loc" value="${esc(m.loc)}" placeholder="Where, e.g. ground floor plant"><input type="number" min="0" data-hk="mans.${i}.ports" value="${esc(m.ports)}" placeholder="Ports"><button class="icon" data-ha="rmman" data-i="${i}" aria-label="Remove">×</button></div>`).join("")}
       <div class="adds"><button class="btn small ghost" data-ha="addman">Add manifold</button></div>
@@ -7141,6 +7179,8 @@ function hvRenderGuide(sc){
   sc.innerHTML = `<div class="jdetail hvdetail hvguide"><div class="jhead"><span class="num">TRAINING · POLAR BEAR ROOM CONTROL</span><h2>The Polar Bear guide</h2></div>
     <p class="hvlede">How a Polar Bear design comes together, in the order the builder follows. Read it once, then use the self check at the bottom.</p>
     ${HV_STEPS.map((s,i)=>{ const L = HV_LEARN[s.k]; return `<section class="hvgs"><div class="hvgn">${i + 1}</div><div><h3>${L.h} <small>${s.t}</small></h3>${L.b.map(x=>`<p>${x}</p>`).join("")}</div></section>`; }).join("")}
+    ${HV_EXTRA.map((L,i)=>`<section class="hvgs"><div class="hvgn">${HV_STEPS.length + i + 1}</div><div><h3>${L.h} <small>Reference</small></h3>${L.b.map(x=>`<p>${x}</p>`).join("")}</div></section>`).join("")}
+    <section class="hvgs"><div class="hvgn">▶</div><div><h3>Polar Bear training videos <small>${HV_VIDEOS.length} videos</small></h3><div class="hvvids">${HV_VIDEOS.map(([t,u])=>`<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`).join("")}</div></div></section>
     <section class="hvgs"><div class="hvgn">✓</div><div><h3>Self check <small>${done ? `${score} of ${HV_QUIZ.length} right` : `${HV_QUIZ.length} questions`}</small></h3>
       ${HV_QUIZ.map((x,i)=>`<div class="hvqz"><b>${i + 1}. ${esc(x.q)}</b>${x.o.map((o,j)=>{ const picked = hvQuiz[i] === j, show = hvQuiz[i] != null; return `<button data-hqz="${i}.${j}" class="${show && j === x.a ? "ok" : ""} ${picked && j !== x.a ? "bad" : ""}" ${show ? "disabled" : ""}>${esc(o)}</button>`; }).join("")}${hvQuiz[i] != null ? `<p class="note">${esc(x.e)}</p>` : ""}</div>`).join("")}
       ${done ? `<div class="adds"><button class="btn small ghost" data-ha="quizreset">Try again</button></div>` : ""}</div></section>
@@ -7229,12 +7269,12 @@ function hvSheets(p){
     <div class="cxcols" style="grid-template-columns:1.75fr .75fr"><div>
       <div class="hvrow2"><div class="hvbx"><div class="hvsch"><b>${esc(intg)}</b><span>halo.je</span></div><p>Every zone by room name, with temperature and setpoint.</p></div><span class="hvlink">Network</span><div class="hvbx"><div class="hvsch"><b>Polar Bear gateway${C.q.gw > 1 ? "s" : ""}</b><span>halo.je</span></div><p>Holds the zones, schedules and setpoints. Runs on its own if the control system is off.</p></div></div>
       <div class="hvbx wide"><div class="hvsch"><b>Controls cabinet <small>${esc(p.cab)}</small></b><span>${C.umc} wiring centre${C.umc === 1 ? "" : "s"} · ${C.q.hub} hubs</span></div><p>Built, installed and commissioned by halo.je: 24 V supply for the Polar Bear equipment, the bus hubs every device plugs into, the wiring centres and the gateway. Power provided and connected by the electrical contractor, on its own RCD circuit, controls only.</p></div>
-      <div class="hvdiv">One cable per device, back to the cabinet. Nothing daisy chained</div>
+      <div class="hvdiv">pBus daisy chained device to device. No T's, stars or loops</div>
       <div class="hvrow3">${col("Wall thermostats", C.th, `One per room ${p.ac.type !== "none" ? "with an indoor unit" : "that needs one"}. Sets and senses the room, and drives heating${p.ac.type !== "none" ? " and cooling where the room has a unit" : ""}.`, ["Wall device on a " + (p.stat.model === "ursium" ? "deep 47 mm UK metal back box" : "Polar Bear back box") + ", clear of doors and draughts", "Senses room air at the device, no separate probe", p.stat.engrave ? "Engraved with the room name" : "Finish " + esc(p.stat.finish || "TBC")], "The wiring centre holding its zone valve output" + (p.ac.type !== "none" ? ", and its AC interface where the room is cooled." : "."))}
         ${col("Virtual zones", C.vz, "Rooms with no thermostat on the wall. An air probe runs back to a wiring centre and the room is set from " + esc(intg) + ".", ["Air probe at a position agreed on site, clear of draughts and heat sources", "No thermostat on the wall", "Appears by name, with its own setpoint"], "A probe input at its wiring centre, and the zone valve output for that room.")}
         ${p.ac.type !== "none" ? col("AC interfaces", C.acif, `A Polar Bear ${esc(p.ac.brand)} interface at each indoor unit that lets the thermostat set mode, setpoint and fan.`, ["Sits in or within reach of the unit casing, accessible", "One per indoor unit, so a two unit room takes two", "Manufacturer's room controllers hidden in the plant space"], "The control connector on the indoor unit, and the thermostat for that room.") : col("Wiring centres", C.umc, "UMC2 wiring centres at the manifolds: outputs to the zone actuators and pump, inputs for the air probes.", ["In the cabinet or beside the manifolds", "8 heat outputs and a pump output each", "8 inputs for probes or contacts"], "The cabinet bus, each zone actuator and the pump enable.")}</div>
       <div class="hvbx dash"><div class="hvsch"><b>Mechanical installation</b><span>By others</span></div><ul class="cols">${["Manifolds and zone valve bodies","Pump, heat source and control terminals","230 V supplies to plant, and to the cabinet, provided and connected","Screed and finishes"].concat(p.ac.type !== "none" ? ["Indoor units and refrigerant pipework"] : []).map(x=>`<li>${x}</li>`).join("")}</ul></div></div>
-    <div><div class="cxk">Notes</div>${["This sheet shows control intent. It is not a cable routing drawing and sets no containment.","Terminal connections are per the Polar Bear wiring references for the delivered devices, and are not repeated here.","One cable per device back to the cabinet. Nothing is daisy chained, so a fault stays on one device.","Polar Bear equipment runs from its own 24 V supply. Nothing else shares it."].concat(p.ac.type !== "none" ? ["Heating and cooling are interlocked in the zone engine. A room does not call for both at once."] : []).concat(["One valve output per room is allowed. Rooms on more than one loop group need a second, once the manifold schedule is issued.","All first fix wiring is by the electrical contractor to a halo.je cable schedule, issued before first fix.","Every zone holds its own setpoint as drawn. A zone can be grouped to follow an adjacent zone at commissioning and ungrouped later."]).map((t,i)=>`<div class="hvnote"><span>${String(i + 1).padStart(2,"0")}</span>${t}</div>`).join("")}
+    <div><div class="cxk">Notes</div>${["This sheet shows control intent. It is not a cable routing drawing and sets no containment.","Terminal connections are per the Polar Bear wiring references for the delivered devices, and are not repeated here.","The pBus is Modbus RTU over RS485, daisy chained device to device. No T's, stars or loops. Every device has a unique ID.","Long bus runs (up to 1,200 m) take a 120 ohm termination resistor at each end of the bus.","The pBus has its own 24 V supply. The wiring centre outputs run from a second, separate supply."].concat(p.ac.type !== "none" ? ["Heating and cooling are interlocked in the zone engine. A room does not call for both at once."] : []).concat(["One valve output per room is allowed. Rooms on more than one loop group need a second, once the manifold schedule is issued.","All first fix wiring is by the electrical contractor to a halo.je cable schedule, issued before first fix.","Every zone holds its own setpoint as drawn. A zone can be grouped to follow an adjacent zone at commissioning and ungrouped later."]).map((t,i)=>`<div class="hvnote"><span>${String(i + 1).padStart(2,"0")}</span>${t}</div>`).join("")}
       <div class="cxk" style="margin-top:18px">Legend</div><div class="hvleg2"><i></i>halo.je supplied and installed</div><div class="hvleg2 d"><i></i>By others, shown for connection only</div></div></div>
     ${foot("Room schedules from " + ref(3) + " · responsibilities and cables on " + ref(nR) + (dev.pages.length ? " · schematic by device on " + ref(nR + 1) : ""))}</div>${cxTitle(p, "Control and wiring schematic", sub, nS, total)}</article>`;
   const who = [["halo.je","Controls integrator","us"],[p.elecBy || "Electrical contractor","All first fix wiring","elec"]].concat(p.ac.type !== "none" ? [[p.acBy || "AC contractor","By others","ac"]] : []).concat([[p.heatBy || "Heating engineer","By others","heat"]]);
@@ -7268,7 +7308,7 @@ function hvDevSheets(p, C, dev, start, total, ref){
   if(!dev.pages.length) return "";
   const intg = p.integ === "Polar Bear app only" ? "Polar Bear app" : p.integ, ac = p.ac.type !== "none";
   const head = `<div class="hvdh"><div class="hvdb dash"><b>Supply · dedicated RCD circuit</b><small>${esc(p.elecBy || "Electrical contractor")}</small></div><span class="hvdl d"></span>
-    <div class="hvdcab"><div class="hvdct"><b>Controls cabinet</b><small>halo.je builds, installs and commissions</small></div><div class="hvdin"><div class="hvdb"><b>Polar Bear gateway</b><small>Zone engine</small></div><div class="hvdb"><b>24 V DC supply</b><small>UMC2s and thermostats, via pBUS</small></div><div class="hvdb"><b>Termination</b><small>One cable per device</small></div></div></div><span class="hvdl"></span>
+    <div class="hvdcab"><div class="hvdct"><b>Controls cabinet</b><small>halo.je builds, installs and commissions</small></div><div class="hvdin"><div class="hvdb"><b>Polar Bear gateway</b><small>Zone engine</small></div><div class="hvdb"><b>24 V DC supplies</b><small>One for the pBus, one for the UMC outputs</small></div><div class="hvdb"><b>pBus</b><small>Daisy chain, 120 ohm ends on long runs</small></div></div></div><span class="hvdl"></span>
     <div class="hvdst"><div class="hvdb"><b>${esc(intg)}</b><small>Integration by halo.je</small></div><div class="hvdb dash"><b>Home network</b><small>By others</small></div></div></div>
     <div class="hvdbus">pBUS · 24 V DC and data on one cable · star wired, one cable per thermostat and per UMC2<br>Air probes · own screened 2-core cable, one per probe, to a UMC2-ETH input P1 to P8</div>`;
   const row = (o, i) => { const r = o.r, n = num(r.ac), tbc = !C.actKnown;
