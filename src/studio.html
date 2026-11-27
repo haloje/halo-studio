@@ -4597,7 +4597,7 @@ function purCardHtml(){
   return `<div class="jcard" id="purCard"><h3>Supplier invoices <small>${rows.length} IN ${esc(ml(purMonth).toUpperCase())} · ${money(sum, { showPence: false })}</small></h3>
     <p class="note">Saved automatically from your emails twice a day. Tap one to open the PDF.</p>
     <div class="adds"><select class="in" id="purMonth" style="width:auto">${(months.length ? months : [purMonth]).map(m=>`<option value="${m}" ${m === purMonth ? "selected" : ""}>${ml(m)}</option>`).join("")}</select>
-      <button class="btn small" data-pur="csv">Bills CSV for QuickBooks</button><button class="btn small" data-pur="zip">Download all PDFs (zip)</button><button class="btn small ghost" data-pur="add">Add a receipt</button></div>
+      <button class="btn small" data-pur="csv">Bills CSV for QuickBooks</button><button class="btn small" data-pur="zip">Download all PDFs (zip)</button><button class="btn small primary" data-pur="add">Add a receipt</button></div>
     ${rows.length ? `<table><tr><th>Date</th><th>Supplier</th><th>Invoice</th><th>Notes</th><th class="r">Total</th></tr>${rows.map(x=>`<tr class="click" data-puropen="${esc(x.id)}"><td>${esc(jbNice(x.date))}</td><td>${esc(x.supplier)}</td><td>${esc(x.number)}</td><td>${[x.credit ? "Credit note" : "", x.onAccount ? "On account" : "", x.jobRef ? esc(x.jobRef) : "", x.file ? "" : "No PDF"].filter(Boolean).join(" · ")}</td><td class="r">${x.credit ? "−" : ""}${money(x.total, { showPence: true })}</td></tr>`).join("")}</table>` : `<p class="note">No supplier invoices saved for this month yet.</p>`}
   </div>`;
 }
@@ -4612,18 +4612,50 @@ async function purZip(rows, m){
   await offerSave(`halo.je supplier invoices ${m}.zip`, await z.generateAsync({ type: "blob" }));
   if(miss) toast(`${miss} PDF${miss > 1 ? "s" : ""} couldn't be fetched.`);
 }
-async function purAdd(){
-  const inp = document.createElement("input"); inp.type = "file"; inp.accept = "application/pdf,image/*";
-  inp.onchange = async ()=>{ const f = inp.files && inp.files[0]; if(!f) return;
-    const supplier = (prompt("Supplier name") || "").trim(); if(!supplier) return;
-    const number = (prompt("Invoice or receipt number", "") || "").trim() || ("R" + Date.now().toString(36).toUpperCase());
-    const date = (prompt("Date (YYYY-MM-DD)", jbToday()) || "").trim(); if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){ toast("Use a date like 2026-11-23."); return; }
-    const total = num(prompt("Total paid, £", "")); if(!(total > 0)){ toast("Enter the total."); return; }
-    if(f.size > 20e6){ toast("That file is over 20 MB."); return; }
-    const b64 = await new Promise(ok=>{ const r = new FileReader(); r.onload = ()=>ok(String(r.result).split(",")[1]); r.readAsDataURL(f); });
-    try{ await studioConnections.call("studio", "purchase_save", { supplier, number, date, total, file_name: f.name, contentType: f.type || "application/pdf", contentBytes: b64 }); toast("Receipt saved."); }
-    catch(e){ toast((e && e.message) || "Couldn't save the receipt."); } };
-  inp.click();
+/* add a paper receipt or invoice: photo or file, one form */
+async function purShrink(f){
+  if(!/^image\//.test(f.type) || f.size < 1.5e6) return f;
+  try{ const bmp = await createImageBitmap(f); const sc = Math.min(1, 2200 / Math.max(bmp.width, bmp.height)); const c = document.createElement("canvas"); c.width = Math.round(bmp.width * sc); c.height = Math.round(bmp.height * sc); c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    const b = await new Promise(ok=>c.toBlob(ok, "image/jpeg", .82)); return b ? new File([b], (f.name || "receipt").replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }) : f; }catch(_){ return f; }
+}
+function purAdd(){
+  let file = null;
+  const sups = [...new Set(purList.map(x=>x.supplier).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const jobs = (typeof jbList !== "undefined" ? jbList : []).filter(j=>j.status !== "Completed").slice().sort((a,b)=>String(b.number).localeCompare(String(a.number)));
+  sheetOpen(`<h3>Add a receipt or invoice</h3><p class="sub">For paper receipts and anything that didn't come by email. It's stored with your supplier invoices for Andy.</p>
+    <div class="adds"><label class="btn small primary" style="cursor:pointer">Take a photo<input type="file" id="prCam" accept="image/*" capture="environment" hidden></label><label class="btn small" style="cursor:pointer">Choose a file<input type="file" id="prFile" accept="application/pdf,image/*" hidden></label></div>
+    <div id="prPrev" class="note" style="margin:4px 0 8px">No photo or file yet.</div>
+    <label class="f"><span>Supplier</span><input type="text" id="prSup" list="prSups" placeholder="e.g. Screwfix" autocomplete="off"><datalist id="prSups">${sups.map(x=>`<option value="${esc(x)}">`).join("")}</datalist></label>
+    <div class="row"><label class="f"><span>Total paid, £</span><input type="number" id="prTot" step="0.01" min="0" inputmode="decimal" placeholder="0.00"></label><label class="f"><span>Date</span><input type="date" id="prDate" value="${jbToday()}"></label></div>
+    <div class="row"><label class="f"><span>Receipt or invoice number</span><input type="text" id="prNo" placeholder="Optional"></label><label class="f"><span>GST, £ (optional)</span><input type="number" id="prGst" step="0.01" min="0" inputmode="decimal"></label></div>
+    <label class="f"><span>What for (optional)</span><input type="text" id="prDesc" placeholder="e.g. cable clips and trunking"></label>
+    <label class="f"><span>Job (optional)</span><select class="in" id="prJob"><option value="">No job</option>${jobs.map(j=>`<option value="${esc(j.number)}">${esc(j.number)} · ${esc(j.customer || "")}</option>`).join("")}</select></label>
+    <label style="display:flex;gap:10px;align-items:center;font-size:15px;margin:6px 0"><input type="checkbox" id="prCredit" style="width:20px;height:20px;margin:0"> This is a credit note or refund</label>
+    <label style="display:flex;gap:10px;align-items:center;font-size:15px;margin:6px 0"><input type="checkbox" id="prAcct" style="width:20px;height:20px;margin:0"> On account (not paid yet)</label>
+    <div class="adds" style="margin-top:10px"><button class="btn primary" id="prSave">Save</button><button class="btn ghost" id="prCancel">Cancel</button></div>`,
+  p=>{
+    const prev = p.querySelector("#prPrev");
+    const pick = async inp=>{ const f = inp.files && inp.files[0]; if(!f) return; if(f.size > 20e6){ toast("That file is over 20 MB."); return; }
+      prev.textContent = "Getting it ready…"; file = await purShrink(f);
+      if(/^image\//.test(file.type)){ const u = URL.createObjectURL(file); prev.innerHTML = `<img src="${u}" alt="Receipt" style="max-width:100%;max-height:220px;border-radius:8px;display:block">`; }
+      else prev.textContent = `${file.name} · ${Math.round(file.size / 1024)} KB`; };
+    p.querySelector("#prCam").addEventListener("change", e=>pick(e.target)); p.querySelector("#prFile").addEventListener("change", e=>pick(e.target));
+    p.querySelector("#prCancel").addEventListener("click", sheetClose);
+    p.querySelector("#prSave").addEventListener("click", async e=>{
+      const v = id=>(p.querySelector(id).value || "").trim(), b = e.currentTarget;
+      const supplier = v("#prSup"), total = num(v("#prTot")), date = v("#prDate");
+      if(!supplier){ toast("Add the supplier."); return; } if(!(total > 0)){ toast("Add the total."); return; } if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){ toast("Pick the date."); return; }
+      if(!file && !confirm("Save it without a photo or file?")) return;
+      const number = v("#prNo") || ("R" + date.replace(/-/g, "") + "-" + Date.now().toString(36).slice(-4).toUpperCase());
+      b.disabled = true; b.textContent = "Saving…";
+      try{ const input = { supplier, number, date, total, description: v("#prDesc"), job_ref: v("#prJob"), credit_note: p.querySelector("#prCredit").checked, on_account: p.querySelector("#prAcct").checked };
+        if(v("#prGst")) input.gst = num(v("#prGst"));
+        if(file){ input.file_name = file.name || `${number}.pdf`; input.contentType = file.type || "application/pdf"; input.contentBytes = await new Promise(ok=>{ const r = new FileReader(); r.onload = ()=>ok(String(r.result).split(",")[1]); r.readAsDataURL(file); }); }
+        await studioConnections.call("studio", "purchase_save", input);
+        sheetClose(); toast(`Saved: ${supplier} ${money(total, { showPence: true })}.`); purMonth = date.slice(0, 7); const el = $("#purCard"); if(el) el.outerHTML = purCardHtml(); }
+      catch(err){ toast((err && err.message) || "Couldn't save it."); b.disabled = false; b.textContent = "Save"; }
+    });
+  });
 }
 async function purCsv(rows, m){
   const H = ["BillNo","Supplier","BillDate","DueDate","Memo","Account","LineDescription","LineAmount"];
