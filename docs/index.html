@@ -711,6 +711,9 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .hvvids{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;margin-top:6px}
 .hvvids a{display:block;padding:9px 12px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);font-size:14px}
 .hvvids a:hover{border-color:var(--accent)}
+.hvcombo{display:grid;gap:6px;margin-top:6px}
+.hvcombo label{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:10px;align-items:center;font-size:14px}
+@media (max-width:600px){.hvcombo label{grid-template-columns:1fr}}
 .invpage>h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:26px}
 .calwork{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--bg)}
 .calscroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
@@ -6882,6 +6885,17 @@ const HV_HEAT = [["wet","Wet UFH"],["elec","Electric UFH"],["rad","Radiators"],[
 const HV_CTL = [["auto","Auto"],["th","Thermostat"],["vz","Virtual zone"],["z2","Second zone"],["follow","Follows"],["none","No control"]];
 const HV_RAIL = [["none","No rail"],["wet","Wet rail"],["elec","Electric rail"]];
 const HV_INTEG = ["Crestron Home","Control4","Lutron HomeWorks","Savant","KNX","Polar Bear app only"];
+const HV_COMBO = [
+  ["", "Thermostat only", "", "", 0, ""],
+  ["pal",  "Lutron Palladiom",              "PB-ZEN-LUT-UPW",  309.75, "PB-ZEN-BB-DPAL", 60.9],
+  ["pal2", "Lutron Palladiom, double",      "PB-ZEN-LUT-UPW2", 433.65, "PB-ZEN-BB-DPAL", 60.9],
+  ["pico", "Lutron Pico / RA2 Select",      "PB-ZEN-LUT-PIC",  309.75, "PB-ZEN-BB-2G",   49.88],
+  ["ist",  "Lutron seeTouch, international","PB-ZEN-LUT-IST",  336,    "PB-ZEN-BB-IST",  54.6],
+  ["ust",  "Lutron seeTouch, US",           "PB-ZEN-LUT-UST",  309.75, "PB-ZEN-BB-2G",   49.88],
+  ["hor",  "Crestron Horizon",              "PB-ZEN-CRE-HOR",  309.75, "PB-ZEN-BB-2G",   49.88]
+];
+const HV_COMBO_OLD = { "Lutron Palladiom": "pal", "Lutron Pico / RA2 Select": "pico", "Lutron seeTouch (international)": "ist", "Lutron seeTouch (US)": "ust" };
+const hvComboOf = (p, r) => p.stat.model === "ursium" ? "" : (r.combo != null ? r.combo : (HV_COMBO_OLD[p.stat.combo] || ""));
 const HV_BOOK = {
   gw:     { item: "{integ} link", model: "Polar Bear Ethernet to RS485 gateway (PB-ZEN-MB4-GWC4-WS) + Janus Technology Zentium driver for {integ}", cost: 652.5, price: 705 },
   th_zen: { item: "Wall thermostats, engraved", model: "Polar Bear Zen2 Turn ACM (PB-ZEN2-ACM-TN-NONE) + FP1 plate kit and digital crown + Zentium custom back box PB-ZEN-BB-1G (finish {finish})", cost: 721.35, price: 961.8 },
@@ -6892,6 +6906,7 @@ const HV_BOOK = {
   acif:   { item: "{brand} AC interfaces", model: "Polar Bear Zentium direct AC interface, Mitsubishi Electric (PB-ZEN-ACM-INT-MITI0)", cost: 326.81, price: 435.75 },
   act:    { item: "Zone actuators", model: "Polar Bear 24 V UMC actuator head (PB-AH-DFS-24-2)", cost: 40.95, price: 54.6 },
   hub:    { item: "Bus hubs", model: "Polar Bear RJ45x8 wire hub / landing board (PB-RTU-RJ45x8-HUB)", cost: 224.44, price: 299.25 },
+  ...Object.fromEntries(HV_COMBO.slice(1).map(([k,n,plate,pp,bb,bp])=>{ const price = Math.round((651 + pp + bp) * 100) / 100; return ["thc_" + k, { item: `Wall thermostats combined with a ${n} keypad, engraved`, model: `Polar Bear Zen2 Turn ACM (PB-ZEN2-ACM-TN-NONE) + Zentium ${n} combination plate kit and digital crown (${plate}) + Zentium back box ${bb} (finish {finish}). Keypad and buttons by the lighting supplier`, cost: Math.round(price * .75 * 100) / 100, price }]; })),
   cab:    { item: "Controls cabinet", model: "Polar Bear DC01 cabinet + 2 × PB-PSU24-60 24 V DIN PSU (one for the pBus, one for the wiring centre outputs), terminals, labels", cost: 404.78, price: 539.7 },
   vlic:   { item: "Virtual thermostat licences", model: "Polar Bear virtual thermostat licence, one per virtual zone, bought in pbConfig", cost: 0, price: 0 }
 };
@@ -6936,9 +6951,11 @@ function hvCalc(p){
   const umc = (outputs || probes) ? Math.max(Math.ceil(outputs / 8), Math.ceil(probes / 8), p.mans.length || 1) : 0;
   const eth = probes ? Math.min(umc, Math.max(1, Math.ceil(probes / 8))) : 0;
   const z2n = R.filter(r=>r.c === "z2").length, busDev = th + umc, zones = th + z2n + vz;
-  const q = { th: th, probe: vz, vlic: vz, acif, umc_eth: eth, umc_rs1: umc - eth, act, hub: (th + umc) ? Math.ceil((th + umc) / 7) : 0, gw: busDev ? Math.max(1, Math.ceil(busDev / 32), Math.ceil(zones / 64)) : 0, cab: (th + umc) ? 1 : 0 };
+  const combos = {}; R.filter(r=>r.c === "th").forEach(r=>{ const k = hvComboOf(p, r); if(k) combos["thc_" + k] = (combos["thc_" + k] || 0) + 1; });
+  const comboN = Object.values(combos).reduce((a,n)=>a + n, 0);
+  const q = { ...combos, th1: th - comboN, th: th, probe: vz, vlic: vz, acif, umc_eth: eth, umc_rs1: umc - eth, act, hub: (th + umc) ? Math.ceil((th + umc) / 7) : 0, gw: busDev ? Math.max(1, Math.ceil(busDev / 32), Math.ceil(zones / 64)) : 0, cab: (th + umc) ? 1 : 0 };
   Object.keys(p.qtyOver || {}).forEach(k=>{ if(p.qtyOver[k] !== "" && p.qtyOver[k] != null && !isNaN(num(p.qtyOver[k]))) q[k] = num(p.qtyOver[k]); });
-  const hoursAuto = q.th || q.probe ? Math.round(8 + 1.5 * q.th + .75 * q.probe + 1 * q.acif + .25 * q.act) : 0;
+  const hoursAuto = q.th || q.probe ? Math.round(8 + 1.5 * q.th + .25 * comboN + .75 * q.probe + 1 * q.acif + .25 * q.act) : 0;
   const warn = [];
   R.forEach(r=>{ if(num(r.ac) > 0 && r.c !== "th") warn.push(`${r.name || "A room"} has AC but no thermostat. AC needs a wall thermostat to drive its interface.`);
     if((r.c === "z2" || r.c === "follow") && !byId.get(r.host)) warn.push(`${r.name || "A room"} needs a host room picked.`);
@@ -6946,11 +6963,11 @@ function hvCalc(p){
   const z2count = new Map(); R.filter(r=>r.c === "z2").forEach(r=>z2count.set(r.host, (z2count.get(r.host) || 0) + 1)); z2count.forEach((n,h)=>{ if(n > 1){ const hr = byId.get(h); warn.push(`${hr ? hr.name : "A thermostat"} is carrying ${n} second zones. A Polar Bear thermostat runs two zones: its own room and one more.`); } });
   if(busDev > 32) warn.push(`${busDev} thermostats and wiring centres on the pBus: the limit is 32 per bus, so this needs a second bus and gateway. AC interfaces sit on the aBus and don't count.`);
   if(zones > 64) warn.push(`${zones} zones: the pBus limit is 64, counting second zones and virtual thermostats. Split it across a second bus.`);
-  return { R, th, vz, acif, busDev, zones, acRooms: acRooms.length, outputs, probes, umc, eth, act, actKnown, rails, wetZones: wetZones.length, heated: heated.length, q, hoursAuto, hours: p.hoursOver !== "" && p.hoursOver != null ? num(p.hoursOver) : hoursAuto, warn, none: R.filter(r=>r.c === "none").length };
+  return { R, th, vz, acif, busDev, zones, combos, comboN, acRooms: acRooms.length, outputs, probes, umc, eth, act, actKnown, rails, wetZones: wetZones.length, heated: heated.length, q, hoursAuto, hours: p.hoursOver !== "" && p.hoursOver != null ? num(p.hoursOver) : hoursAuto, warn, none: R.filter(r=>r.c === "none").length };
 }
 function hvFill(p, s){ return String(s || "").replace(/\{integ\}/g, p.integ).replace(/\{finish\}/g, p.stat.finish || "TBC").replace(/\{brand\}/g, p.ac.brand || "AC"); }
 function hvBom(p, C){ C = C || hvCalc(p);
-  const keys = [["gw","gw"],[p.stat.model === "ursium" ? "th_urs" : "th_zen","th"],["probe","probe"],["vlic","vlic"],["umc_eth","umc_eth"],["umc_rs1","umc_rs1"],["acif","acif"],["act","act"],["hub","hub"],["cab","cab"]];
+  const keys = [["gw","gw"],[p.stat.model === "ursium" ? "th_urs" : "th_zen","th1"]].concat(HV_COMBO.slice(1).map(([k])=>["thc_" + k, "thc_" + k])).concat([["probe","probe"],["vlic","vlic"],["umc_eth","umc_eth"],["umc_rs1","umc_rs1"],["acif","acif"],["act","act"],["hub","hub"],["cab","cab"]]);
   return keys.map(([bk, qk])=>{ const b = p.book[bk], qty = C.q[qk] || 0; let tag = "", desc = "";
     if(qk === "act" && !C.actKnown) tag = "Allowance";
     if(qk === "umc_rs1" && !p.mans.length) tag = "Allowance";
@@ -6972,7 +6989,8 @@ function hvAutoQs(p, C){ const by = p.heatBy || "Heating engineer", out = [];
   const ens = C.R.filter(r=>/en.?suite|bath|shower|wet room/i.test(r.name));
   if(ens.length && !p.heat.elec) out.push({ k: "eufh", q: `Is electric underfloor heating wanted in the ${ens.length === 1 ? "en-suite" : ens.length + " en-suites and bathrooms"}?`, why: "Changes the zones and the wiring centre outputs.", who: "Client", assume: "Not in the design at present. A Polar Bear thermostat runs two zones, so no extra thermostats would be needed." });
   if(p.rails === "none" && ens.length) out.push({ k: "rails", q: "Are the towel rails to be controlled, and are they wet or electric?", why: "A rail is its own function on the bedroom thermostat, not a zone, but it still needs a wiring centre output.", who: "Client", assume: "Not controlled at present." });
-  if(p.stat.combo && p.stat.combo !== "None") out.push({ k: "keypads", q: `Who supplies the ${p.stat.combo} keypads for the combination plates?`, why: "Polar Bear supplies the plate and mid plate only. The keypad fixes to the Zentium mid plate, and the buttons come from the lighting manufacturer.", who: "Lighting designer", assume: "Supplied in the lighting package and fitted by us at second fix." });
+  const cTypes = [...new Set(C.R.filter(r=>r.c === "th").map(r=>hvComboOf(p, r)).filter(Boolean))].map(k=>HV_COMBO.find(x=>x[0] === k)[1]);
+  if(cTypes.length) out.push({ k: "keypads", q: `Who supplies the ${cTypes.join(" and ")} keypads for the ${C.comboN} combined thermostat${C.comboN === 1 ? "" : "s"}?`, why: "Polar Bear supplies the plate and mid plate only. The keypad fixes to the Zentium mid plate, and the buttons come from the lighting manufacturer.", who: "Lighting designer", assume: "Supplied in the lighting package and fitted by us at second fix." });
   out.push({ k: "cab", q: "Where will the controls cabinet go?", why: "Every device cable runs back to it, so it sets the first fix.", who: p.elecBy || "Electrical contractor", assume: p.cab });
   return out.filter(x=>!p.qsOff[x.k]); }
 function hvAllQs(p, C){ return hvAutoQs(p, C).concat(p.qs.filter(q=>q.q)); }
@@ -7139,10 +7157,14 @@ function hvStep(k, C){ const p = hvCur;
       <label class="hvopt ${p.stat.model === "zentium" ? "on" : ""}"><input type="radio" name="hvm" data-hk="stat.model" value="zentium" ${p.stat.model === "zentium" ? "checked" : ""}><b>Zentium Pro</b><small>Touch screen and digital crown. Custom back box. Combination plates with Lutron keypads.</small></label>
       <label class="hvopt ${p.stat.model === "ursium" ? "on" : ""}"><input type="radio" name="hvm" data-hk="stat.model" value="ursium" ${p.stat.model === "ursium" ? "checked" : ""}><b>Ursium Pro</b><small>Super low profile. Deep 47 mm UK metal box. Sits beside Lutron, Forbes &amp; Lomax, Meljac, Rako.</small></label></div>
       <div class="plgrid" style="margin-top:12px">${hvI("stat.finish","Finish","e.g. Alisse brushed brass")}
-      <label class="f"><span>Combination plate</span>${hvSel("stat.combo", ["None","Lutron Palladiom","Lutron Pico / RA2 Select","Lutron seeTouch (international)","Lutron seeTouch (US)"])}</label>
       <label class="check" style="align-self:end"><input type="checkbox" data-hk="stat.engrave" ${p.stat.engrave ? "checked" : ""}> Engrave room names</label></div>
       ${p.stat.model === "ursium" && !num(p.book.th_urs.price) ? `<p class="note">There's no Ursium price saved yet. Add it on the price step once Polar Bear quote it.</p>` : ""}
-      <p class="note">Plates take 6 to 12 weeks. The finish shows on the drawings and in the proposal as written here.</p>`; }
+      <p class="note">Plates take 6 to 12 weeks. The finish shows on the drawings and in the proposal as written here.</p>
+      <h4 class="hvh">Combined with a lighting keypad <small>${p.stat.model === "ursium" ? "Zentium only" : `${C.comboN} of ${C.th} thermostats`}</small></h4>
+      ${p.stat.model === "ursium" ? `<p class="note">Combination plates are a Zentium option. The Ursium sits beside the keypad in its own plate instead.</p>`
+        : C.th ? `<div class="hvcombo">${C.R.map((r,i)=>[r,i]).filter(([r])=>r.c === "th").map(([r,i])=>`<label><span><b>${esc(r.ref)}</b> ${esc(r.name || "Room")}</span><select class="in" data-hk="rooms.${i}.combo">${HV_COMBO.map(([k,n])=>`<option value="${k}" ${hvComboOf(p, r) === k ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></label>`).join("")}</div>
+          <p class="note">A combined thermostat shares one plate with the room's lighting keypad. The keypad fixes to the Zentium mid plate, and the keypad and buttons come from the lighting supplier.</p>`
+        : `<p class="note">Add rooms with a wall thermostat first.</p>`}`; }
   if(k === "plant"){ return `<div class="hvcalc">
       <div><b>${C.outputs}</b><span>heat outputs</span><small>${C.heated} zones${C.rails ? ` + ${C.rails} rails` : ""}</small></div>
       <div><b>${C.probes}</b><span>probe inputs</span><small>one per virtual zone</small></div>
@@ -7264,7 +7286,7 @@ function hvSheets(p){
     <div class="cxcols"><div><div class="cxk">How each room is controlled</div>${cards.join("")}</div>
     <div><div class="cxk">Summary</div><table class="cxsum">${sumRows.map(([t,v])=>`<tr><td>${esc(t)}</td><td class="r b">${v}</td></tr>`).join("")}</table>
       <div class="cxk" style="margin-top:22px">The set <small>${total} sheets at A3</small></div><table class="cxsum">${set.map(([t],i)=>`<tr><td class="cid">${esc(ref(i + 1))}</td><td>${esc(t)}</td></tr>`).join("")}</table>
-      <div class="cxk" style="margin-top:22px">Thermostats</div><table class="cxsum"><tr><td>Model</td><td class="r">${p.stat.model === "ursium" ? "Ursium Pro" : "Zentium Pro"}</td></tr><tr><td>Finish</td><td class="r">${esc(p.stat.finish || "TBC")}</td></tr>${p.stat.combo !== "None" ? `<tr><td>Combination plate</td><td class="r">${esc(p.stat.combo)}</td></tr>` : ""}<tr><td>Engraved room names</td><td class="r">${p.stat.engrave ? "Yes" : "No"}</td></tr></table></div></div>
+      <div class="cxk" style="margin-top:22px">Thermostats</div><table class="cxsum"><tr><td>Model</td><td class="r">${p.stat.model === "ursium" ? "Ursium Pro" : "Zentium Pro"}</td></tr><tr><td>Finish</td><td class="r">${esc(p.stat.finish || "TBC")}</td></tr>${C.comboN ? Object.entries(C.combos).map(([k,n])=>`<tr><td>Combined with ${esc(HV_COMBO.find(x=>"thc_" + x[0] === k)[1])}</td><td class="r">${n}</td></tr>`).join("") : ""}<tr><td>Engraved room names</td><td class="r">${p.stat.engrave ? "Yes" : "No"}</td></tr></table></div></div>
     ${foot("Outstanding information on " + ref(2) + " · room schedules from " + ref(3) + " · schematic on " + ref(total - dev.pages.length - 1))}</div>${cxTitle(p, "Control strategy and summary", sub, 1, total)}</article>`;
   const whoG = {}; qs.forEach((q,i)=>{ const w = q.who || "TBC"; (whoG[w] = whoG[w] || []).push(String(i + 1).padStart(2,"0")); });
   const s2 = `<article class="cxa3"><div class="cxmain hvm"><div class="cxh1"><h1>Outstanding information <em>${qs.length} questions · ${qs.filter(q=>q.assume).length} assumptions</em></h1><span>Plain questions · mark up and return</span></div>
@@ -7277,7 +7299,7 @@ function hvSheets(p){
   const sched = schedPages.map((pg,pi)=>{ const n = pi + 3, all = C.R.filter(r=>r.floor === pg.f);
     return `<article class="cxa3"><div class="cxmain hvm"><div class="cxh1"><h1>Room schedule, ${esc(pg.f.toLowerCase())}${/floor/i.test(pg.f) ? "" : " floor"}${pg.cont ? " (cont.)" : ""} <em>${all.length} rooms · ${all.filter(r=>r.c === "th").length} thermostats · ${all.filter(r=>r.c === "vz").length} virtual</em></h1><span>Room names per the room schedule</span></div>
       <div class="cxcols" style="grid-template-columns:1.7fr .7fr"><div><table class="cxt hvt"><tr><th>ID</th><th>Room</th><th>Heating</th><th>AC</th><th>Control</th><th>Unit ref</th><th>Rail</th></tr>
-        ${pg.rows.map(r=>`<tr class="${r.c}"><td class="cid">${esc(r.no)}</td><td>${esc(r.name)}</td><td>${heatT[r.heat]}</td><td>${num(r.ac) ? (num(r.ac) > 1 ? num(r.ac) + " units" : "Yes") : "—"}</td><td><b class="rf">${esc(r.ref)}</b></td><td>${esc(r.units || "—")}</td><td>${r.rail === "none" ? "—" : r.rail === "wet" ? "Wet" : "Electric"}</td></tr>`).join("")}</table></div>
+        ${pg.rows.map(r=>`<tr class="${r.c}"><td class="cid">${esc(r.no)}</td><td>${esc(r.name)}</td><td>${heatT[r.heat]}</td><td>${num(r.ac) ? (num(r.ac) > 1 ? num(r.ac) + " units" : "Yes") : "—"}</td><td><b class="rf">${esc(r.ref)}</b>${r.c === "th" && hvComboOf(p, r) ? `<small style="display:block">+ ${esc(HV_COMBO.find(x=>x[0] === hvComboOf(p, r))[1])}</small>` : ""}</td><td>${esc(r.units || "—")}</td><td>${r.rail === "none" ? "—" : r.rail === "wet" ? "Wet" : "Electric"}</td></tr>`).join("")}</table></div>
       <div><div class="cxk">Reading this schedule</div><table class="cxsum hvleg"><tr><td class="cid">TH-nn</td><td>A Polar Bear wall thermostat in that room. Heating, and cooling where the room has a unit.</td></tr><tr><td class="cid">V-nn</td><td>A virtual zone. Air probe only, no thermostat on the wall. Set from ${esc(p.integ === "Polar Bear app only" ? "the app" : p.integ + " or the app")}.</td></tr><tr><td class="cid">Zone 2</td><td>Runs as the second zone on the thermostat named.</td></tr><tr><td class="cid">None</td><td>No Polar Bear control. Cupboards, unheated spaces, or rooms that follow an adjacent zone.</td></tr>${p.ac.type !== "none" ? `<tr><td class="cid">Unit ref</td><td>The indoor unit that thermostat addresses, per the mechanical drawings.</td></tr>` : ""}</table>
         ${pg.rows.some(r=>r.note) ? `<div class="cxk" style="margin-top:22px">Notes</div>${pg.rows.filter(r=>r.note).map(r=>`<p class="hvp"><b>${esc(r.no)}</b> ${esc(r.note)}</p>`).join("")}` : ""}</div></div>
       ${foot("Control strategy on " + ref(1) + " · outstanding information on " + ref(2))}</div>${cxTitle(p, `Room schedule, ${pg.f.toLowerCase()}`, sub, n, total)}</article>`; }).join("");
